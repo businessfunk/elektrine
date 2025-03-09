@@ -8,16 +8,37 @@ defmodule ElektrineWeb.Router do
     plug :put_root_layout, html: {ElektrineWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug ElektrineWeb.Plugs.Auth
   end
 
   pipeline :api do
     plug :accepts, ["json"]
   end
 
+  pipeline :authenticated do
+    plug ElektrineWeb.Plugs.Auth, :authenticate_user
+  end
+
   scope "/", ElektrineWeb do
     pipe_through :browser
 
     get "/", PageController, :home
+    
+    # Authentication routes
+    get "/login", SessionController, :new
+    post "/login", SessionController, :create
+    delete "/logout", SessionController, :delete
+    
+    # Registration routes
+    get "/register", RegistrationController, :new
+    post "/register", RegistrationController, :create
+  end
+
+  # Routes that require authentication
+  scope "/", ElektrineWeb do
+    pipe_through [:browser, :authenticated]
+    
+    # Protected routes go here
   end
 
   # Other scopes may use custom stacks.

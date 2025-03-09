@@ -1,0 +1,37 @@
+<div class="max-w-md mx-auto mt-16 p-6 bg-theme-dark rounded-lg shadow-lg border border-theme-primary-transparent-light">
+  <div class="flex justify-center mb-6">
+    <div class="w-16 h-16 flex items-center justify-center">
+      <div class="text-theme-light text-5xl font-bold transform -rotate-45 inline-block">E</div>
+    </div>
+  </div>
+  
+  <h1 class="text-2xl font-bold mb-6 text-center text-gradient">Login</h1>
+
+  <.form :let={f} for={%{}} action={"/login"} as={:session} class="space-y-4">
+    <%= if @error_message do %>
+      <div class="bg-theme-accent-transparent border border-theme-accent text-theme-accent px-4 py-3 rounded relative" role="alert">
+        <span class="block sm:inline"><%= @error_message %></span>
+      </div>
+    <% end %>
+
+    <div>
+      <.input field={f[:username_or_email]} type="text" label="Username or Email" required placeholder="username or email@example.com" />
+    </div>
+
+    <div>
+      <.input field={f[:password]} type="password" label="Password" required placeholder="••••••••" />
+    </div>
+
+    <div class="flex items-center justify-between">
+      <.button class="w-full font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-300" variant="accent">
+        Sign In
+      </.button>
+    </div>
+
+    <div class="text-center mt-4">
+      <p class="text-sm text-theme-light">
+        Don't have an account? <a href="/register" class="text-theme-primary hover:text-theme-primary-hover transition-colors duration-300">Register</a>
+      </p>
+    </div>
+  </.form>
+</div>

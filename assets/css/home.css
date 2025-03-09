@@ -84,7 +84,7 @@
   --element-y: calc(20% + (80% * var(--random-3, 0.5)));
   --element-opacity: 0.15;
   --element-blur: 40px;
-  background-color: var(--color-secondary);
+  background-color: var(--color-primary-hover);
 }
 
 .bg-element-2 {
