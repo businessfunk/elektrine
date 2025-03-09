@@ -1,5 +1,53 @@
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
+@import "./home.css";
 
 /* This file is for your main application CSS */
+
+/* Color variables */
+:root {
+  --color-primary: #F2C029;
+  --color-secondary: #F2AC29;
+  --color-accent: #F21313;
+  --color-light: #F2F2F2;
+  --color-dark: #000000;
+  --color-neon-blue: #00FFFF;
+  --color-neon-pink: #FF00FF;
+  --color-neon-green: #00FF00;
+}
+
+/* Theme colors */
+.bg-dark {
+  background-color: var(--color-dark);
+}
+
+.text-light {
+  color: var(--color-light);
+}
+
+.text-light-dim {
+  color: rgba(242, 242, 242, 0.3);
+}
+
+.text-primary {
+  color: var(--color-primary);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #F2C029;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #F2AC29;
+}

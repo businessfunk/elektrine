@@ -1,0 +1,440 @@
+/* Custom animations for the home page */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes rotate-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom styles for the home page */
+.animate-pulse-subtle {
+  animation: pulse-subtle 4s ease-in-out infinite;
+  width: var(--element-size);
+  height: var(--element-size);
+  left: var(--element-x);
+  top: var(--element-y);
+  opacity: var(--element-opacity);
+  filter: blur(var(--element-blur));
+  transform: translate(-50%, -50%);
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-rotate-slow {
+  animation: rotate-slow 30s linear infinite;
+}
+
+/* Gradient text effect */
+.text-gradient {
+  background: linear-gradient(90deg, #F2C029, #F2AC29, #F21313, #F2AC29, #F2C029);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-size: 300% auto;
+  animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Background elements */
+.bg-element-0 {
+  --element-size: 200px;
+  --element-x: calc(20% + (80% * var(--random-0, 0.5)));
+  --element-y: calc(20% + (80% * var(--random-1, 0.5)));
+  --element-opacity: 0.2;
+  --element-blur: 30px;
+  background-color: var(--color-primary);
+}
+
+.bg-element-1 {
+  --element-size: 250px;
+  --element-x: calc(20% + (80% * var(--random-2, 0.5)));
+  --element-y: calc(20% + (80% * var(--random-3, 0.5)));
+  --element-opacity: 0.15;
+  --element-blur: 40px;
+  background-color: var(--color-secondary);
+}
+
+.bg-element-2 {
+  --element-size: 180px;
+  --element-x: calc(20% + (80% * var(--random-4, 0.5)));
+  --element-y: calc(20% + (80% * var(--random-5, 0.5)));
+  --element-opacity: 0.1;
+  --element-blur: 35px;
+  background-color: var(--color-accent);
+}
+
+/* Kitsune image */
+.kitsune-glow {
+  filter: drop-shadow(0 0 15px rgba(242, 192, 41, 0.7));
+}
+
+/* Gradient backgrounds */
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--color-primary), var(--color-accent));
+}
+
+/* Cyberpunk elements */
+
+/* Grid lines */
+.cyberpunk-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: center;
+  transform: perspective(500px) rotateX(60deg);
+  transform-origin: center bottom;
+  height: 100%;
+  width: 100%;
+}
+
+/* Digital circuits */
+.cyberpunk-circuits {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  background-image: 
+    radial-gradient(var(--color-neon-blue) 1px, transparent 1px),
+    radial-gradient(var(--color-neon-pink) 1px, transparent 1px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+  animation: circuit-pulse 8s infinite alternate;
+}
+
+@keyframes circuit-pulse {
+  0%, 100% {
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+/* Glitch effect */
+.cyberpunk-glitch {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 0, 255, 0.05) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: glitch-slide 8s linear infinite;
+  pointer-events: none;
+  opacity: 0.05;
+  transition: opacity 0.1s ease-in-out;
+}
+
+@keyframes glitch-slide {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 300% 0;
+  }
+}
+
+/* Cyberpunk text effect */
+.cyberpunk-text {
+  position: relative;
+  text-shadow: 
+    0 0 5px rgba(242, 192, 41, 0.5),
+    0 0 10px rgba(242, 172, 41, 0.3);
+  letter-spacing: 2px;
+  animation: logo-pulse 4s ease-in-out infinite, logo-flicker 10s linear infinite;
+}
+
+@keyframes logo-pulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes logo-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  0.5% {
+    opacity: 0.9;
+  }
+  1% {
+    opacity: 1;
+  }
+  15% {
+    opacity: 1;
+  }
+  15.5% {
+    opacity: 0.9;
+  }
+  16% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+  }
+  50.5% {
+    opacity: 0.9;
+  }
+  51% {
+    opacity: 1;
+  }
+  51.5% {
+    opacity: 0.9;
+  }
+  52% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  85.5% {
+    opacity: 0.9;
+  }
+  86% {
+    opacity: 1;
+  }
+  86.5% {
+    opacity: 0.9;
+  }
+  87% {
+    opacity: 1;
+  }
+}
+
+.cyberpunk-text::before,
+.cyberpunk-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: transparent;
+  background: transparent;
+  overflow: hidden;
+}
+
+.cyberpunk-text::before {
+  left: -1px;
+  text-shadow: 1px 0 rgba(0, 255, 255, 0.3);
+  animation: cyberpunk-text-noise-1 8s infinite linear;
+  opacity: 0.3;
+}
+
+.cyberpunk-text::after {
+  left: 1px;
+  text-shadow: -1px 0 rgba(255, 0, 255, 0.2);
+  animation: cyberpunk-text-noise-2 12s infinite linear;
+  opacity: 0.2;
+}
+
+/* Scan line animation */
+.cyberpunk-scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(242, 192, 41, 0.5), transparent);
+  opacity: 0;
+  animation: scan-line 8s ease-in-out infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes scan-line {
+  0%, 95%, 100% {
+    top: 0;
+    opacity: 0;
+  }
+  10%, 15% {
+    opacity: 0.5;
+  }
+  45%, 50% {
+    top: 100%;
+    opacity: 0.5;
+  }
+  51%, 94% {
+    opacity: 0;
+  }
+}
+
+@keyframes cyberpunk-text-noise-1 {
+  0% {
+    clip-path: inset(100% 0 0 0);
+  }
+  10% {
+    clip-path: inset(20% 0 60% 0);
+  }
+  20% {
+    clip-path: inset(40% 0 20% 0);
+  }
+  30% {
+    clip-path: inset(80% 0 5% 0);
+  }
+  40% {
+    clip-path: inset(10% 0 60% 0);
+  }
+  50% {
+    clip-path: inset(30% 0 30% 0);
+  }
+  60% {
+    clip-path: inset(50% 0 20% 0);
+  }
+  70% {
+    clip-path: inset(70% 0 10% 0);
+  }
+  80% {
+    clip-path: inset(20% 0 40% 0);
+  }
+  90% {
+    clip-path: inset(60% 0 30% 0);
+  }
+  100% {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+@keyframes cyberpunk-text-noise-2 {
+  0% {
+    clip-path: inset(0 0 100% 0);
+  }
+  10% {
+    clip-path: inset(60% 0 20% 0);
+  }
+  20% {
+    clip-path: inset(10% 0 40% 0);
+  }
+  30% {
+    clip-path: inset(40% 0 30% 0);
+  }
+  40% {
+    clip-path: inset(20% 0 70% 0);
+  }
+  50% {
+    clip-path: inset(70% 0 10% 0);
+  }
+  60% {
+    clip-path: inset(30% 0 40% 0);
+  }
+  70% {
+    clip-path: inset(50% 0 30% 0);
+  }
+  80% {
+    clip-path: inset(10% 0 60% 0);
+  }
+  90% {
+    clip-path: inset(40% 0 50% 0);
+  }
+  100% {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
+/* Cyberpunk link effect */
+.cyberpunk-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.cyberpunk-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.cyberpunk-link:hover::after {
+  transform: translateX(100%);
+}
+
+/* Cyberpunk quote */
+.cyberpunk-quote {
+  position: relative;
+  max-width: 80%;
+  padding: 0.5rem 1rem;
+  border-left: 1px solid var(--color-primary);
+  border-right: 1px solid var(--color-primary);
+  overflow: hidden;
+}
+
+.cyberpunk-quote::before,
+.cyberpunk-quote::after {
+  content: '';
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  width: 100%;
+  left: 0;
+}
+
+.cyberpunk-quote::before {
+  top: 0;
+}
+
+.cyberpunk-quote::after {
+  bottom: 0;
+}
+
+.cyberpunk-quote p {
+  font-family: monospace;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 5px rgba(242, 192, 41, 0.5);
+  position: relative;
+}
+
+.cyberpunk-quote p::before {
+  content: '>';
+  color: var(--color-primary);
+  margin-right: 0.5rem;
+  animation: cursor-blink 1s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+} 

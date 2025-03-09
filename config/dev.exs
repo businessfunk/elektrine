@@ -1,11 +1,19 @@
 import Config
 
+# Load environment variables from .env file
+try do
+  DotenvParser.load_file(".env")
+rescue
+  _ -> IO.warn("Failed to load .env file. Using default configuration.")
+end
+
 # Configure your database
 config :elektrine, Elektrine.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "elektrine_dev",
+  username: System.get_env("DATABASE_USERNAME", "postgres"),
+  password: System.get_env("DATABASE_PASSWORD", "postgres"),
+  hostname: System.get_env("DATABASE_HOSTNAME", "localhost"),
+  database: System.get_env("DATABASE_NAME", "elektrine_dev"),
+  port: String.to_integer(System.get_env("DATABASE_PORT", "5432")),
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
@@ -24,7 +32,7 @@ config :elektrine, ElektrineWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "RrLXHwzg2FbrNKWsPV9Clbepz3KYIHIe/FOfnXRmA5yuZrxB6javFausE9A33a90",
+  secret_key_base: System.get_env("SECRET_KEY_BASE", "RrLXHwzg2FbrNKWsPV9Clbepz3KYIHIe/FOfnXRmA5yuZrxB6javFausE9A33a90"),
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:elektrine, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:elektrine, ~w(--watch)]}

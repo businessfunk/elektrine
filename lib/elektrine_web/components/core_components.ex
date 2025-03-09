@@ -222,6 +222,7 @@ defmodule ElektrineWeb.CoreComponents do
   """
   attr :type, :string, default: nil
   attr :class, :string, default: nil
+  attr :variant, :string, default: "primary"
   attr :rest, :global, include: ~w(disabled form name value)
 
   slot :inner_block, required: true
@@ -231,8 +232,11 @@ defmodule ElektrineWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 hover:bg-zinc-700 py-2 px-3",
-        "text-sm font-semibold leading-6 text-white active:text-white/80",
+        "phx-submit-loading:opacity-75 rounded-lg py-2 px-4 text-sm font-semibold leading-6",
+        @variant == "primary" && "bg-[#F2C029] hover:bg-[#F2AC29] text-[#0D0D0D] active:text-[#0D0D0D]/80",
+        @variant == "secondary" && "bg-[#F2F2F2] hover:bg-gray-200 text-[#0D0D0D] active:text-[#0D0D0D]/80 border border-gray-300",
+        @variant == "accent" && "bg-[#F21313] hover:bg-red-600 text-white active:text-white/80",
+        @variant == "outline" && "bg-transparent hover:bg-[#F2F2F2] text-[#0D0D0D] border border-[#F2C029]",
         @class
       ]}
       {@rest}
