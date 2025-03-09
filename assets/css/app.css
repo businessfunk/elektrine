@@ -25,6 +25,67 @@
   --color-neon-green: #00FF00;
 }
 
+/* Flash message animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Flash message glow effects */
+.flash-glow-primary {
+  box-shadow: 0 0 10px rgba(242, 192, 41, 0.3);
+}
+
+.flash-glow-accent {
+  box-shadow: 0 0 10px rgba(242, 19, 19, 0.3);
+}
+
+/* Flash message progress bar */
+@keyframes flashProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.flash-progress {
+  animation: flashProgress 5s linear forwards;
+  width: 100%;
+}
+
+/* Flash message stacking */
+.flash-group {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  pointer-events: none;
+}
+
+.flash-group > div {
+  pointer-events: auto;
+  position: relative !important;
+  top: 0 !important;
+  right: 0 !important;
+  margin-right: 0 !important;
+}
+
 /* Global link styles with glow on hover that inherits parent color */
 a {
   transition: all 0.3s ease;

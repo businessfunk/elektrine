@@ -39,6 +39,12 @@ defmodule ElektrineWeb.Router do
     # Registration routes
     get "/register", RegistrationController, :new
     post "/register", RegistrationController, :create
+    
+    # Password reset routes
+    get "/forgot-password", ForgotPasswordController, :new
+    post "/forgot-password", ForgotPasswordController, :create
+    get "/reset-password/:token", ResetPasswordController, :edit
+    put "/reset-password/:token", ResetPasswordController, :update
   end
 
   # Routes that require authentication

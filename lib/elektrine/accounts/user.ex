@@ -10,6 +10,7 @@ defmodule Elektrine.Accounts.User do
   * `:username` - Primary identifier for login and forms the user's email address (username@elektrine.com)
   * `:recovery_email` - Alternative email for account recovery and notifications
   * `:password` - Virtual field for password input
+  * `:password_confirmation` - Virtual field for password confirmation
   * `:hashed_password` - Encrypted password stored in the database
   """
 
@@ -17,6 +18,7 @@ defmodule Elektrine.Accounts.User do
     field :username, :string
     field :recovery_email, :string
     field :password, :string, virtual: true
+    field :password_confirmation, :string, virtual: true
     field :hashed_password, :string
 
     timestamps(type: :utc_datetime)
@@ -108,5 +110,16 @@ defmodule Elektrine.Accounts.User do
     else
       add_error(changeset, :current_password, "is not valid")
     end
+  end
+
+  @doc """
+  A changeset for changing the password.
+  """
+  def password_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:password, :password_confirmation])
+    |> validate_required([:password, :password_confirmation])
+    |> validate_confirmation(:password, message: "does not match password")
+    |> validate_password()
   end
 end

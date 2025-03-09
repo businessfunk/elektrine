@@ -68,8 +68,8 @@ defmodule ElektrineWeb.Components.Navbar do
               </div>
             <% else %>
               <div class="flex items-center space-x-4">
-                <.nav_link path="/login" current_path={@current_path}>Sign in</.nav_link>
-                <.nav_link path="/register" current_path={@current_path}>Sign up</.nav_link>
+                <.auth_nav_link path="/login" current_path={@current_path}>Sign in</.auth_nav_link>
+                <.auth_nav_link path="/register" current_path={@current_path}>Sign up</.auth_nav_link>
               </div>
             <% end %>
           </div>
@@ -133,8 +133,8 @@ defmodule ElektrineWeb.Components.Navbar do
         <% else %>
           <div class="pt-4 pb-3 border-t border-theme-primary-transparent-light">
             <div class="flex items-center justify-center space-x-4 px-4">
-              <.mobile_nav_link path="/login" current_path={@current_path}>Sign in</.mobile_nav_link>
-              <.mobile_nav_link path="/register" current_path={@current_path}>Sign up</.mobile_nav_link>
+              <.auth_nav_link path="/login" current_path={@current_path}>Sign in</.auth_nav_link>
+              <.auth_nav_link path="/register" current_path={@current_path}>Sign up</.auth_nav_link>
             </div>
           </div>
         <% end %>
@@ -181,6 +181,25 @@ defmodule ElektrineWeb.Components.Navbar do
     """
   end
 
+  # Helper component for authentication links (Sign in/Sign up)
+  attr :path, :string, required: true
+  attr :current_path, :string, required: true
+  attr :class, :string, default: ""
+  slot :inner_block, required: true
+
+  def auth_nav_link(assigns) do
+    active = assigns.current_path == assigns.path
+    
+    assigns = assign(assigns, :active, active)
+    assigns = assign(assigns, :classes, auth_nav_link_classes(active, assigns.class))
+    
+    ~H"""
+    <a href={@path} class={@classes}>
+      <%= render_slot(@inner_block) %>
+    </a>
+    """
+  end
+
   # Helper function to generate desktop nav link classes
   defp nav_link_classes(active, additional_classes) do
     base_classes = "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-150 #{additional_classes}"
@@ -200,6 +219,17 @@ defmodule ElektrineWeb.Components.Navbar do
       "#{base_classes} bg-theme-primary-transparent-light text-theme-light border-theme-primary"
     else
       "#{base_classes} border-transparent text-theme-light-dim hover:text-theme-primary hover:bg-theme-primary-transparent-light hover:border-theme-primary-transparent"
+    end
+  end
+
+  # Helper function to generate authentication nav link classes
+  defp auth_nav_link_classes(active, additional_classes) do
+    base_classes = "inline-flex items-center px-3 py-2 border-l-2 text-sm font-medium transition-colors duration-150 rounded-r-md #{additional_classes}"
+    
+    if active do
+      "#{base_classes} border-theme-primary text-theme-light bg-theme-primary-transparent-lighter"
+    else
+      "#{base_classes} border-transparent text-theme-light-dim hover:text-theme-primary hover:bg-theme-primary-transparent-lighter hover:border-theme-primary"
     end
   end
 end 

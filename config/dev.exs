@@ -29,6 +29,7 @@ config :elektrine, ElektrineWeb.Endpoint,
   # This makes make the service accessible from any network interface.
   # Change to `ip: {127, 0, 0, 1}` to allow access only from the server machine.
   http: [ip: {0, 0, 0, 0}, port: 4000],
+  url: [host: "localhost", port: 4000, scheme: "http"],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,

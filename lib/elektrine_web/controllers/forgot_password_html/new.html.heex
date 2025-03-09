@@ -1,0 +1,42 @@
+<div class="max-w-md mx-auto p-6 bg-theme-dark rounded-lg shadow-lg border border-theme-primary-transparent-light">
+  <div class="flex justify-center mb-6">
+    <div class="w-16 h-16 flex items-center justify-center">
+      <div class="text-theme-light text-5xl font-bold transform -rotate-45 inline-block">E</div>
+    </div>
+  </div>
+  
+  <h1 class="text-2xl font-bold mb-6 text-center text-gradient">Forgot Password</h1>
+  
+  <p class="text-center text-theme-light-dim mb-6">
+    Enter your recovery email and we'll send you instructions to reset your password.
+  </p>
+
+  <.form :let={f} for={%{}} action={~p"/forgot-password"} class="space-y-4">
+    <div>
+      <.input
+        field={f[:recovery_email]}
+        type="email"
+        required
+        name="user[recovery_email]"
+        label="Recovery Email"
+        placeholder="your-email@example.com"
+        autocomplete="email"
+      />
+      <p class="text-xs text-theme-light-dim mt-1">
+        We'll send password reset instructions to this email
+      </p>
+    </div>
+
+    <div>
+      <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-theme-accent hover:bg-theme-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent">
+        Send Instructions
+      </button>
+    </div>
+
+    <div class="text-center mt-4">
+      <p class="text-sm text-theme-light-dim">
+        Remember your password? <a href="/login" class="text-theme-primary hover:text-theme-primary-hover">Sign in</a>
+      </p>
+    </div>
+  </.form>
+</div> 

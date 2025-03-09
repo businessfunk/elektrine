@@ -1,0 +1,58 @@
+<div class="max-w-md mx-auto p-6 bg-theme-dark rounded-lg shadow-lg border border-theme-primary-transparent-light">
+  <div class="flex justify-center mb-6">
+    <div class="w-16 h-16 flex items-center justify-center">
+      <div class="text-theme-light text-5xl font-bold transform -rotate-45 inline-block">E</div>
+    </div>
+  </div>
+  
+  <h1 class="text-2xl font-bold mb-6 text-center text-gradient">Reset Password</h1>
+  
+  <p class="text-center text-theme-light-dim mb-6">
+    Enter your new password below
+  </p>
+
+  <.form :let={f} for={@changeset} action={~p"/reset-password/#{@token}"} method="put" class="space-y-4">
+    <%= if @changeset.action do %>
+      <div class="bg-theme-accent-transparent border border-theme-accent text-theme-accent px-4 py-3 rounded relative" role="alert">
+        <p>Oops, something went wrong! Please check the errors below.</p>
+      </div>
+    <% end %>
+
+    <div>
+      <.input
+        field={f[:password]}
+        type="password"
+        required
+        label="New Password"
+        placeholder="••••••••"
+        autocomplete="new-password"
+      />
+      <p class="text-xs text-theme-light-dim mt-1">
+        Use at least 8 characters with a mix of letters, numbers & symbols
+      </p>
+    </div>
+
+    <div>
+      <.input
+        field={f[:password_confirmation]}
+        type="password"
+        required
+        label="Confirm Password"
+        placeholder="••••••••"
+        autocomplete="new-password"
+      />
+    </div>
+
+    <div>
+      <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-theme-accent hover:bg-theme-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent">
+        Reset Password
+      </button>
+    </div>
+
+    <div class="text-center mt-4">
+      <p class="text-sm text-theme-light-dim">
+        Remember your password? <a href="/login" class="text-theme-primary hover:text-theme-primary-hover">Sign in</a>
+      </p>
+    </div>
+  </.form>
+</div> 

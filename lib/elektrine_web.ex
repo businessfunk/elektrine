@@ -102,6 +102,9 @@ defmodule ElektrineWeb do
         endpoint: ElektrineWeb.Endpoint,
         router: ElektrineWeb.Router,
         statics: ElektrineWeb.static_paths()
+
+      # Add alias for backward compatibility
+      alias ElektrineWeb.Router.Helpers, as: Routes
     end
   end
 

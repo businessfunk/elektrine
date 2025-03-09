@@ -67,3 +67,49 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+// Auto-dismiss flash messages after 5 seconds
+window.addEventListener("elektrine:flash-auto-dismiss", (e) => {
+  const flashElement = e.target;
+  const dismissTimeout = setTimeout(() => {
+    const event = new Event("click", { bubbles: true });
+    flashElement.dispatchEvent(event);
+  }, 5000); // 5 seconds - must match the CSS animation duration
+
+  // Clear timeout if user manually dismisses the flash
+  flashElement.addEventListener("click", () => {
+    clearTimeout(dismissTimeout);
+  }, { once: true });
+
+  // Pause animation on hover
+  flashElement.addEventListener("mouseenter", () => {
+    const progressBar = flashElement.querySelector(".flash-progress");
+    if (progressBar) {
+      progressBar.style.animationPlayState = "paused";
+      clearTimeout(dismissTimeout);
+    }
+  });
+
+  // Resume animation on mouse leave
+  flashElement.addEventListener("mouseleave", () => {
+    const progressBar = flashElement.querySelector(".flash-progress");
+    if (progressBar) {
+      progressBar.style.animationPlayState = "running";
+      
+      // Calculate remaining time based on progress bar width
+      const progressBarWidth = parseInt(window.getComputedStyle(progressBar).width);
+      const containerWidth = parseInt(window.getComputedStyle(flashElement).width);
+      const remainingPercentage = progressBarWidth / containerWidth;
+      const remainingTime = remainingPercentage * 5000;
+      
+      // Reset the timeout with the remaining time
+      clearTimeout(dismissTimeout);
+      if (remainingTime > 0) {
+        setTimeout(() => {
+          const event = new Event("click", { bubbles: true });
+          flashElement.dispatchEvent(event);
+        }, remainingTime);
+      }
+    }
+  });
+});
+

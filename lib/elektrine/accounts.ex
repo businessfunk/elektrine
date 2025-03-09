@@ -10,7 +10,8 @@ defmodule Elektrine.Accounts do
 
   import Ecto.Query, warn: false
   alias Elektrine.Repo
-  alias Elektrine.Accounts.User
+  alias Elektrine.Accounts.{User, UserToken}
+  alias Elektrine.Mailer
 
   @doc """
   Gets a user by username.
@@ -116,5 +117,93 @@ defmodule Elektrine.Accounts do
   """
   def list_users do
     Repo.all(User)
+  end
+
+  @doc """
+  Delivers a password reset email to the user's recovery email.
+  
+  ## Examples
+  
+      iex> deliver_user_reset_password_instructions(user)
+      {:ok, %{to: ..., body: ...}}
+  
+  """
+  def deliver_user_reset_password_instructions(%User{} = user) do
+    if user.recovery_email do
+      {encoded_token, user_token} = UserToken.build_password_reset_token(user, user.recovery_email)
+      Repo.insert!(user_token)
+      
+      # Generate the reset URL using the absolute URL
+      reset_url = "#{ElektrineWeb.Endpoint.url()}/reset-password/#{encoded_token}"
+      
+      ElektrineWeb.Emails.deliver_reset_password_instructions(
+        user,
+        user.recovery_email,
+        fn -> reset_url end
+      )
+    else
+      {:error, :no_recovery_email}
+    end
+  end
+
+  @doc """
+  Gets the user by reset password token.
+  
+  ## Examples
+  
+      iex> get_user_by_reset_password_token("valid-token")
+      %User{}
+  
+      iex> get_user_by_reset_password_token("invalid-token")
+      nil
+  
+  """
+  def get_user_by_reset_password_token(token) do
+    with {:ok, query} <- UserToken.verify_password_reset_token_query(token),
+         %User{} = user <- Repo.one(query) do
+      user
+    else
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Resets the user password.
+  
+  ## Examples
+  
+      iex> reset_user_password(user, %{password: "new password"})
+      {:ok, %User{}}
+  
+      iex> reset_user_password(user, %{password: "invalid"})
+      {:error, %Ecto.Changeset{}}
+  
+  """
+  def reset_user_password(%User{} = user, attrs) do
+    user
+    |> User.password_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for changing the user password.
+  
+  ## Examples
+  
+      iex> change_user_password(user)
+      %Ecto.Changeset{data: %User{}}
+  
+  """
+  def change_user_password(%User{} = user, attrs \\ %{}) do
+    User.password_changeset(user, attrs)
+  end
+
+  @doc """
+  Deletes all tokens for a given user and contexts.
+  """
+  def delete_user_tokens(%User{} = user, contexts) do
+    query = UserToken.user_and_contexts_query(user, contexts)
+    Repo.delete_all(query)
+    :ok
   end
 end

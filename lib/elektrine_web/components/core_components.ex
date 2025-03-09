@@ -112,19 +112,30 @@ defmodule ElektrineWeb.CoreComponents do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
-      phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
+      phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide_flash("##{@id}")}
+      phx-mounted={JS.dispatch("elektrine:flash-auto-dismiss", to: "##{@id}")}
       role="alert"
       class={[
-        "fixed top-2 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
-        @kind == :info && "bg-theme-primary/10 text-theme-primary ring-theme-primary/50",
-        @kind == :error && "bg-theme-accent/10 text-theme-accent ring-theme-accent/50"
+        "w-80 sm:w-96 z-50 rounded-lg p-3 shadow-lg animate-fade-in",
+        "bg-theme-dark text-theme-light border-2 relative overflow-hidden",
+        @kind == :info && "border-theme-primary shadow-theme-primary/20 flash-glow-primary",
+        @kind == :error && "border-theme-accent shadow-theme-accent/20 flash-glow-accent"
       ]}
       {@rest}
     >
+      <div 
+        class={[
+          "flash-progress absolute bottom-0 left-0 h-1",
+          @kind == :info && "bg-theme-primary",
+          @kind == :error && "bg-theme-accent"
+        ]}
+      ></div>
       <p :if={@title} class="flex items-center gap-1.5 text-sm font-semibold leading-6">
-        <.icon :if={@kind == :info} name="hero-information-circle-mini" class="h-4 w-4" />
-        <.icon :if={@kind == :error} name="hero-exclamation-circle-mini" class="h-4 w-4" />
-        {@title}
+        <.icon :if={@kind == :info} name="hero-information-circle-mini" class="h-4 w-4 text-theme-primary" />
+        <.icon :if={@kind == :error} name="hero-exclamation-circle-mini" class="h-4 w-4 text-theme-accent" />
+        <span class={[@kind == :info && "text-theme-primary", @kind == :error && "text-theme-accent"]}>
+          {@title}
+        </span>
       </p>
       <p class="mt-2 text-sm leading-5">{msg}</p>
       <button type="button" class="group absolute top-1 right-1 p-2" aria-label={gettext("close")}>
@@ -146,7 +157,7 @@ defmodule ElektrineWeb.CoreComponents do
 
   def flash_group(assigns) do
     ~H"""
-    <div id={@id}>
+    <div id={@id} class="flash-group">
       <.flash kind={:info} title={gettext("Success!")} flash={@flash} />
       <.flash kind={:error} title={gettext("Error!")} flash={@flash} />
       <.flash
@@ -154,7 +165,7 @@ defmodule ElektrineWeb.CoreComponents do
         kind={:error}
         title={gettext("We can't find the internet")}
         phx-disconnected={show(".phx-client-error #client-error")}
-        phx-connected={hide("#client-error")}
+        phx-connected={hide_flash("#client-error")}
         hidden
       >
         {gettext("Attempting to reconnect")}
@@ -166,7 +177,7 @@ defmodule ElektrineWeb.CoreComponents do
         kind={:error}
         title={gettext("Something went wrong!")}
         phx-disconnected={show(".phx-server-error #server-error")}
-        phx-connected={hide("#server-error")}
+        phx-connected={hide_flash("#server-error")}
         hidden
       >
         {gettext("Hang in there while we get back on track")}
@@ -276,8 +287,8 @@ defmodule ElektrineWeb.CoreComponents do
   attr :name, :any
   attr :label, :string, default: nil
   attr :value, :any
-  attr :label_class, :string, default: "text-zinc-800"
-  attr :error_class, :string, default: "text-rose-600"
+  attr :label_class, :string, default: "text-theme-light"
+  attr :error_class, :string, default: "text-theme-accent"
 
   attr :type, :string,
     default: "text",
@@ -626,13 +637,26 @@ defmodule ElektrineWeb.CoreComponents do
   end
 
   def hide(js \\ %JS{}, selector) do
-    JS.hide(js,
+    js
+    |> JS.hide(
       to: selector,
       time: 200,
       transition:
         {"transition-all transform ease-in duration-200",
          "opacity-100 translate-y-0 sm:scale-100",
          "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"}
+    )
+  end
+
+  def hide_flash(js \\ %JS{}, selector) do
+    js
+    |> JS.hide(
+      to: selector,
+      time: 300,
+      transition:
+        {"transition-all transform ease-out duration-300",
+         "opacity-100 translate-y-0",
+         "opacity-0 translate-y-[-10px]"}
     )
   end
 
