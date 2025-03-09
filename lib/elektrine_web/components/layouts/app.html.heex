@@ -1,44 +1,12 @@
-<header class="px-4 sm:px-6 lg:px-8 bg-theme-dark">
-  <div class="flex items-center justify-between border-b border-theme-primary-transparent-light py-3 text-sm">
-    <div class="flex items-center gap-4">
-      <a href="/" class="flex items-center">
-        <div class="w-10 h-10 flex items-center justify-center">
-          <div class="text-theme-light text-3xl font-bold transform -rotate-45 inline-block">E</div>
-        </div>
-      </a>
-      <p class="bg-theme-primary-transparent-lighter text-theme-primary rounded-full px-2 font-medium leading-6">
-        Elektrine
-      </p>
+<div class="flex flex-col min-h-screen">
+  <.navbar current_user={@current_user} current_path={assigns[:current_path] || Phoenix.Controller.current_path(@conn)} />
+
+  <main class="flex-grow bg-theme-dark pt-8">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <.flash_group flash={@flash} />
+      {@inner_content}
     </div>
-    <div class="flex items-center gap-4 font-semibold leading-6 text-theme-light">
-      <%= if @current_user do %>
-        <span class="text-theme-light-dim">
-          Welcome, <%= @current_user.username %>!
-        </span>
-        <.link
-          href={"/logout"}
-          method="delete"
-          class="rounded-lg bg-theme-accent px-2 py-1 hover:bg-theme-accent-hover text-white"
-        >
-          Log out
-        </.link>
-      <% else %>
-        <.link href={"/login"} class="text-theme-primary hover:text-theme-primary-hover">
-          Log in
-        </.link>
-        <.link
-          href={"/register"}
-          class="rounded-lg bg-theme-accent px-2 py-1 hover:bg-theme-accent-hover text-white"
-        >
-          Register <span aria-hidden="true">&rarr;</span>
-        </.link>
-      <% end %>
-    </div>
-  </div>
-</header>
-<main class="px-4 py-20 sm:px-6 lg:px-8 bg-theme-dark">
-  <div class="mx-auto max-w-2xl">
-    <.flash_group flash={@flash} />
-    {@inner_content}
-  </div>
-</main>
+  </main>
+
+  <.footer />
+</div>

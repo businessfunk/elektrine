@@ -1,0 +1,44 @@
+<div class="bg-theme-dark">
+  <!-- Hero Section -->
+  <div class="relative overflow-hidden">
+    <div class="absolute inset-0 z-0">
+      <div class="absolute top-0 left-0 w-full h-full">
+        <%= for i <- 1..5 do %>
+          <div class="absolute rounded-full animate-pulse-subtle bg-element-#{rem(i, 3)}" 
+               style={"top: #{rem(i * 7, 100)}%; left: #{rem(i * 11, 100)}%; width: #{rem(i, 4) + 1}rem; height: #{rem(i, 4) + 1}rem; opacity: 0.#{rem(i, 9) + 1}"}>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center">
+        <h1 class="text-4xl font-extrabold tracking-tight text-theme-light sm:text-5xl lg:text-6xl">
+          About <span class="text-theme-primary">Elektrine</span>
+        </h1>
+        <p class="mt-6 max-w-2xl mx-auto text-xl text-theme-light-dim">
+          Modern email for the digital age.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- About Section -->
+  <div class="relative bg-theme-dark overflow-hidden">
+    <div class="relative px-4 sm:px-6 lg:px-8">
+      <div class="max-w-3xl mx-auto">
+        <div class="prose prose-lg text-theme-light-dim">
+          <p>
+            Elektrine is an email service focused on providing a clean, modern user experience. Our platform is designed to make email management simple and efficient.
+          </p>
+          <p class="mt-4">
+            We believe that email should be easy to use. Our interface is designed to be intuitive and responsive, making communication accessible to everyone.
+          </p>
+          <p class="mt-4">
+            Thank you for your interest in Elektrine. We're constantly working to improve our service and would love to hear your feedback.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

@@ -1,4 +1,4 @@
-<div class="max-w-md mx-auto mt-16 p-6 bg-theme-dark rounded-lg shadow-lg border border-theme-primary-transparent-light">
+<div class="max-w-md mx-auto p-6 bg-theme-dark rounded-lg shadow-lg border border-theme-primary-transparent-light">
   <div class="flex justify-center mb-6">
     <div class="w-16 h-16 flex items-center justify-center">
       <div class="text-theme-light text-5xl font-bold transform -rotate-45 inline-block">E</div>
@@ -15,30 +15,46 @@
     <% end %>
 
     <div>
-      <.input field={f[:username]} type="text" label="Username" required placeholder="Enter your username" />
-      <p class="text-xs text-theme-light-dim mt-1">Only letters, numbers, and underscores allowed.</p>
-    </div>
-
-    <div>
-      <.input field={f[:email]} type="email" label="Email" required placeholder="your.email@example.com" />
-    </div>
-
-    <div>
-      <.input field={f[:password]} type="password" label="Password" required placeholder="••••••••" />
+      <.input field={f[:username]} type="text" label="Username" required />
       <p class="text-xs text-theme-light-dim mt-1">
-        Must be at least 8 characters and include uppercase, lowercase, and numbers.
+        Choose a unique username for your account
       </p>
     </div>
 
-    <div class="flex items-center justify-between">
-      <.button class="w-full font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-300" variant="accent">
-        Register
-      </.button>
+    <div>
+      <.input field={f[:recovery_email]} type="email" label="Recovery Email" required />
+      <p class="text-xs text-theme-light-dim mt-1">
+        We'll use this to help you recover your account if needed
+      </p>
+    </div>
+
+    <div>
+      <.input field={f[:password]} type="password" label="Password" required />
+      <p class="text-xs text-theme-light-dim mt-1">
+        Use at least 8 characters with a mix of letters, numbers & symbols
+      </p>
+    </div>
+
+    <div>
+      <.input field={f[:password_confirmation]} type="password" label="Confirm Password" required />
+    </div>
+
+    <div class="flex items-center">
+      <input id="terms" name="terms" type="checkbox" class="h-4 w-4 text-theme-primary focus:ring-theme-primary border-theme-primary-transparent-light rounded" required>
+      <label for="terms" class="ml-2 block text-sm text-theme-light-dim">
+        I agree to the <a href="/terms" class="text-theme-primary hover:text-theme-primary-hover">Terms of Service</a> and <a href="/privacy" class="text-theme-primary hover:text-theme-primary-hover">Privacy Policy</a>
+      </label>
+    </div>
+
+    <div>
+      <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-theme-accent hover:bg-theme-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent">
+        Create Account
+      </button>
     </div>
 
     <div class="text-center mt-4">
-      <p class="text-sm text-theme-light">
-        Already have an account? <a href="/login" class="text-theme-primary hover:text-theme-primary-hover transition-colors duration-300">Login</a>
+      <p class="text-sm text-theme-light-dim">
+        Already have an account? <a href="/login" class="text-theme-primary hover:text-theme-primary-hover">Sign in</a>
       </p>
     </div>
   </.form>

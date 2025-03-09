@@ -24,6 +24,13 @@ defmodule ElektrineWeb.Router do
 
     get "/", PageController, :home
     
+    # About page
+    get "/about", AboutController, :index
+    
+    # Legal pages
+    get "/privacy", LegalController, :privacy
+    get "/terms", LegalController, :terms
+    
     # Authentication routes
     get "/login", SessionController, :new
     post "/login", SessionController, :create

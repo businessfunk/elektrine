@@ -82,13 +82,11 @@ defmodule ElektrineWeb do
 
   defp html_helpers do
     quote do
-      # Translation
-      use Gettext, backend: ElektrineWeb.Gettext
-
       # HTML escaping functionality
       import Phoenix.HTML
-      # Core UI components
+      # Core UI components and translation
       import ElektrineWeb.CoreComponents
+      import ElektrineWeb.Gettext
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
@@ -108,7 +106,7 @@ defmodule ElektrineWeb do
   end
 
   @doc """
-  When used, dispatch to the appropriate controller/live_view/etc.
+  When used, dispatch to the appropriate controller/view/etc.
   """
   defmacro __using__(which) when is_atom(which) do
     apply(__MODULE__, which, [])

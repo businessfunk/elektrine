@@ -1,25 +1,26 @@
-<.flash_group flash={@flash} />
-<div class="min-h-screen bg-theme-dark flex flex-col items-center justify-center overflow-hidden relative">
+<div class="bg-theme-dark flex flex-col items-center justify-center overflow-hidden relative">
   <div class="absolute inset-0 z-0">
     <div class="absolute top-0 left-0 w-full h-full">
       <%= for i <- 1..20 do %>
-        <div class="absolute rounded-full animate-pulse-subtle bg-element-#{rem(i, 3)}"></div>
+        <div class="absolute rounded-full animate-pulse-subtle bg-element-#{rem(i, 3)}" 
+             style={"top: #{rem(i * 5, 100)}%; left: #{rem(i * 7, 100)}%; width: #{rem(i, 5) + 1}rem; height: #{rem(i, 5) + 1}rem;"}>
+        </div>
       <% end %>
     </div>
     
     <div class="cyberpunk-glitch"></div>
   </div>
 
-  <div class="z-10 max-w-4xl w-full px-6 py-12 flex flex-col items-center">
-    <div class="mb-12">
-      <div class="w-64 h-64 relative animate-float">
+  <div class="z-10 max-w-4xl w-full px-6 py-8 flex flex-col items-center">
+    <div class="mb-8">
+      <div class="w-48 h-48 md:w-64 md:h-64 relative animate-float">
         <img src={~p"/images/kitsune.png"} alt="Kitsune" class="w-full h-full object-contain kitsune-glow" />
         <div class="absolute -inset-4 rounded-full bg-gradient-radial opacity-20 blur-xl animate-pulse"></div>
       </div>
     </div>
 
     <div class="relative">
-      <h1 class="text-gradient text-5xl font-bold mb-16 text-center tracking-tight cyberpunk-text">Elektrine</h1>
+      <h1 class="text-gradient text-4xl md:text-5xl font-bold mb-8 md:mb-16 text-center tracking-tight cyberpunk-text">Elektrine</h1>
       <div class="cyberpunk-scan-line"></div>
     </div>
 
@@ -27,7 +28,7 @@
       <p class="text-theme-light text-sm italic">The CIA hides cat girls in the unused registers of your CPU.</p>
     </div>
 
-    <div class="mt-8 flex space-x-6">
+    <div class="mt-4 flex space-x-6">
       <a href="#" class="text-theme-light hover:text-theme-primary transition-colors duration-300 text-sm uppercase tracking-widest cyberpunk-link">Explore</a>
       <span class="text-theme-light-dimmest">|</span>
       <a href="#" class="text-theme-light hover:text-theme-primary transition-colors duration-300 text-sm uppercase tracking-widest cyberpunk-link">Connect</a>

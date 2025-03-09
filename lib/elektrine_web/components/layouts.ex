@@ -9,6 +9,13 @@ defmodule ElektrineWeb.Layouts do
   `use ElektrineWeb, :live_view`.
   """
   use ElektrineWeb, :html
+  
+  # Import Phoenix.Controller for current_path/1 and get_csrf_token/0
+  import Phoenix.Controller, only: [current_path: 1, get_csrf_token: 0]
+  
+  # Import components so they're available in all layouts
+  import ElektrineWeb.Components.Navbar
+  import ElektrineWeb.Components.Footer
 
   embed_templates "layouts/*"
 end

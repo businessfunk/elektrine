@@ -25,6 +25,36 @@
   --color-neon-green: #00FF00;
 }
 
+/* Global link styles with glow on hover that inherits parent color */
+a {
+  transition: all 0.3s ease;
+}
+
+/* Text links get a subtle glow effect */
+a:not(.bg-theme-primary):not(.bg-theme-accent):hover {
+  text-shadow: 0 0 8px currentColor, 0 0 12px currentColor;
+  filter: brightness(1.2);
+}
+
+/* Primary yellow button glow */
+a.bg-theme-primary:hover,
+button.bg-theme-primary:hover {
+  box-shadow: 0 0 10px var(--color-primary), 0 0 15px var(--color-primary-transparent);
+  filter: brightness(1.05);
+}
+
+/* Accent red button glow */
+a.bg-theme-accent:hover,
+button.bg-theme-accent:hover {
+  box-shadow: 0 0 10px var(--color-accent), 0 0 15px var(--color-accent-transparent);
+  filter: brightness(1.05);
+}
+
+/* Default button glow */
+button:not(.bg-theme-primary):not(.bg-theme-accent):hover {
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
 /* Theme colors - Background */
 .bg-theme-dark {
   background-color: var(--color-dark);

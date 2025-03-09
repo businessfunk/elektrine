@@ -2,6 +2,10 @@ defmodule Elektrine.Accounts do
   @moduledoc """
   The Accounts context handles user-related operations including registration,
   authentication, and user management.
+  
+  In this system, usernames are the primary identifiers for users and are used
+  to form their email addresses (username@elektrine.com). The recovery_email field
+  serves as an alternative contact method for account recovery and notifications.
   """
 
   import Ecto.Query, warn: false
@@ -10,24 +14,31 @@ defmodule Elektrine.Accounts do
 
   @doc """
   Gets a user by username.
+  
+  Username is the primary identifier for users in the system.
   """
   def get_user_by_username(username) when is_binary(username) do
     Repo.get_by(User, username: username)
   end
 
   @doc """
-  Gets a user by email.
+  Gets a user by recovery email.
+  
+  Recovery email is used as an alternative contact method.
   """
-  def get_user_by_email(email) when is_binary(email) do
-    Repo.get_by(User, email: email)
+  def get_user_by_recovery_email(email) when is_binary(email) do
+    Repo.get_by(User, recovery_email: email)
   end
 
   @doc """
-  Gets a user by either username or email.
+  Gets a user by either username or recovery email.
+  
+  While username is the primary identifier, users can also log in using
+  their alternative recovery email address.
   """
   def get_user_by_username_or_email(username_or_email) when is_binary(username_or_email) do
     if String.contains?(username_or_email, "@") do
-      get_user_by_email(username_or_email)
+      get_user_by_recovery_email(username_or_email)
     else
       get_user_by_username(username_or_email)
     end
@@ -38,10 +49,10 @@ defmodule Elektrine.Accounts do
   
   ## Examples
       
-      iex> register_user(%{username: "user123", email: "user@example.com", password: "Password123"})
+      iex> register_user(%{username: "user123", recovery_email: "user@example.com", password: "Password123"})
       {:ok, %User{}}
       
-      iex> register_user(%{username: "user", email: "invalid", password: "pass"})
+      iex> register_user(%{username: "user", recovery_email: "invalid", password: "pass"})
       {:error, %Ecto.Changeset{}}
   """
   def register_user(attrs) do
@@ -83,6 +94,9 @@ defmodule Elektrine.Accounts do
   
   Returns `{:ok, user}` if a user exists with the given username/email
   and the password is valid. Otherwise, returns `{:error, reason}`.
+  
+  While username is the primary login method, users can also log in using
+  their alternative recovery email address.
   """
   def authenticate_user(username_or_email, password) do
     user = get_user_by_username_or_email(username_or_email)
