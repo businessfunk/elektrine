@@ -68,8 +68,8 @@ defmodule ElektrineWeb.Components.Navbar do
               </div>
             <% else %>
               <div class="flex items-center space-x-4">
-                <.nav_link path="/login" current_path={@current_path} class="px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150">Sign in</.nav_link>
-                <.nav_link path="/register" current_path={@current_path} class="px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150">Sign up</.nav_link>
+                <.nav_link path="/login" current_path={@current_path}>Sign in</.nav_link>
+                <.nav_link path="/register" current_path={@current_path}>Sign up</.nav_link>
               </div>
             <% end %>
           </div>
@@ -133,8 +133,8 @@ defmodule ElektrineWeb.Components.Navbar do
         <% else %>
           <div class="pt-4 pb-3 border-t border-theme-primary-transparent-light">
             <div class="flex items-center justify-center space-x-4 px-4">
-              <.mobile_nav_link path="/login" current_path={@current_path} class="px-3 py-2 rounded-md text-base font-medium transition-colors duration-150">Sign in</.mobile_nav_link>
-              <.mobile_nav_link path="/register" current_path={@current_path} class="px-3 py-2 rounded-md text-base font-medium transition-colors duration-150">Sign up</.mobile_nav_link>
+              <.mobile_nav_link path="/login" current_path={@current_path}>Sign in</.mobile_nav_link>
+              <.mobile_nav_link path="/register" current_path={@current_path}>Sign up</.mobile_nav_link>
             </div>
           </div>
         <% end %>

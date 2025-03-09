@@ -1,9 +1,9 @@
-<div class="bg-theme-dark flex flex-col items-center justify-center overflow-hidden relative">
+<div class="bg-theme-dark flex flex-col items-center justify-center overflow-hidden relative min-h-screen">
   <div class="absolute inset-0 z-0">
-    <div class="absolute top-0 left-0 w-full h-full">
+    <div class="absolute top-0 left-0 w-full h-full p-8">
       <%= for i <- 1..20 do %>
         <div class="absolute rounded-full animate-pulse-subtle bg-element-#{rem(i, 3)}" 
-             style={"top: #{rem(i * 5, 100)}%; left: #{rem(i * 7, 100)}%; width: #{rem(i, 5) + 1}rem; height: #{rem(i, 5) + 1}rem;"}>
+             style={"top: #{5 + rem(i * 5, 90)}%; left: #{5 + rem(i * 7, 90)}%; width: #{rem(i, 5) + 1}rem; height: #{rem(i, 5) + 1}rem;"}>
         </div>
       <% end %>
     </div>
