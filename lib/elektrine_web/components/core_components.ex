@@ -202,10 +202,12 @@ defmodule ElektrineWeb.CoreComponents do
   def simple_form(assigns) do
     ~H"""
     <.form :let={f} for={@for} as={@as} {@rest}>
-      <div class="mt-10 space-y-8 bg-white">
-        {render_slot(@inner_block, f)}
-        <div :for={action <- @actions} class="mt-2 flex items-center justify-between gap-6">
-          {render_slot(action, f)}
+      <div class="card bg-base-100 shadow-sm p-6">
+        <div class="space-y-4">
+          {render_slot(@inner_block, f)}
+          <div :for={action <- @actions} class="mt-6">
+            {render_slot(action, f)}
+          </div>
         </div>
       </div>
     </.form>
@@ -231,8 +233,7 @@ defmodule ElektrineWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 hover:bg-zinc-700 py-2 px-3",
-        "text-sm font-semibold leading-6 text-white active:text-white/80",
+        "btn btn-primary phx-submit-loading:opacity-75",
         @class
       ]}
       {@rest}
@@ -309,8 +310,8 @@ defmodule ElektrineWeb.CoreComponents do
       end)
 
     ~H"""
-    <div>
-      <label class="flex items-center gap-4 text-sm leading-6 text-zinc-600">
+    <div class="form-control">
+      <label class="label cursor-pointer justify-start gap-3">
         <input type="hidden" name={@name} value="false" disabled={@rest[:disabled]} />
         <input
           type="checkbox"
@@ -318,10 +319,10 @@ defmodule ElektrineWeb.CoreComponents do
           name={@name}
           value="true"
           checked={@checked}
-          class="rounded border-zinc-300 text-zinc-900 focus:ring-0"
+          class="checkbox checkbox-primary"
           {@rest}
         />
-        {@label}
+        <span class="label-text">{@label}</span>
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
@@ -330,12 +331,12 @@ defmodule ElektrineWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div>
+    <div class="form-control w-full">
       <.label for={@id}>{@label}</.label>
       <select
         id={@id}
         name={@name}
-        class="mt-2 block w-full rounded-md border border-gray-300 bg-white shadow-sm focus:border-zinc-400 focus:ring-0 sm:text-sm"
+        class="select select-bordered w-full"
         multiple={@multiple}
         {@rest}
       >
@@ -349,15 +350,15 @@ defmodule ElektrineWeb.CoreComponents do
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div>
+    <div class="form-control w-full">
       <.label for={@id}>{@label}</.label>
       <textarea
         id={@id}
         name={@name}
         class={[
-          "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6 min-h-[6rem]",
-          @errors == [] && "border-zinc-300 focus:border-zinc-400",
-          @errors != [] && "border-rose-400 focus:border-rose-400"
+          "textarea textarea-bordered min-h-[6rem]",
+          @errors == [] && "",
+          @errors != [] && "textarea-error"
         ]}
         {@rest}
       >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
@@ -369,7 +370,7 @@ defmodule ElektrineWeb.CoreComponents do
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
     ~H"""
-    <div>
+    <div class="form-control w-full">
       <.label for={@id}>{@label}</.label>
       <input
         type={@type}
@@ -377,9 +378,9 @@ defmodule ElektrineWeb.CoreComponents do
         id={@id}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
         class={[
-          "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
-          @errors == [] && "border-zinc-300 focus:border-zinc-400",
-          @errors != [] && "border-rose-400 focus:border-rose-400"
+          "input input-bordered w-full",
+          @errors == [] && "",
+          @errors != [] && "input-error"
         ]}
         {@rest}
       />
@@ -396,8 +397,8 @@ defmodule ElektrineWeb.CoreComponents do
 
   def label(assigns) do
     ~H"""
-    <label for={@for} class="block text-sm font-semibold leading-6 text-zinc-800">
-      {render_slot(@inner_block)}
+    <label for={@for} class="label">
+      <span class="label-text">{render_slot(@inner_block)}</span>
     </label>
     """
   end
@@ -409,10 +410,12 @@ defmodule ElektrineWeb.CoreComponents do
 
   def error(assigns) do
     ~H"""
-    <p class="mt-3 flex gap-3 text-sm leading-6 text-rose-600">
-      <.icon name="hero-exclamation-circle-mini" class="mt-0.5 h-5 w-5 flex-none" />
-      {render_slot(@inner_block)}
-    </p>
+    <div class="label">
+      <span class="label-text-alt text-error flex items-center gap-1">
+        <.icon name="hero-exclamation-circle-mini" class="h-4 w-4" />
+        {render_slot(@inner_block)}
+      </span>
+    </div>
     """
   end
 

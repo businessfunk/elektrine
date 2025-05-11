@@ -1,0 +1,22 @@
+<div class="max-w-md mx-auto mt-10">
+  <h1 class="text-2xl font-bold mb-6">Account Settings</h1>
+
+  <.simple_form :let={f} for={@changeset} action={~p"/account"} method="put">
+    <.error :if={@changeset.action}>
+      Oops, something went wrong! Please check the errors below.
+    </.error>
+
+    <.input field={f[:username]} type="text" label="Username" required />
+
+    <:actions>
+      <.button>Save</.button>
+    </:actions>
+  </.simple_form>
+
+  <div class="mt-8 border-t pt-6">
+    <h2 class="text-xl font-semibold mb-4">Password</h2>
+    <.link href={~p"/account/password"} class="text-blue-600 hover:underline">
+      Change password
+    </.link>
+  </div>
+</div>
