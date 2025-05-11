@@ -51,6 +51,14 @@ COPY lib lib
 
 COPY assets assets
 
+# Install Node.js and npm
+RUN apt-get update -y && \
+    apt-get install -y nodejs npm && \
+    apt-get clean && rm -f /var/lib/apt/lists/*_*
+
+# Install npm dependencies for assets
+RUN cd assets && npm install && cd ..
+
 # compile assets
 RUN mix assets.deploy
 
