@@ -1,0 +1,40 @@
+# This file excludes paths from the Docker build context.
+.dockerignore
+Dockerfile
+# Ignore git, but keep git HEAD and refs to access current commit hash if needed
+.git/*
+!.git/HEAD
+!.git/refs
+
+# Common development/build artifacts
+_build/
+cover/
+deps/
+doc/
+.fetch
+erl_crash.dump
+*.ez
+elektrine-*.tar
+tmp/
+
+# Mix artifacts
+.elixir_ls/
+.mix/
+
+# Generated on crash by the VM
+erl_crash.dump
+
+# Static artifacts - compiled js/css
+/priv/static/assets/
+/priv/static/cache_manifest.json
+
+# IDE artifacts
+.idea/
+.elixir_ls/
+*.iml
+.vscode/
+
+# System files
+.DS_Store
+*.swp
+*~
