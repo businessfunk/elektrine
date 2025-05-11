@@ -22,10 +22,14 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
+// Define hooks for custom JavaScript behaviors
+const Hooks = {}
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken}
+  params: {_csrf_token: csrfToken},
+  hooks: Hooks
 })
 
 // Show progress bar on live navigation and form submits
@@ -42,3 +46,27 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+// Auto-hide all flash messages
+document.addEventListener('DOMContentLoaded', () => {
+  // Find all flash messages (using data-auto-hide attribute)
+  const flashElements = document.querySelectorAll('[data-auto-hide]')
+
+  flashElements.forEach(flashElement => {
+    setTimeout(() => {
+      // Add transition classes - only fade out, no translation/movement
+      flashElement.classList.add(
+        'transition-opacity',
+        'duration-300',
+        'ease-in'
+      )
+
+      // Fade out
+      flashElement.style.opacity = "0"
+
+      // Remove from DOM after transition
+      setTimeout(() => {
+        flashElement.remove()
+      }, 300)
+    }, 3000) // Hide after 3 seconds
+  })
+})

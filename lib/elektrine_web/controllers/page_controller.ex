@@ -2,9 +2,13 @@ defmodule ElektrineWeb.PageController do
   use ElektrineWeb, :controller
 
   def home(conn, _params) do
-    # The home page is often custom made,
-    # so skip the default app layout.
-    render(conn, :home, layout: false)
+    # Use the app layout when user is logged in, otherwise use no layout
+    if conn.assigns[:current_user] do
+      render(conn, :home)
+    else
+      # Skip layout for anonymous users to show the landing page
+      render(conn, :home, layout: false)
+    end
   end
 
   def about(conn, _params) do

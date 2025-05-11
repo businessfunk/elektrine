@@ -1,4 +1,6 @@
+<%= if !@current_user do %>
 <.flash_group flash={@flash} />
+<% end %>
 
 <div class="hero min-h-screen bg-base-200">
   <div class="hero-content text-center">
@@ -15,93 +17,15 @@
       <p class="py-6">A modern, powerful Elixir application built with Phoenix, PostgreSQL, and DaisyUI.</p>
 
       <div class="flex flex-col gap-4 sm:flex-row sm:justify-center">
-        <.link href={~p"/login"} class="btn btn-primary">Log in</.link>
-        <.link href={~p"/register"} class="btn btn-outline">Register</.link>
+        <%= if @current_user do %>
+          <.link href={~p"/account"} class="btn btn-primary">My Account</.link>
+          <.link href={~p"/logout"} method="delete" class="btn btn-outline">Log out</.link>
+        <% else %>
+          <.link href={~p"/login"} class="btn btn-primary">Log in</.link>
+          <.link href={~p"/register"} class="btn btn-outline">Register</.link>
+        <% end %>
       </div>
     </div>
   </div>
 </div>
 
-<div class="container mx-auto px-4 py-16">
-  <h2 class="text-3xl font-bold text-center mb-12">Features</h2>
-
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-    <div class="card bg-base-100 shadow-xl">
-      <figure class="px-10 pt-10">
-        <div class="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
-          </svg>
-        </div>
-      </figure>
-      <div class="card-body items-center text-center">
-        <h3 class="card-title">PostgreSQL Database</h3>
-        <p>Robust data storage with Ecto for reliable data management and querying.</p>
-      </div>
-    </div>
-
-    <div class="card bg-base-100 shadow-xl">
-      <figure class="px-10 pt-10">
-        <div class="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-          </svg>
-        </div>
-      </figure>
-      <div class="card-body items-center text-center">
-        <h3 class="card-title">User Authentication</h3>
-        <p>Secure authentication system with account management and password encryption.</p>
-      </div>
-    </div>
-
-    <div class="card bg-base-100 shadow-xl">
-      <figure class="px-10 pt-10">
-        <div class="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
-          </svg>
-        </div>
-      </figure>
-      <div class="card-body items-center text-center">
-        <h3 class="card-title">Modern UI</h3>
-        <p>Beautiful, responsive interface built with Tailwind CSS and DaisyUI components.</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<footer class="footer p-10 bg-base-200 text-base-content">
-  <div class="container mx-auto">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-      <div>
-        <span class="footer-title">About</span>
-        <a class="link link-hover">Team</a>
-        <a class="link link-hover">Contact</a>
-        <a class="link link-hover">Jobs</a>
-      </div>
-      <div>
-        <span class="footer-title">Legal</span>
-        <a class="link link-hover">Terms of use</a>
-        <a class="link link-hover">Privacy policy</a>
-        <a class="link link-hover">Cookie policy</a>
-      </div>
-      <div>
-        <span class="footer-title">Resources</span>
-        <a href="https://hexdocs.pm/phoenix/overview.html" class="link link-hover">Phoenix Docs</a>
-        <a href="https://elixir-lang.org/docs.html" class="link link-hover">Elixir Docs</a>
-        <a href="https://daisyui.com/" class="link link-hover">DaisyUI</a>
-      </div>
-      <div>
-        <span class="footer-title">Built with</span>
-        <div class="grid grid-flow-col gap-4">
-          <a href="https://elixir-lang.org/" class="link link-hover flex items-center gap-2">
-            <span class="text-xl">Elixir</span>
-          </a>
-          <a href="https://www.phoenixframework.org/" class="link link-hover flex items-center gap-2">
-            <span class="text-xl">Phoenix</span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-</footer>

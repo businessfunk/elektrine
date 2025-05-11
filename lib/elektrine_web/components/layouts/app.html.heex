@@ -8,6 +8,17 @@
         <li><a href="/">Home</a></li>
         <li><a href="/about">About</a></li>
         <li><a href="/contact">Contact</a></li>
+        <%= if @current_user do %>
+          <li class="menu-title mt-2">
+            <span>Account</span>
+          </li>
+          <li><a href={~p"/account"}>Account</a></li>
+          <li>
+            <.link href={~p"/logout"} method="delete">
+              Log out
+            </.link>
+          </li>
+        <% end %>
       </ul>
     </div>
     <a href="/" class="btn btn-ghost text-xl">
@@ -35,7 +46,6 @@
             <span>Hi, <%= @current_user.username %></span>
           </li>
           <li><a href={~p"/account"}>Account</a></li>
-          <li><a href={~p"/settings"}>Settings</a></li>
           <li>
             <.link href={~p"/logout"} method="delete">
               Log out

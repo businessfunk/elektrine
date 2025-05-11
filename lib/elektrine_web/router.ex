@@ -44,7 +44,6 @@ defmodule ElektrineWeb.Router do
     put "/account", UserSettingsController, :update
     get "/account/password", UserSettingsController, :edit_password
     put "/account/password", UserSettingsController, :update_password
-    get "/settings", UserSettingsController, :edit
   end
 
   # Routes for all users (authenticated or not)
