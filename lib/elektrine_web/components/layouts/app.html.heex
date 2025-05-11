@@ -1,44 +1,56 @@
-<header class="px-4 sm:px-6 lg:px-8">
-  <div class="flex items-center justify-between border-b border-zinc-100 py-3 text-sm">
-    <div class="flex items-center gap-4">
-      <a href="/">
-        <img src={~p"/images/logo.svg"} width="36" />
-      </a>
-      <p class="bg-brand/5 text-brand rounded-full px-2 font-medium leading-6">
-        v{Application.spec(:phoenix, :vsn)}
-      </p>
+<div class="navbar bg-base-200 shadow-md">
+  <div class="navbar-start">
+    <div class="dropdown">
+      <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" /></svg>
+      </div>
+      <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+        <li><a href="/">Home</a></li>
+        <li><a href="/about">About</a></li>
+        <li><a href="/contact">Contact</a></li>
+      </ul>
     </div>
-    <div class="flex items-center gap-4 font-semibold leading-6 text-zinc-900">
-      <%= if @current_user do %>
-        <span>
-          Logged in as: <%= @current_user.username %>
-        </span>
-        <a href={~p"/account"} class="hover:text-zinc-700">
-          Account
-        </a>
-        <.link
-          href={~p"/logout"}
-          method="delete"
-          class="rounded-lg bg-zinc-100 px-2 py-1 hover:bg-zinc-200/80"
-        >
-          Log out
-        </.link>
-      <% else %>
-        <a href={~p"/login"} class="hover:text-zinc-700">
-          Log in
-        </a>
-        <a
-          href={~p"/register"}
-          class="rounded-lg bg-zinc-100 px-2 py-1 hover:bg-zinc-200/80"
-        >
-          Register
-        </a>
-      <% end %>
-    </div>
+    <a href="/" class="btn btn-ghost text-xl">
+      <img src={~p"/images/logo.svg"} class="h-8 w-8 mr-2" />
+      Elektrine
+    </a>
   </div>
-</header>
-<main class="px-4 py-20 sm:px-6 lg:px-8">
-  <div class="mx-auto max-w-2xl">
+  <div class="navbar-center hidden lg:flex">
+    <ul class="menu menu-horizontal px-1">
+      <li><a href="/">Home</a></li>
+      <li><a href="/about">About</a></li>
+      <li><a href="/contact">Contact</a></li>
+    </ul>
+  </div>
+  <div class="navbar-end">
+    <%= if @current_user do %>
+      <div class="dropdown dropdown-end">
+        <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar placeholder">
+          <div class="bg-primary text-neutral-content rounded-full w-10">
+            <span><%= String.first(@current_user.username) %></span>
+          </div>
+        </div>
+        <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52">
+          <li class="menu-title">
+            <span>Hi, <%= @current_user.username %></span>
+          </li>
+          <li><a href={~p"/account"}>Account</a></li>
+          <li><a href={~p"/settings"}>Settings</a></li>
+          <li>
+            <.link href={~p"/logout"} method="delete">
+              Log out
+            </.link>
+          </li>
+        </ul>
+      </div>
+    <% else %>
+      <a href={~p"/login"} class="btn btn-ghost">Log in</a>
+      <a href={~p"/register"} class="btn btn-primary ml-2">Register</a>
+    <% end %>
+  </div>
+</div>
+<main class="container mx-auto px-4 py-20">
+  <div class="w-full">
     <.flash_group flash={@flash} />
     {@inner_content}
   </div>

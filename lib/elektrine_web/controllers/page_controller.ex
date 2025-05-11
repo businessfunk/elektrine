@@ -6,4 +6,12 @@ defmodule ElektrineWeb.PageController do
     # so skip the default app layout.
     render(conn, :home, layout: false)
   end
+
+  def about(conn, _params) do
+    render(conn, :about)
+  end
+
+  def contact(conn, _params) do
+    render(conn, :contact)
+  end
 end

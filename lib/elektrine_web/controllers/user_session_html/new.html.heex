@@ -1,28 +1,30 @@
-<div class="max-w-sm mx-auto mt-10">
-  <h1 class="text-center text-3xl font-bold mb-6">Log in</h1>
+<div class="card bg-base-200 shadow-xl max-w-md mx-auto mt-10">
+  <div class="card-body">
+    <h1 class="text-center text-3xl font-bold mb-6">Log in</h1>
 
-  <.simple_form :let={f} for={%{}} action={~p"/login"} as={:user}>
-    <.error :if={@error_message}><%= @error_message %></.error>
+    <.simple_form :let={f} for={%{}} action={~p"/login"} as={:user}>
+      <.error :if={@error_message}><%= @error_message %></.error>
 
-    <.input field={f[:username]} type="text" label="Username" required />
-    <.input field={f[:password]} type="password" label="Password" required />
+      <.input field={f[:username]} type="text" label="Username" required />
+      <.input field={f[:password]} type="password" label="Password" required />
 
-    <:actions>
-      <div class="flex flex-col gap-4 w-full">
-        <div class="form-control">
-          <label class="label cursor-pointer justify-start gap-3">
-            <input type="checkbox" name="user[remember_me]" class="checkbox checkbox-primary" />
-            <span class="label-text">Keep me logged in</span>
-          </label>
+      <:actions>
+        <div class="flex flex-col gap-4 w-full">
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input type="checkbox" name="user[remember_me]" class="checkbox checkbox-primary" />
+              <span class="label-text">Keep me logged in</span>
+            </label>
+          </div>
+          <.button class="w-full">Log in</.button>
         </div>
-        <.button class="w-full">Log in</.button>
-      </div>
-    </:actions>
-  </.simple_form>
+      </:actions>
+    </.simple_form>
 
-  <div class="divider mt-6">OR</div>
+    <div class="divider mt-6">OR</div>
 
-  <div class="text-center">
-    <.link href={~p"/register"} class="btn btn-outline btn-sm">Create an account</.link>
+    <div class="text-center">
+      <.link href={~p"/register"} class="btn btn-outline btn-sm">Create an account</.link>
+    </div>
   </div>
 </div>
