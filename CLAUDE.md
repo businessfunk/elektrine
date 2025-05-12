@@ -98,3 +98,4 @@ The application uses the following key dependencies:
 - Bandit (HTTP server)
 - Tailwind CSS (styling)
 - esbuild (JavaScript bundling)
+- DaisyUI

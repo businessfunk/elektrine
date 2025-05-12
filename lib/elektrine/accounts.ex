@@ -69,9 +69,17 @@ defmodule Elektrine.Accounts do
 
   """
   def create_user(attrs \\ %{}) do
-    %User{}
-    |> User.registration_changeset(attrs)
-    |> Repo.insert()
+    result = %User{}
+             |> User.registration_changeset(attrs)
+             |> Repo.insert()
+
+    case result do
+      {:ok, user} ->
+        # Create a mailbox for the user
+        Elektrine.Email.create_mailbox(user)
+        {:ok, user}
+      error -> error
+    end
   end
 
   @doc """

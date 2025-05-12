@@ -61,7 +61,9 @@ defmodule Elektrine.MixProject do
       {:bcrypt_elixir, "~> 3.0"},
       {:argon2_elixir, "~> 4.0"},
       {:plug_cowboy, "~> 2.5"},
-      {:poison, "~> 5.0"}
+      {:poison, "~> 5.0"},
+      {:hackney, "~> 1.18"},
+      {:gen_smtp, "~> 1.2"}  # Added for SMTP support
     ]
   end
 

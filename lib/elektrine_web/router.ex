@@ -45,6 +45,17 @@ defmodule ElektrineWeb.Router do
     put "/account", UserSettingsController, :update
     get "/account/password", UserSettingsController, :edit_password
     put "/account/password", UserSettingsController, :update_password
+
+    # Email LiveView routes - each is a separate LiveView with individual templates
+    live_session :authenticated, on_mount: {ElektrineWeb.Live.AuthHooks, :require_authenticated_user} do
+      live "/email", EmailLive.Index, :index
+      live "/email/inbox", EmailLive.Inbox, :inbox
+      live "/email/sent", EmailLive.Sent, :sent
+      live "/email/compose", EmailLive.Compose, :new
+      live "/email/view/:id", EmailLive.Show, :show
+    end
+
+    # Mailbox management (removed for single mailbox per user)
   end
 
   # Routes for all users (authenticated or not)
@@ -62,6 +73,8 @@ defmodule ElektrineWeb.Router do
     post "/ejabberd/auth", EjabberdAuthController, :auth
     post "/ejabberd/isuser", EjabberdAuthController, :isuser
     post "/ejabberd/setpass", EjabberdAuthController, :setpass
+
+    # Email API endpoints removed
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

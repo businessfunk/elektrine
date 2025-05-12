@@ -82,5 +82,14 @@ config :phoenix_live_view,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
 
-# Disable swoosh api client as it is only required for production adapters.
+# Configure Swoosh to use local file adapter for development
 config :swoosh, :api_client, false
+
+# Override mailer configuration to use local file adapter in development
+config :elektrine, Elektrine.Mailer,
+  adapter: Swoosh.Adapters.Local,
+  # We'll create this directory to store emails
+  file_path: "tmp/emails",
+  # Enable local preview in browser with
+  # http://localhost:4000/dev/mailbox
+  serve_endpoints: true

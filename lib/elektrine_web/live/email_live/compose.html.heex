@@ -1,0 +1,111 @@
+<div class="mx-auto max-w-7xl">
+  <div class="flex flex-col md:flex-row gap-4">
+    <!-- Sidebar -->
+    <div class="w-full md:w-64">
+      <div class="card bg-base-100 shadow mb-4">
+        <div class="card-body">
+          <h2 class="card-title">Your Mailbox</h2>
+          <p class="text-sm"><%= @mailbox.email %></p>
+        </div>
+      </div>
+      
+      <div class="card bg-base-100 shadow">
+        <div class="card-body p-2">
+          <ul class="menu bg-base-100 rounded-box">
+            <li>
+              <.link href={~p"/email/inbox"}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                Inbox
+                <%= if @unread_count > 0 do %>
+                  <span class="badge badge-sm badge-primary"><%= @unread_count %></span>
+                <% end %>
+              </.link>
+            </li>
+            <li>
+              <.link href={~p"/email/sent"}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                Sent
+              </.link>
+            </li>
+            <li>
+              <.link href={~p"/email/compose"} class="font-bold text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Compose
+              </.link>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="flex-1">
+      <div class="card bg-base-100 shadow">
+        <div class="card-body p-4">
+          <h2 class="card-title">Compose New Message</h2>
+          
+          <.form for={@form} phx-submit="save" class="space-y-4">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">From</span>
+              </label>
+              <div class="input input-bordered bg-base-200 flex items-center px-4 py-2">
+                <%= @mailbox.email %>
+              </div>
+            </div>
+            
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">To</span>
+              </label>
+              <input type="email" name="email[to]" value={@form[:to].value} class="input input-bordered" required />
+            </div>
+            
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">CC</span>
+              </label>
+              <input type="text" name="email[cc]" value={@form[:cc].value} class="input input-bordered" />
+            </div>
+            
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">BCC</span>
+              </label>
+              <input type="text" name="email[bcc]" value={@form[:bcc].value} class="input input-bordered" />
+            </div>
+            
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Subject</span>
+              </label>
+              <input type="text" name="email[subject]" value={@form[:subject].value} class="input input-bordered" required />
+            </div>
+            
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Message</span>
+              </label>
+              <textarea name="email[body]" rows="10" class="textarea textarea-bordered" required><%= @form[:body].value %></textarea>
+            </div>
+            
+            <div class="form-control mt-6">
+              <button type="submit" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                Send Message
+              </button>
+            </div>
+          </.form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
