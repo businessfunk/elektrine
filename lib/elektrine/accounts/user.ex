@@ -27,8 +27,7 @@ defmodule Elektrine.Accounts.User do
   end
 
   defp hash_password(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset) do
-    # We'll add the actual password hashing implementation later
-    change(changeset, %{password_hash: Bcrypt.hash_pwd_salt(password)})
+    change(changeset, %{password_hash: Argon2.hash_pwd_salt(password)})
   end
 
   defp hash_password(changeset), do: changeset

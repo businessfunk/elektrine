@@ -6,5 +6,8 @@ defmodule ElektrineWeb.PageHTML do
   """
   use ElektrineWeb, :html
 
+  import Phoenix.HTML.Form
+  import ElektrineWeb.CoreComponents
+
   embed_templates "page_html/*"
 end

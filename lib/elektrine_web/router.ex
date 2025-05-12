@@ -24,6 +24,7 @@ defmodule ElektrineWeb.Router do
     get "/", PageController, :home
     get "/about", PageController, :about
     get "/contact", PageController, :contact
+    post "/contact", PageController, :send_message
   end
 
   # Routes that are specifically for unauthenticated users

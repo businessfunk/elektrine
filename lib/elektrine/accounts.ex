@@ -185,12 +185,33 @@ defmodule Elektrine.Accounts do
   """
   def authenticate_user(username, password) when is_binary(username) and is_binary(password) do
     user = get_user_by_username(username)
-    
+
     with %User{} <- user,
-         true <- Bcrypt.verify_pass(password, user.password_hash) do
+         true <- verify_password_hash(password, user.password_hash) do
+      # Rehash with Argon2 if the current hash is bcrypt
+      if is_bcrypt_hash?(user.password_hash) do
+        user
+        |> User.password_changeset(%{password: password, password_confirmation: password})
+        |> Repo.update()
+      end
+
       {:ok, user}
     else
       _ -> {:error, :invalid_credentials}
     end
   end
+
+  # Detects hash type and verifies password
+  defp verify_password_hash(password, hash) do
+    cond do
+      is_bcrypt_hash?(hash) -> Bcrypt.verify_pass(password, hash)
+      true -> Argon2.verify_pass(password, hash)
+    end
+  end
+
+  # Simple heuristic to detect bcrypt hashes which start with "$2" or "$2a$"
+  defp is_bcrypt_hash?(hash) when is_binary(hash) do
+    String.starts_with?(hash, ["$2", "$2a$", "$2b$", "$2y$"])
+  end
+  defp is_bcrypt_hash?(_), do: false
 end

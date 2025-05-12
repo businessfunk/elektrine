@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for elektrine-sparkling-voice-3000 on 2025-05-11T17:05:11-04:00
+# fly.toml app configuration file generated for elektrine on 2025-05-11T18:25:36-04:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'elektrine-sparkling-voice-3000'
+app = 'elektrine'
 primary_region = 'ord'
 kill_signal = 'SIGTERM'
 
@@ -13,7 +13,7 @@ kill_signal = 'SIGTERM'
   release_command = '/app/bin/migrate'
 
 [env]
-  PHX_HOST = 'elektrine-sparkling-voice-3000.fly.dev'
+  PHX_HOST = 'elektrine.fly.dev'
   PORT = '8080'
 
 [http_service]
