@@ -25,6 +25,14 @@ defmodule ElektrineWeb.Router do
     get "/about", PageController, :about
     get "/contact", PageController, :contact
     post "/contact", PageController, :send_message
+    
+    # Temporary email LiveView routes
+    live "/temp-mail", TemporaryMailboxLive.Index, :index
+    live "/temp-mail/:token", TemporaryMailboxLive.Show, :show
+    live "/temp-mail/:token/message/:id", TemporaryMailboxLive.Message, :show
+    
+    # Route for setting session data from LiveView
+    get "/temp-mail/:token/set_token", TemporaryMailboxSessionController, :set_token
   end
 
   # Routes that are specifically for unauthenticated users
@@ -74,7 +82,8 @@ defmodule ElektrineWeb.Router do
     post "/ejabberd/isuser", EjabberdAuthController, :isuser
     post "/ejabberd/setpass", EjabberdAuthController, :setpass
 
-    # Email API endpoints removed
+    # Email API endpoints
+    post "/postal/inbound", PostalInboundController, :create
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

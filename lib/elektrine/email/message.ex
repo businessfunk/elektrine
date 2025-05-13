@@ -15,6 +15,7 @@ defmodule Elektrine.Email.Message do
     field :status, :string, default: "received" # received, sent, draft
     field :read, :boolean, default: false
     field :metadata, :map, default: %{}
+    field :mailbox_type, :string, default: "regular"
     
     belongs_to :mailbox, Elektrine.Email.Mailbox
 
@@ -26,10 +27,10 @@ defmodule Elektrine.Email.Message do
   """
   def changeset(message, attrs) do
     message
-    |> cast(attrs, [:message_id, :from, :to, :cc, :bcc, :subject, :text_body, :html_body, :status, :read, :metadata, :mailbox_id])
+    |> cast(attrs, [:message_id, :from, :to, :cc, :bcc, :subject, :text_body, :html_body, :status, :read, :metadata, :mailbox_id, :mailbox_type])
     |> validate_required([:message_id, :from, :to, :mailbox_id])
     |> unique_constraint([:message_id, :mailbox_id])
-    |> foreign_key_constraint(:mailbox_id)
+    # No foreign key constraint anymore - we manually handle the association
   end
   
   @doc """

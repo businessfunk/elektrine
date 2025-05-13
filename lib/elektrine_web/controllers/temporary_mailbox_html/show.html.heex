@@ -1,0 +1,119 @@
+<div class="container mx-auto py-8 px-4">
+  <div class="bg-base-100 shadow-xl rounded-lg overflow-hidden">
+    <div class="p-6 border-b">
+      <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Temporary Email</h1>
+        <div class="flex space-x-2 mt-4 md:mt-0">
+          <.link href={~p"/temp-mail/#{@mailbox.token}/refresh"} class="btn btn-sm btn-primary">
+            <.icon name="hero-arrow-path" class="h-5 w-5 mr-1" />
+            Refresh
+          </.link>
+          <%= if @is_owner do %>
+            <.link href={~p"/temp-mail/#{@mailbox.token}/extend"} class="btn btn-sm btn-secondary">
+              <.icon name="hero-clock" class="h-5 w-5 mr-1" />
+              Extend Time
+            </.link>
+            <.link href={~p"/temp-mail/new"} class="btn btn-sm btn-accent">
+              <.icon name="hero-plus" class="h-5 w-5 mr-1" />
+              New Mailbox
+            </.link>
+          <% end %>
+        </div>
+      </div>
+      
+      <div class="bg-base-200 p-4 rounded-lg mb-4">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div>
+            <p class="text-lg font-semibold">Your temporary email address:</p>
+            <div class="flex items-center mt-1">
+              <p id="email-address" class="text-xl font-mono bg-base-300 px-3 py-2 rounded"><%= @mailbox.email %></p>
+              <button id="copy-button" class="btn btn-sm btn-ghost ml-2" onclick="copyEmailToClipboard()">
+                <.icon name="hero-clipboard-document" class="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+          <div class="mt-4 md:mt-0">
+            <p class="text-sm">Expires in: <span class="font-semibold"><%= @remaining_time %></span></p>
+            <p class="text-sm">Expiration: <span class="font-mono"><%= format_date(@expires_at) %></span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <h2 class="text-xl font-bold mb-4">Messages</h2>
+      <%= if Enum.empty?(@messages) do %>
+        <div class="text-center py-12 bg-base-200 rounded-lg">
+          <.icon name="hero-inbox" class="h-12 w-12 mx-auto text-base-content opacity-40" />
+          <p class="mt-4 text-lg">No messages yet.</p>
+          <p class="text-sm text-base-content opacity-60 mt-2">Refresh the page to check for new messages.</p>
+        </div>
+      <% else %>
+        <div class="overflow-x-auto">
+          <table class="table w-full">
+            <thead>
+              <tr>
+                <th>From</th>
+                <th>Subject</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for message <- @messages do %>
+                <tr class={"#{message_class(message)}"}>
+                  <td class="whitespace-nowrap"><%= message.from %></td>
+                  <td>
+                    <.link href={~p"/temp-mail/#{@mailbox.token}/message/#{message.id}"} class="hover:underline">
+                      <%= truncate(message.subject || "(No Subject)", 60) %>
+                    </.link>
+                  </td>
+                  <td class="whitespace-nowrap"><%= format_date(message.inserted_at) %></td>
+                  <td class="text-right">
+                    <%= if @is_owner do %>
+                      <.link href={~p"/temp-mail/#{@mailbox.token}/message/#{message.id}/delete"} method="delete" data-confirm="Are you sure you want to delete this message?" class="btn btn-sm btn-ghost text-error">
+                        <.icon name="hero-trash" class="h-5 w-5" />
+                      </.link>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+  <div class="mt-8 bg-base-100 shadow-xl rounded-lg overflow-hidden">
+    <div class="p-6">
+      <h2 class="text-xl font-bold mb-4">Instructions</h2>
+      <div class="prose max-w-none">
+        <p>This is a temporary email address that you can use to receive messages without signing up.</p>
+        <ul>
+          <li>Your temporary email will be active for 24 hours.</li>
+          <li>Click <strong>Extend Time</strong> to add another 24 hours to your mailbox.</li>
+          <li>Click <strong>Refresh</strong> regularly to check for new messages.</li>
+          <li>All messages and the mailbox will be automatically deleted when it expires.</li>
+          <li>Creating a <strong>New Mailbox</strong> will abandon the current one.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function copyEmailToClipboard() {
+    const emailElement = document.getElementById('email-address');
+    const emailText = emailElement.textContent;
+    
+    navigator.clipboard.writeText(emailText).then(function() {
+      const copyButton = document.getElementById('copy-button');
+      copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>';
+      
+      setTimeout(function() {
+        copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>';
+      }, 2000);
+    });
+  }
+</script>

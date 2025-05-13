@@ -10,6 +10,7 @@ defmodule Elektrine.Email do
 
   alias Elektrine.Email.Mailbox
   alias Elektrine.Email.Message
+  alias Elektrine.Email.TemporaryMailbox
   alias Elektrine.Accounts
 
   @doc """
@@ -135,9 +136,27 @@ defmodule Elektrine.Email do
   Creates a message.
   """
   def create_message(attrs \\ %{}) do
-    %Message{}
+    result = %Message{}
     |> Message.changeset(attrs)
     |> Repo.insert()
+    
+    case result do
+      {:ok, message} ->
+        # Broadcast to any LiveViews monitoring this mailbox
+        if Map.has_key?(attrs, :mailbox_id) do
+          Phoenix.PubSub.broadcast!(
+            Elektrine.PubSub,
+            "mailbox:#{attrs.mailbox_id}",
+            {:new_email, message}
+          )
+        end
+        
+        # Return the original result
+        {:ok, message}
+        
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -185,5 +204,109 @@ defmodule Elektrine.Email do
     Message
     |> where(mailbox_id: ^mailbox_id, read: false)
     |> Repo.aggregate(:count)
+  end
+  
+  #
+  # Temporary Mailbox Functions
+  #
+  
+  @doc """
+  Creates a new temporary mailbox with a random email address.
+  The mailbox will expire after the specified duration (default: 24 hours).
+  """
+  def create_temporary_mailbox(expires_in_hours \\ 24) do
+    # Set expiration time
+    expires_at = DateTime.utc_now() |> DateTime.add(expires_in_hours * 60 * 60, :second)
+    
+    # Generate a random email and token
+    email = TemporaryMailbox.generate_email()
+    token = TemporaryMailbox.generate_token()
+    
+    # Create the temporary mailbox
+    %TemporaryMailbox{}
+    |> TemporaryMailbox.changeset(%{
+      email: email,
+      token: token,
+      expires_at: expires_at
+    })
+    |> Repo.insert()
+  end
+  
+  @doc """
+  Gets a temporary mailbox by its token.
+  Returns nil if the mailbox does not exist or has expired.
+  """
+  def get_temporary_mailbox_by_token(token) when is_binary(token) do
+    now = DateTime.utc_now()
+    
+    TemporaryMailbox
+    |> where([m], m.token == ^token and m.expires_at > ^now)
+    |> Repo.one()
+  end
+  
+  @doc """
+  Gets a temporary mailbox by its email address.
+  Returns nil if the mailbox does not exist or has expired.
+  """
+  def get_temporary_mailbox_by_email(email) when is_binary(email) do
+    now = DateTime.utc_now()
+    
+    # First try exact match
+    result = TemporaryMailbox
+    |> where([m], m.email == ^email and m.expires_at > ^now)
+    |> Repo.one()
+    
+    # If not found, try case-insensitive match
+    if is_nil(result) do
+      TemporaryMailbox
+      |> where([m], fragment("lower(?)", m.email) == ^String.downcase(email) and m.expires_at > ^now)
+      |> Repo.one()
+    else
+      result
+    end
+  end
+  
+  @doc """
+  Lists all messages for a temporary mailbox identified by its token.
+  Returns an empty list if the mailbox does not exist or has expired.
+  """
+  def list_temporary_mailbox_messages(token, limit \\ 50, offset \\ 0) do
+    case get_temporary_mailbox_by_token(token) do
+      nil -> []
+      mailbox -> list_messages(mailbox.id, limit, offset)
+    end
+  end
+  
+  @doc """
+  Extends the expiration time of a temporary mailbox.
+  """
+  def extend_temporary_mailbox(mailbox_id, additional_hours \\ 24) do
+    mailbox = Repo.get(TemporaryMailbox, mailbox_id)
+    
+    if mailbox do
+      # Calculate new expiration time
+      new_expires_at = DateTime.utc_now() |> DateTime.add(additional_hours * 60 * 60, :second)
+      
+      # Update the mailbox
+      mailbox
+      |> TemporaryMailbox.changeset(%{expires_at: new_expires_at})
+      |> Repo.update()
+    else
+      {:error, :not_found}
+    end
+  end
+  
+  @doc """
+  Deletes expired temporary mailboxes.
+  """
+  def cleanup_expired_temporary_mailboxes do
+    now = DateTime.utc_now()
+    
+    {count, _} =
+      TemporaryMailbox
+      |> where([m], m.expires_at <= ^now)
+      |> Repo.delete_all()
+    
+    {:ok, count}
   end
 end

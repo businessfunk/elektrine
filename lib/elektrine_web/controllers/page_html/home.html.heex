@@ -18,11 +18,13 @@
 
       <div class="flex flex-col gap-4 sm:flex-row sm:justify-center">
         <%= if @current_user do %>
-          <.link href={~p"/account"} class="btn btn-primary">My Account</.link>
+          <.link href={~p"/email"} class="btn btn-primary">My Email</.link>
+          <.link href={~p"/account"} class="btn btn-outline">My Account</.link>
           <.link href={~p"/logout"} method="delete" class="btn btn-outline">Log out</.link>
         <% else %>
           <.link href={~p"/login"} class="btn btn-primary">Log in</.link>
           <.link href={~p"/register"} class="btn btn-outline">Register</.link>
+          <.link href={~p"/temp-mail"} class="btn btn-accent">Temporary Email</.link>
         <% end %>
       </div>
     </div>

@@ -1,0 +1,67 @@
+<div class="container mx-auto py-8 px-4">
+  <div class="bg-base-100 shadow-xl rounded-lg overflow-hidden">
+    <div class="p-6 border-b">
+      <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Temporary Email</h1>
+        <div class="flex space-x-2 mt-4 md:mt-0">
+          <.link navigate={~p"/temp-mail/#{@mailbox.token}"} class="btn btn-sm btn-primary">
+            <.icon name="hero-arrow-left" class="h-5 w-5 mr-1" />
+            Back to Inbox
+          </.link>
+          <button phx-click="refresh" class="btn btn-sm btn-secondary">
+            <.icon name="hero-arrow-path" class="h-5 w-5 mr-1" />
+            Refresh
+          </button>
+          <%= if @is_owner do %>
+            <button phx-click="delete_message" class="btn btn-sm btn-ghost text-error" data-confirm="Are you sure you want to delete this message?">
+              <.icon name="hero-trash" class="h-5 w-5 mr-1" />
+              Delete
+            </button>
+          <% end %>
+        </div>
+      </div>
+      
+      <div class="bg-base-200 p-4 rounded-lg mb-4">
+        <p class="text-sm">Your temporary email: <span class="font-mono font-semibold"><%= @mailbox.email %></span></p>
+        <p class="text-sm mt-1">Expires in: <span class="font-semibold"><%= @remaining_time %></span></p>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <div class="bg-base-200 p-4 rounded-lg mb-6">
+        <h2 class="text-xl font-bold mb-2"><%= @message.subject || "(No Subject)" %></h2>
+        <div class="flex flex-col md:flex-row justify-between">
+          <div>
+            <p class="text-sm"><strong>From:</strong> <%= @message.from %></p>
+            <p class="text-sm"><strong>To:</strong> <%= @message.to %></p>
+            <%= if @message.cc do %>
+              <p class="text-sm"><strong>CC:</strong> <%= @message.cc %></p>
+            <% end %>
+          </div>
+          <p class="text-sm mt-2 md:mt-0"><strong>Date:</strong> <%= Calendar.strftime(@message.inserted_at, "%b %d, %Y %H:%M") %></p>
+        </div>
+      </div>
+
+      <div class="border-t pt-6">
+        <%= if @message.html_body do %>
+          <div class="tabs mb-4">
+            <button class={"tab tab-bordered #{if @active_tab == "html", do: "tab-active"}"} phx-click="switch_tab" phx-value-tab="html">HTML</button>
+            <button class={"tab tab-bordered #{if @active_tab == "plain", do: "tab-active"}"} phx-click="switch_tab" phx-value-tab="plain">Plain Text</button>
+          </div>
+          
+          <div id="html-content" class={"border p-4 rounded-lg bg-white #{if @active_tab != "html", do: "hidden"}"}>
+            <iframe id="message-frame" sandbox="allow-same-origin" class="w-full min-h-[500px]" srcdoc={raw(@message.html_body || "")}></iframe>
+          </div>
+          
+          <div id="plain-content" class={"border p-4 rounded-lg whitespace-pre-wrap font-mono text-sm #{if @active_tab != "plain", do: "hidden"}"}>
+            <%= @message.text_body || "No plain text content available." %>
+          </div>
+        <% else %>
+          <div class="border p-4 rounded-lg whitespace-pre-wrap font-mono text-sm">
+            <%= @message.text_body || "No content available." %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

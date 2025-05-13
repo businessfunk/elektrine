@@ -5,6 +5,7 @@ defmodule Elektrine.Email.Mailbox do
 
   schema "mailboxes" do
     field :email, :string
+    field :temporary, :boolean, default: false
 
     belongs_to :user, Elektrine.Accounts.User
     has_many :messages, Elektrine.Email.Message
@@ -30,11 +31,12 @@ defmodule Elektrine.Email.Mailbox do
   """
   def orphaned_changeset(mailbox, attrs) do
     mailbox
-    |> cast(attrs, [:email])
+    |> cast(attrs, [:email, :temporary])
     |> validate_required([:email])
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
     |> validate_length(:email, max: 160)
     |> unique_constraint(:email)
+    |> put_change(:temporary, true) # Always mark orphaned mailboxes as temporary
   end
 
   @doc """

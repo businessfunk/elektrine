@@ -98,8 +98,8 @@ defmodule ElektrineWeb.PostalInboundController do
     end
   end
 
-  # Process decoded email message
-  defp process_email(raw_email, rcpt_to) do
+  # Process decoded email message - made public for testing
+  def process_email(raw_email, rcpt_to) do
     try do
       # Parse the email (using a library like Mail would be better but this is simple for now)
       # Handle different line endings
@@ -128,6 +128,12 @@ defmodule ElektrineWeb.PostalInboundController do
         {:ok, mailbox} ->
           Logger.info("Using mailbox: #{mailbox.email} (user_id: #{mailbox.user_id})")
 
+          # Determine if this is a temporary mailbox from its structure
+          is_temporary = case mailbox do
+            %{temporary: true} -> true
+            _ -> false
+          end
+          
           # Store in database
           email_data = %{
             message_id: message_id,
@@ -137,35 +143,39 @@ defmodule ElektrineWeb.PostalInboundController do
             text_body: body,
             html_body: extract_html(normalized_email),
             mailbox_id: mailbox.id,
+            mailbox_type: if(is_temporary, do: "temporary", else: "regular"),
             status: "received",
             metadata: %{
               raw_email: raw_email,
-              parsed_at: DateTime.utc_now() |> DateTime.to_iso8601()
+              parsed_at: DateTime.utc_now() |> DateTime.to_iso8601(),
+              temporary: is_temporary
             }
           }
 
-          # Notify connected clients if user exists
+          # Notify connected clients
+          # First, broadcast to the user's topic if this is a user mailbox
           if mailbox.user_id do
             Logger.info("Broadcasting :new_email event for user:#{mailbox.user_id}")
 
             # Broadcast updated email_data with read flag explicitly set to false
             email_data = Map.put(email_data, :read, false)
 
-            # Broadcasting to the proper PubSub topic
+            # Broadcasting to the user's PubSub topic
             Phoenix.PubSub.broadcast!(
               Elektrine.PubSub,
               "user:#{mailbox.user_id}",
               {:new_email, email_data}
             )
-          else
-            Logger.warn("No user_id associated with mailbox #{mailbox.id}, not broadcasting")
           end
-
+          
+          # Always broadcast to the mailbox topic for temporary mailboxes
+          Logger.info("Broadcasting :new_email event for mailbox:#{mailbox.id}")
+          
           # Check if this message already exists before creating
           case Elektrine.Email.get_message_by_id(email_data.message_id, mailbox.id) do
             nil ->
-              # Message doesn't exist, create it
-              Elektrine.Email.create_message(email_data)
+              # Message doesn't exist, create it using the adapter
+              Elektrine.Email.MailboxAdapter.create_message(email_data)
 
             existing_message ->
               # Message already exists, return it
@@ -287,6 +297,7 @@ defmodule ElektrineWeb.PostalInboundController do
   # Find mailbox from email address or rcpt_to, create if needed
   defp find_or_create_mailbox(to, rcpt_to) do
     alias Elektrine.Email.Mailbox
+    alias Elektrine.Email.TemporaryMailbox
     alias Elektrine.Repo
     import Ecto.Query
 
@@ -294,25 +305,26 @@ defmodule ElektrineWeb.PostalInboundController do
     clean_email = extract_clean_email(to) || extract_clean_email(rcpt_to)
 
     if clean_email do
-      # Try to find existing mailbox
-      mailbox = _find_existing_mailbox(to, rcpt_to)
+      # Try to find existing mailbox (including temporary mailboxes)
+      case _find_existing_mailbox(to, rcpt_to) do
+        {:ok, mailbox} ->
+          # Found existing mailbox
+          Logger.info("Found existing mailbox for email: #{clean_email} (id: #{mailbox.id})")
+          {:ok, mailbox}
+        
+        nil ->
+          # Try to find or create user
+          case find_or_create_user_for_email(clean_email) do
+            {:ok, user} ->
+              # Create mailbox for user
+              Logger.info("Creating mailbox for email: #{clean_email} (user_id: #{user.id})")
+              Elektrine.Email.create_mailbox(user)
 
-      if mailbox do
-        # Found existing mailbox
-        {:ok, mailbox}
-      else
-        # Try to find or create user
-        case find_or_create_user_for_email(clean_email) do
-          {:ok, user} ->
-            # Create mailbox for user
-            Logger.info("Creating mailbox for email: #{clean_email} (user_id: #{user.id})")
-            Elektrine.Email.create_mailbox(user)
-
-          {:error, reason} ->
-            # Create "orphaned" mailbox without user
-            Logger.info("Creating orphaned mailbox for email: #{clean_email}: #{inspect(reason)}")
-            create_orphaned_mailbox(clean_email)
-        end
+            {:error, reason} ->
+              # Create "orphaned" mailbox without user
+              Logger.info("Creating orphaned mailbox for email: #{clean_email}: #{inspect(reason)}")
+              create_orphaned_mailbox(clean_email)
+          end
       end
     else
       {:error, :invalid_email}
@@ -322,6 +334,7 @@ defmodule ElektrineWeb.PostalInboundController do
   # Internal helper to find existing mailbox without creating
   defp _find_existing_mailbox(to, rcpt_to) do
     alias Elektrine.Email.Mailbox
+    alias Elektrine.Email.TemporaryMailbox
     alias Elektrine.Repo
     import Ecto.Query
 
@@ -329,12 +342,37 @@ defmodule ElektrineWeb.PostalInboundController do
     clean_email = extract_clean_email(to) || extract_clean_email(rcpt_to)
 
     if clean_email do
-      # Try exact match
-      Mailbox |> where(email: ^clean_email) |> Repo.one() ||
-      # Try case-insensitive match
-      Mailbox |> where([m], fragment("lower(?)", m.email) == ^String.downcase(clean_email)) |> Repo.one() ||
-      # Try local-part match
-      find_by_local_part(clean_email)
+      # First check for temporary mailboxes
+      temp_mailbox = Elektrine.Email.get_temporary_mailbox_by_email(clean_email)
+      
+      if temp_mailbox do
+        Logger.info("Found temporary mailbox for email: #{clean_email} (id: #{temp_mailbox.id})")
+        
+        # Create a regular mailbox structure to be compatible with the rest of the code
+        temp_mailbox_as_regular = %Mailbox{
+          id: temp_mailbox.id,
+          email: temp_mailbox.email,
+          user_id: nil,
+          temporary: true
+        }
+        
+        {:ok, temp_mailbox_as_regular}
+      else
+        # No temporary mailbox found, check regular mailboxes
+        regular_mailbox = 
+          # Try exact match
+          Mailbox |> where(email: ^clean_email) |> Repo.one() ||
+          # Try case-insensitive match
+          Mailbox |> where([m], fragment("lower(?)", m.email) == ^String.downcase(clean_email)) |> Repo.one() ||
+          # Try local-part match
+          find_by_local_part(clean_email)
+          
+        if regular_mailbox do
+          {:ok, regular_mailbox}
+        else
+          nil
+        end
+      end
     else
       nil
     end

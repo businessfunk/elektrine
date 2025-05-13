@@ -63,7 +63,8 @@ defmodule Elektrine.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:poison, "~> 5.0"},
       {:hackney, "~> 1.18"},
-      {:gen_smtp, "~> 1.2"}  # Added for SMTP support
+      {:gen_smtp, "~> 1.2"},  # Added for SMTP support
+      {:quantum, "~> 3.5"}     # Added for scheduled job handling
     ]
   end
 
