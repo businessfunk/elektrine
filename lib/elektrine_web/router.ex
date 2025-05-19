@@ -84,6 +84,24 @@ defmodule ElektrineWeb.Router do
 
     # Email API endpoints
     post "/postal/inbound", PostalInboundController, :create
+    
+    # Flutter app API endpoints
+    scope "/temp-mail", as: :api do
+      # Create a new temporary mailbox
+      post "/", API.TemporaryMailboxController, :create
+      
+      # Get mailbox details and messages by token
+      get "/:token", API.TemporaryMailboxController, :show
+      
+      # Extend mailbox expiration
+      post "/:token/extend", API.TemporaryMailboxController, :extend
+      
+      # Get a specific message from a mailbox
+      get "/:token/message/:id", API.TemporaryMailboxController, :get_message
+      
+      # Delete a message
+      delete "/:token/message/:id", API.TemporaryMailboxController, :delete_message
+    end
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
