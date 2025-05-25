@@ -3,3 +3,353 @@
 @import "tailwindcss/utilities";
 
 /* This file is for your main application CSS */
+
+/* Import monospace font for terminal-style text */
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
+
+/* Cyberpunk-inspired styling */
+.font-mono {
+  font-family: 'Space Mono', monospace;
+}
+
+/* Digital container with subtle scan lines */
+.digital-container {
+  position: relative;
+}
+
+.digital-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(8, 145, 178, 0.03),
+    rgba(8, 145, 178, 0.03) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Digital frame styling with subtle glow and kitsune background */
+.digital-frame {
+  box-shadow: 0 0 15px rgba(8, 145, 178, 0.15);
+  transition: box-shadow 0.3s ease;
+  position: relative;
+}
+
+.digital-frame::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/images/ant.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: right center;
+  opacity: 0.08;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.digital-frame:hover {
+  box-shadow: 0 0 25px rgba(8, 145, 178, 0.25), 0 0 15px rgba(255, 69, 0, 0.1);
+}
+
+.digital-frame:hover .elektrine-mark {
+  animation-duration: 1.5s;
+}
+
+/* Digital text with subtle glow effect */
+.digital-text {
+  text-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
+}
+
+/* Fade-in text animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in-text {
+  animation: fadeIn 1.5s ease-out forwards;
+}
+
+/* Digital box hover effects */
+.digital-box {
+  transition: all 0.3s ease;
+}
+
+.digital-box:hover {
+  box-shadow: 0 0 10px rgba(8, 145, 178, 0.25);
+  transform: translateY(-2px);
+}
+
+/* Cursor blink animation */
+@keyframes cursorBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.cursor-blink {
+  animation: cursorBlink 1s steps(1) infinite;
+}
+
+/* Network grid styling */
+.network-grid {
+  background-size: 50px 50px;
+  background-image: 
+    linear-gradient(to right, rgba(8, 145, 178, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(8, 145, 178, 0.05) 1px, transparent 1px);
+}
+
+/* Digital logo styling */
+.digital-logo {
+  position: relative;
+}
+
+/* Enhanced mark styling */
+.elektrine-mark {
+  position: relative;
+  transition: all 0.6s ease;
+  animation: mark-pulse 3s ease-in-out infinite alternate;
+}
+
+.elektrine-mark:hover {
+  transform: scale(1.1) rotate(5deg);
+  filter: invert(1) sepia(0.8) saturate(2) hue-rotate(180deg) brightness(1) contrast(1.2) drop-shadow(0 0 8px rgba(34, 211, 238, 0.6));
+}
+
+@keyframes mark-pulse {
+  0% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(1.02);
+  }
+}
+
+/* Dynamic glow for mark */
+.mark-glow {
+  position: absolute;
+  inset: -8px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(34, 211, 238, 0.1),
+    rgba(255, 165, 0, 0.1),
+    rgba(255, 69, 0, 0.1),
+    rgba(34, 211, 238, 0.1)
+  );
+  border-radius: 50%;
+  animation: mark-rotate 8s linear infinite;
+  blur: 4px;
+  opacity: 0.7;
+}
+
+@keyframes mark-rotate {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+/* Kitsune gallery container */
+.kitsune-gallery {
+  position: relative;
+  overflow: visible;
+  margin-top: 1rem;
+}
+
+/* Kitsune large container styling */
+.kitsune-container-large {
+  position: relative;
+  overflow: visible;
+  transition: all 0.3s ease;
+}
+
+.kitsune-container-large:hover {
+  transform: translateY(-5px);
+}
+
+/* Kitsune glow effect - subtle blended warm/cool colors */
+.kitsune-glow {
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 69, 0, 0.08) 0%,
+    rgba(255, 165, 0, 0.04) 40%,
+    rgba(8, 145, 178, 0.03) 70%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: pulse-glow 6s ease-in-out infinite alternate;
+  z-index: 5;
+}
+
+.kitsune-glow-alt {
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 215, 0, 0.1) 0%,
+    rgba(255, 69, 0, 0.05) 40%,
+    rgba(8, 195, 214, 0.04) 70%,
+    transparent 100%
+  );
+  animation-delay: 2s;
+}
+
+@keyframes pulse-glow {
+  0% {
+    opacity: 0.2;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(1.01);
+  }
+  100% {
+    opacity: 0.25;
+    transform: scale(1.02);
+  }
+}
+
+/* Kitsune wrapper */
+.kitsune-wrapper {
+  position: relative;
+  animation: kitsune-float 5s ease-in-out infinite;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes kitsune-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Kitsune image - blended into background */
+.kitsune-image {
+  position: relative;
+  transition: all 0.4s ease;
+  background-color: transparent !important;
+  image-rendering: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-font-smoothing: subpixel-antialiased;
+  will-change: transform;
+  max-width: none;
+  opacity: 0.15;
+  mix-blend-mode: screen;
+  filter: blur(0.5px) saturate(0.7) contrast(0.8);
+}
+
+.kitsune-main {
+  animation: kitsune-pulse-main 8s ease-in-out infinite alternate;
+  opacity: 0.2;
+  mix-blend-mode: multiply;
+}
+
+.kitsune-right {
+  animation: kitsune-pulse-right 8s ease-in-out infinite alternate;
+  animation-delay: 4s;
+  mix-blend-mode: soft-light;
+}
+
+@keyframes kitsune-pulse {
+  0%, 100% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes kitsune-pulse-main {
+  0%, 100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes kitsune-pulse-right {
+  0%, 100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* Custom button styling */
+.btn {
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  box-shadow: 0 0 12px rgba(8, 145, 178, 0.3), 0 0 8px rgba(255, 165, 0, 0.1);
+  text-shadow: 0 0 5px rgba(34, 211, 238, 0.7), 0 0 3px rgba(255, 215, 0, 0.3);
+}
+
+/* Enhanced kitsune integration with page theme */
+.kitsune-container-large:hover .kitsune-image {
+  filter: blur(0.3px) saturate(0.9) contrast(0.9);
+  transform: scale(1.01);
+  opacity: 0.25;
+  mix-blend-mode: overlay;
+}
+
+/* Warm accent colors for digital elements */
+.digital-frame {
+  border-image: linear-gradient(
+    45deg,
+    rgba(8, 145, 178, 0.3),
+    rgba(255, 165, 0, 0.2),
+    rgba(8, 145, 178, 0.3)
+  ) 1;
+}
+
+.digital-frame:hover {
+  box-shadow: 0 0 25px rgba(8, 145, 178, 0.25), 0 0 15px rgba(255, 69, 0, 0.1);
+}
+
+/* Blended glow for digital boxes */
+.digital-box:hover {
+  box-shadow: 0 0 10px rgba(8, 145, 178, 0.25), 0 0 6px rgba(255, 165, 0, 0.15);
+  border-color: rgba(8, 145, 178, 0.6);
+  background: linear-gradient(
+    135deg,
+    rgba(8, 145, 178, 0.08),
+    rgba(255, 69, 0, 0.03)
+  );
+}
