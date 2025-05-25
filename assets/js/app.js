@@ -23,7 +23,28 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
 // Define hooks for custom JavaScript behaviors
-const Hooks = {}
+const Hooks = {
+  CopyToClipboard: {
+    mounted() {
+      this.el.addEventListener("click", e => {
+        const emailElement = document.getElementById('email-address')
+        if (emailElement) {
+          const emailText = emailElement.textContent
+          navigator.clipboard.writeText(emailText).then(() => {
+            // Show success feedback (change button icon temporarily)
+            const originalHTML = this.el.innerHTML
+            this.el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>'
+            
+            // Restore original icon after a delay
+            setTimeout(() => {
+              this.el.innerHTML = originalHTML
+            }, 2000)
+          })
+        }
+      })
+    }
+  }
+}
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {

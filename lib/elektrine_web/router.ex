@@ -25,6 +25,14 @@ defmodule ElektrineWeb.Router do
     get "/about", PageController, :about
     get "/contact", PageController, :contact
     post "/contact", PageController, :send_message
+    
+    # Temporary email LiveView routes
+    live "/temp-mail", TemporaryMailboxLive.Index, :index
+    live "/temp-mail/:token", TemporaryMailboxLive.Show, :show
+    live "/temp-mail/:token/message/:id", TemporaryMailboxLive.Message, :show
+    
+    # Route for setting session data from LiveView
+    get "/temp-mail/:token/set_token", TemporaryMailboxSessionController, :set_token
   end
 
   # Routes that are specifically for unauthenticated users
@@ -45,6 +53,17 @@ defmodule ElektrineWeb.Router do
     put "/account", UserSettingsController, :update
     get "/account/password", UserSettingsController, :edit_password
     put "/account/password", UserSettingsController, :update_password
+
+    # Email LiveView routes - each is a separate LiveView with individual templates
+    live_session :authenticated, on_mount: {ElektrineWeb.Live.AuthHooks, :require_authenticated_user} do
+      live "/email", EmailLive.Index, :index
+      live "/email/inbox", EmailLive.Inbox, :inbox
+      live "/email/sent", EmailLive.Sent, :sent
+      live "/email/compose", EmailLive.Compose, :new
+      live "/email/view/:id", EmailLive.Show, :show
+    end
+
+    # Mailbox management (removed for single mailbox per user)
   end
 
   # Routes for all users (authenticated or not)
@@ -62,6 +81,27 @@ defmodule ElektrineWeb.Router do
     post "/ejabberd/auth", EjabberdAuthController, :auth
     post "/ejabberd/isuser", EjabberdAuthController, :isuser
     post "/ejabberd/setpass", EjabberdAuthController, :setpass
+
+    # Email API endpoints
+    post "/postal/inbound", PostalInboundController, :create
+    
+    # Flutter app API endpoints
+    scope "/temp-mail", as: :api do
+      # Create a new temporary mailbox
+      post "/", API.TemporaryMailboxController, :create
+      
+      # Get mailbox details and messages by token
+      get "/:token", API.TemporaryMailboxController, :show
+      
+      # Extend mailbox expiration
+      post "/:token/extend", API.TemporaryMailboxController, :extend
+      
+      # Get a specific message from a mailbox
+      get "/:token/message/:id", API.TemporaryMailboxController, :get_message
+      
+      # Delete a message
+      delete "/:token/message/:id", API.TemporaryMailboxController, :delete_message
+    end
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

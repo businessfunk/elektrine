@@ -14,8 +14,8 @@ defmodule Elektrine.Application do
       {Phoenix.PubSub, name: Elektrine.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: Elektrine.Finch},
-      # Start a worker by calling: Elektrine.Worker.start_link(arg)
-      # {Elektrine.Worker, arg},
+      # Start Quantum scheduler
+      Elektrine.Scheduler,
       # Start to serve requests, typically the last entry
       ElektrineWeb.Endpoint
     ]

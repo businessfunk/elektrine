@@ -10,6 +10,13 @@
         <li><a href="/contact">Contact</a></li>
         <%= if @current_user do %>
           <li class="menu-title mt-2">
+            <span>Email</span>
+          </li>
+          <li><.link href={~p"/email/inbox"}>Inbox</.link></li>
+          <li><.link href={~p"/email/sent"}>Sent</.link></li>
+          <li><.link href={~p"/email/compose"}>Compose</.link></li>
+
+          <li class="menu-title mt-2">
             <span>Account</span>
           </li>
           <li><a href={~p"/account"}>Account</a></li>
@@ -31,6 +38,9 @@
       <li><a href="/">Home</a></li>
       <li><a href="/about">About</a></li>
       <li><a href="/contact">Contact</a></li>
+      <%= if @current_user do %>
+        <li><.link href={~p"/email/inbox"}>Email</.link></li>
+      <% end %>
     </ul>
   </div>
   <div class="navbar-end">
@@ -45,7 +55,9 @@
           <li class="menu-title">
             <span>Hi, <%= @current_user.username %></span>
           </li>
-          <li><a href={~p"/account"}>Account</a></li>
+          <li><.link href={~p"/email/inbox"}>Inbox</.link></li>
+          <li><.link href={~p"/email/compose"}>Compose Email</.link></li>
+          <li><.link href={~p"/account"}>Account</.link></li>
           <li>
             <.link href={~p"/logout"} method="delete">
               Log out

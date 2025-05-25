@@ -11,6 +11,10 @@ config :elektrine,
   ecto_repos: [Elektrine.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# Configure email settings
+config :elektrine, :email,
+  domain: System.get_env("EMAIL_DOMAIN") || "elektrine.com"
+
 # Configures the endpoint
 config :elektrine, ElektrineWeb.Endpoint,
   url: [host: "localhost"],
@@ -24,12 +28,18 @@ config :elektrine, ElektrineWeb.Endpoint,
 
 # Configures the mailer
 #
-# By default it uses the "Local" adapter which stores the emails
-# locally. You can see the emails in your browser, at "/dev/mailbox".
-#
-# For production it's recommended to configure a different adapter
-# at the `config/runtime.exs`.
-config :elektrine, Elektrine.Mailer, adapter: Swoosh.Adapters.Local
+# Use SMTP adapter for sending emails through Postal
+config :elektrine, Elektrine.Mailer,
+  adapter: Swoosh.Adapters.SMTP,
+  relay: System.get_env("POSTAL_SMTP_HOST") || "localhost",
+  port: String.to_integer(System.get_env("POSTAL_SMTP_PORT") || "2525"),
+  username: System.get_env("POSTAL_SMTP_USERNAME") || "postal",
+  password: System.get_env("POSTAL_SMTP_PASSWORD") || "password",
+  ssl: false,
+  tls: :always,
+  auth: :always,
+  retries: 2,
+  no_mx_lookups: true
 
 # Configure esbuild (the version is required)
 config :esbuild,
@@ -60,6 +70,13 @@ config :logger, :console,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+# Quantum scheduler configuration
+config :elektrine, Elektrine.Scheduler,
+  jobs: [
+    # Run cleanup of expired temporary mailboxes every hour
+    {"0 * * * *", {Elektrine.Email.Cleanup, :perform_scheduled_cleanup, []}}
+  ]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
