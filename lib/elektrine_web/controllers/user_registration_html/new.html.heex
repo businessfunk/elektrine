@@ -7,9 +7,16 @@
         Oops, something went wrong! Please check the errors below.
       </.error>
 
-      <.input field={f[:username]} type="text" label="Username" required />
-      <.input field={f[:password]} type="password" label="Password" required />
-      <.input field={f[:password_confirmation]} type="password" label="Confirm password" required />
+      <.input field={f[:username]} type="text" label="Username" placeholder="Enter your username" required />
+      <div class="form-control">
+        <.input field={f[:password]} type="password" label="Password" placeholder="Enter your password" required />
+        <div class="label">
+          <span class="label-text-alt text-xs opacity-70">
+            Password must be at least 12 characters long
+          </span>
+        </div>
+      </div>
+      <.input field={f[:password_confirmation]} type="password" label="Confirm password" placeholder="Confirm your password" required />
 
       <:actions>
         <.button class="w-full">Create account</.button>

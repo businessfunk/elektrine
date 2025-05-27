@@ -21,6 +21,7 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
+import { initGenerativeArt, initDigitalEffects } from "./generative_art"
 
 // Define hooks for custom JavaScript behaviors
 const Hooks = {
@@ -67,8 +68,12 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
-// Auto-hide all flash messages
+// Auto-hide all flash messages and initialize homepage effects
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize generative art and digital effects for homepage
+  initGenerativeArt()
+  initDigitalEffects()
+  
   // Find all flash messages (using data-auto-hide attribute)
   const flashElements = document.querySelectorAll('[data-auto-hide]')
 

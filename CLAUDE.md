@@ -99,3 +99,35 @@ The application uses the following key dependencies:
 - Tailwind CSS (styling)
 - esbuild (JavaScript bundling)
 - DaisyUI
+
+## Development Guidelines
+
+### JavaScript Best Practices
+
+**NEVER use `<script>` tags in HEEx templates.** This is considered bad practice for several reasons:
+
+- **Separation of concerns** - JavaScript belongs in the asset pipeline
+- **Asset compilation** - Phoenix uses esbuild for bundling and optimization  
+- **Content Security Policy** - Inline scripts can violate CSP
+- **Maintainability** - JavaScript should be in dedicated files
+- **Cache busting** - Asset pipeline provides proper fingerprinting
+
+**Instead:**
+1. Create JavaScript modules in `assets/js/`
+2. Export functions from modules
+3. Import and initialize in `app.js`
+4. Use Phoenix hooks for LiveView integration
+
+**Example:**
+```javascript
+// assets/js/my_feature.js
+export function initMyFeature() {
+  // Feature code here
+}
+
+// assets/js/app.js
+import { initMyFeature } from "./my_feature"
+document.addEventListener('DOMContentLoaded', () => {
+  initMyFeature()
+})
+```

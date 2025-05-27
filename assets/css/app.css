@@ -353,3 +353,35 @@
     rgba(255, 69, 0, 0.03)
   );
 }
+
+/* Neutral navbar colors */
+.navbar {
+  background-color: rgb(31, 41, 55) !important; /* gray-800 */
+}
+
+.navbar a {
+  color: rgb(209, 213, 219) !important; /* gray-300 */
+}
+
+.navbar a:hover {
+  color: rgb(243, 244, 246) !important; /* gray-100 */
+  background-color: rgb(55, 65, 81) !important; /* gray-700 */
+}
+
+.navbar a.active {
+  background-color: rgb(75, 85, 99) !important; /* gray-600 */
+  color: rgb(255, 255, 255) !important; /* white */
+  font-weight: 600;
+}
+
+.navbar .btn-primary {
+  background-color: rgb(55, 65, 81) !important; /* gray-700 */
+  border-color: rgb(75, 85, 99) !important; /* gray-600 */
+  color: rgb(243, 244, 246) !important; /* gray-100 */
+}
+
+.navbar .btn-primary:hover {
+  background-color: rgb(75, 85, 99) !important; /* gray-600 */
+  border-color: rgb(107, 114, 128) !important; /* gray-500 */
+}
+

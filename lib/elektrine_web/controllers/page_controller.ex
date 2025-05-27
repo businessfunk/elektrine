@@ -5,13 +5,8 @@ defmodule ElektrineWeb.PageController do
   alias Elektrine.Contact.Message
 
   def home(conn, _params) do
-    # Use the app layout when user is logged in, otherwise use no layout
-    if conn.assigns[:current_user] do
-      render(conn, :home)
-    else
-      # Skip layout for anonymous users to show the landing page
-      render(conn, :home, layout: false)
-    end
+    # Always skip layout for homepage to maintain fullscreen design
+    render(conn, :home, layout: false)
   end
 
   def about(conn, _params) do

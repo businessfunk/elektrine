@@ -5,9 +5,9 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" /></svg>
       </div>
       <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-        <li><a href="/">Home</a></li>
-        <li><a href="/about">About</a></li>
-        <li><a href="/contact">Contact</a></li>
+        <li><a href="/" class={if assigns[:conn] && @conn.request_path == "/", do: "active", else: ""}>Home</a></li>
+        <li><a href="/about" class={if assigns[:conn] && @conn.request_path == "/about", do: "active", else: ""}>About</a></li>
+        <li><a href="/contact" class={if assigns[:conn] && @conn.request_path == "/contact", do: "active", else: ""}>Contact</a></li>
         <%= if @current_user do %>
           <li class="menu-title mt-2">
             <span>Email</span>
@@ -29,17 +29,16 @@
       </ul>
     </div>
     <a href="/" class="btn btn-ghost text-xl">
-      <img src={~p"/images/logo.svg"} class="h-8 w-8 mr-2" />
-      Elektrine
+      3l3k7r1n3
     </a>
   </div>
   <div class="navbar-center hidden lg:flex">
     <ul class="menu menu-horizontal px-1">
-      <li><a href="/">Home</a></li>
-      <li><a href="/about">About</a></li>
-      <li><a href="/contact">Contact</a></li>
+      <li><a href="/" class={if assigns[:conn] && @conn.request_path == "/", do: "active", else: ""}>Home</a></li>
+      <li><a href="/about" class={if assigns[:conn] && @conn.request_path == "/about", do: "active", else: ""}>About</a></li>
+      <li><a href="/contact" class={if assigns[:conn] && @conn.request_path == "/contact", do: "active", else: ""}>Contact</a></li>
       <%= if @current_user do %>
-        <li><.link href={~p"/email/inbox"}>Email</.link></li>
+        <li><.link href={~p"/email/inbox"} class={if assigns[:conn] && String.starts_with?(@conn.request_path, "/email"), do: "active", else: ""}>Email</.link></li>
       <% end %>
     </ul>
   </div>
