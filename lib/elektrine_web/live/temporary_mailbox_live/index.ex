@@ -25,7 +25,11 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Index do
         
       token ->
         # User already has a mailbox, redirect to it
-        {:ok, Phoenix.LiveView.push_navigate(socket, to: ~p"/temp-mail/#{token}")}
+        socket = 
+          socket
+          |> Phoenix.LiveView.redirect(to: ~p"/temp-mail/#{token}")
+        
+        {:ok, socket}
     end
   end
 end

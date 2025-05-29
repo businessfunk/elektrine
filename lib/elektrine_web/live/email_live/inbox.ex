@@ -17,12 +17,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       Phoenix.PubSub.subscribe(Elektrine.PubSub, "user:#{user.id}")
       Logger.info("LiveView subscribed to PubSub topic: user:#{user.id}")
 
-          # Set up more frequent polling for real-time updates
-      # 1 second poll interval for more immediate updates
-      :timer.send_interval(1000, self(), :poll_for_messages)
-      # Also do an immediate poll after short delay to catch any messages that arrived during page load
-      Process.send_after(self(), :poll_for_messages, 500)
-      Logger.info("Set up aggressive polling for real-time inbox updates")
+      # Real-time updates handled via PubSub - no polling needed
     end
 
     socket =
@@ -106,9 +101,6 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       |> assign(:messages, latest_messages)
       |> stream(:messages, latest_messages, reset: true)
 
-    # Process.send_after makes sure we get another update shortly after this one
-    # in case the first one didn't capture all messages
-    Process.send_after(self(), :poll_for_messages, 1000)
 
     {:noreply, socket}
   end
@@ -126,40 +118,4 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     Email.list_messages(mailbox_id, 50)
   end
 
-  @impl true
-  def handle_info(:poll_for_messages, socket) do
-    require Logger
-    mailbox = socket.assigns.mailbox
-
-    # Get latest messages and check if there are any changes
-    latest_messages = list_messages(mailbox.id)
-    current_messages = socket.assigns.messages
-    # Get latest unread count
-    unread_count = Email.unread_count(mailbox.id)
-
-    # Check if there's any reason to refresh
-    latest_ids = MapSet.new(latest_messages, & &1.id)
-    current_ids = MapSet.new(current_messages, & &1.id)
-
-    should_refresh =
-      length(latest_messages) != length(current_messages) ||
-      MapSet.size(latest_ids) != MapSet.size(current_ids) ||
-      MapSet.difference(latest_ids, current_ids) |> MapSet.size() > 0 ||
-      socket.assigns.unread_count != unread_count
-
-    if should_refresh do
-      Logger.info("Poll detected changes, refreshing inbox")
-
-      socket =
-        socket
-        |> assign(:messages, latest_messages)
-        |> assign(:unread_count, unread_count)
-        |> stream(:messages, latest_messages, reset: true)
-
-      {:noreply, socket}
-    else
-      # No significant changes detected
-      {:noreply, socket}
-    end
-  end
 end
