@@ -13,6 +13,9 @@ defmodule ElektrineWeb.UserSettingsController do
 
   def update(conn, %{"user" => user_params}) do
     user = conn.assigns.current_user
+    
+    # Handle avatar upload if present
+    user_params = handle_avatar_upload(user_params, user)
 
     case Accounts.update_user(user, user_params) do
       {:ok, _user} ->
@@ -48,4 +51,15 @@ defmodule ElektrineWeb.UserSettingsController do
   defp assign_user(conn, _opts) do
     assign(conn, :user, conn.assigns.current_user)
   end
+
+  defp handle_avatar_upload(%{"avatar" => %Plug.Upload{} = upload} = user_params, user) do
+    case Elektrine.Uploads.upload_avatar(upload, user.id) do
+      {:ok, url} -> 
+        Map.put(user_params, "avatar", url)
+      {:error, _reason} -> 
+        Map.delete(user_params, "avatar")
+    end
+  end
+  
+  defp handle_avatar_upload(user_params, _user), do: user_params
 end

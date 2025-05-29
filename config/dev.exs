@@ -93,3 +93,14 @@ config :elektrine, Elektrine.Mailer,
   # Enable local preview in browser with
   # http://localhost:4000/dev/mailbox
   serve_endpoints: true
+
+# Override uploads configuration to use local storage in development
+config :elektrine, :uploads,
+  adapter: :local,
+  uploads_dir: "priv/static/uploads"
+
+# If you want to test Backblaze in dev, uncomment and configure:
+# config :elektrine, :uploads,
+#   adapter: :s3,
+#   bucket: System.get_env("BACKBLAZE_BUCKET_NAME") || "elektrine-uploads-dev",
+#   endpoint: System.get_env("BACKBLAZE_ENDPOINT") || "s3.us-west-002.backblazeb2.com"

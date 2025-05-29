@@ -35,3 +35,8 @@ config :phoenix, :plug_init_mode, :runtime
 # Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,
   enable_expensive_runtime_checks: true
+
+# Use local file storage for tests (faster and no external dependencies)
+config :elektrine, :uploads,
+  adapter: :local,
+  uploads_dir: "tmp/test_uploads"

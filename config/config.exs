@@ -78,6 +78,22 @@ config :elektrine, Elektrine.Scheduler,
     {"0 * * * *", {Elektrine.Email.Cleanup, :perform_scheduled_cleanup, []}}
   ]
 
+# Backblaze B2 configuration for file uploads
+config :ex_aws,
+  access_key_id: System.get_env("BACKBLAZE_KEY_ID"),
+  secret_access_key: System.get_env("BACKBLAZE_APPLICATION_KEY"),
+  region: System.get_env("BACKBLAZE_REGION") || "us-west-002",
+  s3: [
+    scheme: "https://",
+    host: System.get_env("BACKBLAZE_ENDPOINT") || "s3.us-west-002.backblazeb2.com",
+    region: System.get_env("BACKBLAZE_REGION") || "us-west-002"
+  ]
+
+config :elektrine, :uploads,
+  adapter: :s3,
+  bucket: System.get_env("BACKBLAZE_BUCKET_NAME") || "elektrine-uploads-prod",
+  endpoint: System.get_env("BACKBLAZE_ENDPOINT") || "s3.us-west-002.backblazeb2.com"
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

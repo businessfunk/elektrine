@@ -7,6 +7,7 @@ defmodule Elektrine.Accounts.User do
     field :password_hash, :string
     field :password, :string, virtual: true
     field :password_confirmation, :string, virtual: true
+    field :avatar, :string
 
     timestamps(type: :utc_datetime)
   end
@@ -37,7 +38,7 @@ defmodule Elektrine.Accounts.User do
   """
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:username])
+    |> cast(attrs, [:username, :avatar])
     |> validate_required([:username])
     |> validate_length(:username, min: 3, max: 30)
     |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")

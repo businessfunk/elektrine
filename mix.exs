@@ -64,7 +64,10 @@ defmodule Elektrine.MixProject do
       {:poison, "~> 5.0"},
       {:hackney, "~> 1.18"},
       {:gen_smtp, "~> 1.2"},  # Added for SMTP support
-      {:quantum, "~> 3.5"}     # Added for scheduled job handling
+      {:quantum, "~> 3.5"},   # Added for scheduled job handling
+      {:ex_aws, "~> 2.1"},    # AWS SDK for Elixir
+      {:ex_aws_s3, "~> 2.0"}, # S3 support for ExAws
+      {:sweet_xml, "~> 0.6"}  # XML parsing for AWS responses
     ]
   end
 

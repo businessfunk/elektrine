@@ -2,10 +2,35 @@
   <div class="card-body">
     <h1 class="text-2xl font-bold mb-6">Account Settings</h1>
 
-    <.simple_form :let={f} for={@changeset} action={~p"/account"} method="put">
+    <.simple_form :let={f} for={@changeset} action={~p"/account"} method="put" multipart>
       <.error :if={@changeset.action}>
         Oops, something went wrong! Please check the errors below.
       </.error>
+
+      <div class="form-control mb-4">
+        <label class="label">
+          <span class="label-text">Avatar</span>
+        </label>
+        <div class="flex items-center gap-4">
+          <div class="avatar">
+            <div class="w-16 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+              <%= if @user.avatar do %>
+                <img src={@user.avatar} alt="Current avatar" />
+              <% else %>
+                <div class="bg-primary text-primary-content flex items-center justify-center w-16 h-16">
+                  <span class="text-xl"><%= String.first(@user.username) %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+          <div class="flex-1">
+            <input type="file" name="user[avatar]" accept="image/*" class="file-input file-input-bordered file-input-primary w-full max-w-xs" />
+            <div class="label">
+              <span class="label-text-alt">Upload a new avatar image</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <.input field={f[:username]} type="text" label="Username" required />
 
