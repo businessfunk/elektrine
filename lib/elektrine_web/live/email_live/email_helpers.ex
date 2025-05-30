@@ -39,6 +39,7 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
   attr :mailbox, :map, required: true
   attr :unread_count, :integer, required: true
   attr :current_page, :string, required: true
+  attr :current_user, :map, required: true
 
   def sidebar(assigns) do
     ~H"""
@@ -48,11 +49,19 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
       <div class="card bg-gradient-to-br from-base-100 to-base-200 shadow-lg border border-base-300 mb-6 digital-frame">
         <div class="card-body p-6">
           <div class="flex items-center space-x-3">
-            <div class="avatar placeholder">
-              <div class="bg-primary text-primary-content rounded-full w-12">
-                <span class="text-lg font-bold"><%= String.first(@mailbox.email) |> String.upcase() %></span>
+            <%= if @current_user.avatar do %>
+              <div class="avatar">
+                <div class="w-12 rounded-full">
+                  <img src={@current_user.avatar} alt={@current_user.username} class="rounded-full object-cover" />
+                </div>
               </div>
-            </div>
+            <% else %>
+              <div class="avatar placeholder">
+                <div class="bg-primary text-primary-content rounded-full w-12">
+                  <span class="text-lg font-bold"><%= String.first(@current_user.username) |> String.upcase() %></span>
+                </div>
+              </div>
+            <% end %>
             <div class="flex-1">
               <h2 class="font-bold text-lg">Your Mailbox</h2>
               <p class="text-sm text-base-content/70 font-mono break-all"><%= @mailbox.email %></p>
@@ -80,13 +89,21 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
                 Sent
               </.link>
             </li>
-            <li class="mt-2">
-              <.link href={~p"/email/compose"} class={if @current_page == "compose", do: "btn btn-primary w-full gap-2 btn-active", else: "btn btn-primary w-full gap-2"}>
-                <.icon name="hero-pencil-square" class="h-5 w-5" />
-                Compose
+            <li>
+              <.link href={~p"/email/temp"} class={if @current_page == "temp", do: "active", else: "hover:bg-base-200"}>
+                <.icon name="hero-clock" class="h-5 w-5" />
+                Temp Mail
               </.link>
             </li>
           </ul>
+          
+          <!-- Compose Button - Separate from menu -->
+          <div class="mt-4">
+            <.link href={~p"/email/compose"} class={if @current_page == "compose", do: "btn btn-primary w-full gap-2 btn-active flex items-center justify-center", else: "btn btn-primary w-full gap-2 flex items-center justify-center"}>
+              <.icon name="hero-pencil-square" class="h-5 w-5" />
+              Compose
+            </.link>
+          </div>
         </div>
       </div>
     </div>

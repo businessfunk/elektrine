@@ -61,6 +61,9 @@ defmodule ElektrineWeb.Router do
       live "/email/sent", EmailLive.Sent, :sent
       live "/email/compose", EmailLive.Compose, :new
       live "/email/view/:id", EmailLive.Show, :show
+      live "/email/temp", EmailLive.TempMail, :index
+      live "/email/temp/:token", EmailLive.TempMail, :show
+      live "/email/temp/:token/message/:id", EmailLive.TempMail, :message
     end
 
     # Mailbox management (removed for single mailbox per user)

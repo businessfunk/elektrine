@@ -6,8 +6,8 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Index do
   
   @impl true
   def mount(_params, session, socket) do
-    # Assign current_user as nil for layout
-    socket = assign(socket, :current_user, nil)
+    # Preserve current_user if they're authenticated, otherwise set to nil
+    current_user = socket.assigns[:current_user]
     
     # Check if user has a temporary mailbox token in session
     case Map.get(session, "temporary_mailbox_token") do

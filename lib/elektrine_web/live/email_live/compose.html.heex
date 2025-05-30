@@ -1,9 +1,9 @@
-<div class="mx-auto max-w-full px-4 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
   <div class="flex flex-col lg:flex-row gap-6">
-    <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="compose" />
+    <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="compose" current_user={@current_user} />
 
     <!-- Main content -->
-    <div class="flex-1 max-w-none">
+    <div class="flex-1">
       <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
         <div class="card-body p-6">
           <!-- Header -->

@@ -12,15 +12,14 @@
           <li class="menu-title mt-2">
             <span>Email</span>
           </li>
-          <li><.link href={~p"/email/inbox"}>Inbox</.link></li>
-          <li><.link href={~p"/email/sent"}>Sent</.link></li>
-          <li><.link href={~p"/email/compose"}>Compose</.link></li>
-          <li><.link href={~p"/temp-mail"} target="_blank">Temp Mail</.link></li>
+          <li><.link href={~p"/email/inbox"} class={if assigns[:conn] && @conn.request_path == "/email/inbox", do: "active", else: ""}>Inbox</.link></li>
+          <li><.link href={~p"/email/sent"} class={if assigns[:conn] && @conn.request_path == "/email/sent", do: "active", else: ""}>Sent</.link></li>
+          <li><.link href={~p"/email/compose"} class={if assigns[:conn] && String.starts_with?(@conn.request_path, "/email/compose"), do: "active", else: ""}>Compose</.link></li>
 
           <li class="menu-title mt-2">
             <span>Account</span>
           </li>
-          <li><a href={~p"/account"}>Account</a></li>
+          <li><a href={~p"/account"} class={if assigns[:conn] && @conn.request_path == "/account", do: "active", else: ""}>Account</a></li>
           <li>
             <.link href={~p"/logout"} method="delete">
               Log out
@@ -39,12 +38,11 @@
       <li><a href="/about" class={if assigns[:conn] && @conn.request_path == "/about", do: "active", else: ""}>About</a></li>
       <li><a href="/contact" class={if assigns[:conn] && @conn.request_path == "/contact", do: "active", else: ""}>Contact</a></li>
       <%= if @current_user do %>
-        <li><.link href={~p"/email/inbox"} class={if assigns[:conn] && String.starts_with?(@conn.request_path, "/email"), do: "active", else: ""}>Email</.link></li>
-        <li><.link href={~p"/temp-mail"} target="_blank">Temp Mail</.link></li>
+        <li><.link href={~p"/email/inbox"} class={if (assigns[:conn] && String.starts_with?(@conn.request_path, "/email")) || (assigns[:socket] && assigns[:socket].view && String.contains?(to_string(assigns[:socket].view), "EmailLive")), do: "active", else: ""}>Email</.link></li>
       <% end %>
     </ul>
   </div>
-  <div class="navbar-end">
+  <div class="navbar-end pr-4">
     <%= if @current_user do %>
       <div class="dropdown dropdown-end">
         <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">

@@ -17,6 +17,7 @@ defmodule ElektrineWeb.Live.AuthHooks do
     socket =
       socket
       |> assign_current_user(session)
+      |> assign_current_uri()
 
     if socket.assigns.current_user do
       {:cont, socket}
@@ -35,6 +36,24 @@ defmodule ElektrineWeb.Live.AuthHooks do
         user_from_token(user_token)
       end
     end)
+  end
+
+  defp assign_current_uri(socket) do
+    current_path = case socket do
+      %{view: view} -> 
+        # Extract path from the LiveView module name and route
+        case view do
+          ElektrineWeb.EmailLive.Inbox -> "/email/inbox"
+          ElektrineWeb.EmailLive.Sent -> "/email/sent"
+          ElektrineWeb.EmailLive.Compose -> "/email/compose"
+          ElektrineWeb.EmailLive.Show -> "/email/view"
+          ElektrineWeb.EmailLive.Index -> "/email"
+          _ -> "/email"
+        end
+      _ -> 
+        "/email"
+    end
+    assign(socket, :current_path, current_path)
   end
 
   defp user_from_token(token) do

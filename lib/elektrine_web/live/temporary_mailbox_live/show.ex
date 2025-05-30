@@ -35,9 +35,12 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Show do
           Process.send_after(self(), :poll_for_messages, 500)
         end
         
+        # Preserve current_user if they're authenticated
+        current_user = socket.assigns[:current_user]
+        
         socket =
           socket
-          |> assign(:current_user, nil) # Explicitly set current_user to nil for layout
+          |> assign(:current_user, current_user)
           |> assign(:mailbox, mailbox)
           |> assign(:messages, messages)
           |> assign(:is_owner, is_owner)
