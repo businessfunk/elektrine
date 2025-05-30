@@ -2,6 +2,14 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
   @moduledoc """
   Helper functions for working with emails in the LiveView components.
   """
+  use Phoenix.Component
+  import ElektrineWeb.CoreComponents
+
+  # Routes generation with the ~p sigil
+  use Phoenix.VerifiedRoutes,
+    endpoint: ElektrineWeb.Endpoint,
+    router: ElektrineWeb.Router,
+    statics: ElektrineWeb.static_paths()
 
   def format_date(datetime) do
     case datetime do
@@ -22,9 +30,66 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
 
   def message_class(message) do
     if message.read do
-      "hover:bg-base-200"
+      "bg-base-100 border-base-300"
     else
-      "bg-base-200 font-semibold hover:bg-base-300"
+      "bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 shadow-sm"
     end
+  end
+
+  attr :mailbox, :map, required: true
+  attr :unread_count, :integer, required: true
+  attr :current_page, :string, required: true
+
+  def sidebar(assigns) do
+    ~H"""
+    <!-- Sidebar -->
+    <div class="w-full lg:w-80">
+      <!-- Mailbox Info Card -->
+      <div class="card bg-gradient-to-br from-base-100 to-base-200 shadow-lg border border-base-300 mb-6 digital-frame">
+        <div class="card-body p-6">
+          <div class="flex items-center space-x-3">
+            <div class="avatar placeholder">
+              <div class="bg-primary text-primary-content rounded-full w-12">
+                <span class="text-lg font-bold"><%= String.first(@mailbox.email) |> String.upcase() %></span>
+              </div>
+            </div>
+            <div class="flex-1">
+              <h2 class="font-bold text-lg">Your Mailbox</h2>
+              <p class="text-sm text-base-content/70 font-mono break-all"><%= @mailbox.email %></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Navigation Menu -->
+      <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
+        <div class="card-body p-3">
+          <ul class="menu menu-lg bg-base-100 rounded-box">
+            <li>
+              <.link href={~p"/email/inbox"} class={if @current_page == "inbox", do: "active", else: "hover:bg-base-200"}>
+                <.icon name="hero-inbox" class="h-5 w-5" />
+                Inbox
+                <%= if @unread_count > 0 do %>
+                  <div class="badge badge-sm badge-secondary animate-pulse"><%= @unread_count %></div>
+                <% end %>
+              </.link>
+            </li>
+            <li>
+              <.link href={~p"/email/sent"} class={if @current_page == "sent", do: "active", else: "hover:bg-base-200"}>
+                <.icon name="hero-paper-airplane" class="h-5 w-5" />
+                Sent
+              </.link>
+            </li>
+            <li class="mt-2">
+              <.link href={~p"/email/compose"} class={if @current_page == "compose", do: "btn btn-primary w-full gap-2 btn-active", else: "btn btn-primary w-full gap-2"}>
+                <.icon name="hero-pencil-square" class="h-5 w-5" />
+                Compose
+              </.link>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    """
   end
 end

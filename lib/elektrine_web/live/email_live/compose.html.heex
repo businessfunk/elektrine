@@ -1,107 +1,279 @@
-<div class="mx-auto max-w-7xl">
-  <div class="flex flex-col md:flex-row gap-4">
-    <!-- Sidebar -->
-    <div class="w-full md:w-64">
-      <div class="card bg-base-100 shadow mb-4">
-        <div class="card-body">
-          <h2 class="card-title">Your Mailbox</h2>
-          <p class="text-sm"><%= @mailbox.email %></p>
-        </div>
-      </div>
-      
-      <div class="card bg-base-100 shadow">
-        <div class="card-body p-2">
-          <ul class="menu bg-base-100 rounded-box">
-            <li>
-              <.link href={~p"/email/inbox"}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                Inbox
-                <%= if @unread_count > 0 do %>
-                  <span class="badge badge-sm badge-primary"><%= @unread_count %></span>
-                <% end %>
-              </.link>
-            </li>
-            <li>
-              <.link href={~p"/email/sent"}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-                Sent
-              </.link>
-            </li>
-            <li>
-              <.link href={~p"/email/compose"} class="font-bold text-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Compose
-              </.link>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
+<div class="mx-auto max-w-full px-4 sm:px-6 lg:px-8">
+  <div class="flex flex-col lg:flex-row gap-6">
+    <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="compose" />
 
     <!-- Main content -->
-    <div class="flex-1">
-      <div class="card bg-base-100 shadow">
-        <div class="card-body p-4">
-          <h2 class="card-title">Compose New Message</h2>
+    <div class="flex-1 max-w-none">
+      <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
+        <div class="card-body p-6">
+          <!-- Header -->
+          <div class="flex items-center space-x-3 mb-6">
+            <div class="p-2 bg-primary/10 rounded-lg">
+              <.icon name="hero-pencil-square" class="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold"><%= @page_title %></h2>
+              <p class="text-sm text-base-content/70">
+                <%= case @mode do %>
+                  <% "reply" -> %>Reply to this message
+                  <% "forward" -> %>Forward this message to someone
+                  <% _ -> %>Send an email to someone
+                <% end %>
+              </p>
+            </div>
+          </div>
           
-          <.form for={@form} phx-submit="save" class="space-y-4">
+          <.form for={@form} phx-submit="save" class="space-y-6">
+            <!-- From Field -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">From</span>
+                <span class="label-text font-semibold">From</span>
               </label>
-              <div class="input input-bordered bg-base-200 flex items-center px-4 py-2">
-                <%= @mailbox.email %>
+              <div class="relative">
+                <div class="input input-bordered bg-base-200/50 flex items-center px-4 py-3 font-mono text-sm">
+                  <.icon name="hero-at-symbol" class="h-5 w-5 mr-3 text-base-content/60" />
+                  <%= @mailbox.email %>
+                </div>
               </div>
             </div>
             
+            <!-- To Field -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">To</span>
+                <span class="label-text font-semibold">To <span class="text-error">*</span></span>
               </label>
-              <input type="email" name="email[to]" value={@form[:to].value} class="input input-bordered" required />
+              <div class="relative">
+                <input type="email" name="email[to]" value={@form[:to].value} 
+                       class="input input-bordered w-full pl-12" 
+                       placeholder="recipient@example.com" required />
+                <.icon name="hero-at-symbol" class="h-5 w-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-base-content/60" />
+              </div>
             </div>
             
+            <!-- CC and BCC in a grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-semibold">CC</span>
+                  <span class="label-text-alt text-xs">Carbon copy</span>
+                </label>
+                <input type="text" name="email[cc]" value={@form[:cc].value} 
+                       class="input input-bordered" 
+                       placeholder="Optional" />
+              </div>
+              
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-semibold">BCC</span>
+                  <span class="label-text-alt text-xs">Blind carbon copy</span>
+                </label>
+                <input type="text" name="email[bcc]" value={@form[:bcc].value} 
+                       class="input input-bordered" 
+                       placeholder="Optional" />
+              </div>
+            </div>
+            
+            <!-- Subject Field -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">CC</span>
+                <span class="label-text font-semibold">Subject <span class="text-error">*</span></span>
               </label>
-              <input type="text" name="email[cc]" value={@form[:cc].value} class="input input-bordered" />
+              <div class="relative">
+                <input type="text" name="email[subject]" value={@form[:subject].value} 
+                       class="input input-bordered w-full pl-12" 
+                       placeholder="Enter email subject" required />
+                <.icon name="hero-chat-bubble-left-right" class="h-5 w-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-base-content/60" />
+              </div>
             </div>
             
+            <!-- Message Body -->
             <div class="form-control">
-              <label class="label">
-                <span class="label-text">BCC</span>
-              </label>
-              <input type="text" name="email[bcc]" value={@form[:bcc].value} class="input input-bordered" />
+              <div class="flex items-center justify-between mb-2">
+                <label class="label p-0">
+                  <span class="label-text font-semibold">Message <span class="text-error">*</span></span>
+                </label>
+                <div class="flex items-center gap-2">
+                  <div class="form-control">
+                    <label class="label cursor-pointer gap-3">
+                      <span class={"label-text text-xs #{if assigns[:html_mode], do: "text-base-content/60", else: "text-primary font-semibold"}"}>Plain Text</span>
+                      <input type="checkbox" id="html-mode-toggle" class="toggle toggle-sm toggle-primary" phx-click="toggle_html_mode" {if assigns[:html_mode], do: [checked: true], else: []} />
+                      <span class={"label-text text-xs #{if assigns[:html_mode], do: "text-primary font-semibold", else: "text-base-content/60"}"}>HTML</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <%= if @mode in ["reply", "forward"] do %>
+                <!-- Enhanced UI for Reply/Forward mode -->
+                <div class="space-y-3">
+                  <!-- New message area with clear indicator -->
+                  <div class="relative pt-6">
+                    <div class="absolute top-0 left-0 text-sm font-medium text-primary flex items-center gap-2">
+                      <.icon name="hero-pencil" class="h-4 w-4" />
+                      <%= if @mode == "reply", do: "Your reply:", else: "Your message:" %>
+                    </div>
+                    
+                    <%= if assigns[:html_mode] do %>
+                      <!-- HTML Editor for Reply/Forward -->
+                      <div class="space-y-2">
+                        <!-- Formatting Toolbar for Reply/Forward -->
+                        <div class="flex flex-wrap gap-1 p-2 bg-base-200 rounded border border-base-300">
+                          <button type="button" class="btn btn-xs btn-ghost" data-format="bold" data-target="new-message-area" title="Bold">
+                            <strong>B</strong>
+                          </button>
+                          <button type="button" class="btn btn-xs btn-ghost" data-format="italic" data-target="new-message-area" title="Italic">
+                            <em>I</em>
+                          </button>
+                          <button type="button" class="btn btn-xs btn-ghost" data-format="underline" data-target="new-message-area" title="Underline">
+                            <u>U</u>
+                          </button>
+                          <div class="divider divider-horizontal mx-1"></div>
+                          <button type="button" class="btn btn-xs btn-ghost" data-format="heading" data-target="new-message-area" title="Heading">
+                            H1
+                          </button>
+                          <button type="button" class="btn btn-xs btn-ghost" data-format="link" data-target="new-message-area" title="Link">
+                            🔗
+                          </button>
+                          <button type="button" class="btn btn-xs btn-ghost" data-format="list" data-target="new-message-area" title="List">
+                            •
+                          </button>
+                          <button type="button" class="btn btn-xs btn-ghost" data-format="quote" data-target="new-message-area" title="Quote">
+                            "
+                          </button>
+                          <div class="divider divider-horizontal mx-1"></div>
+                          <button type="button" class="btn btn-xs btn-ghost" data-action="preview" data-target="new-message-area" title="Preview">
+                            👁️
+                          </button>
+                        </div>
+                        
+                        <!-- Editor with Preview -->
+                        <div class="relative">
+                          <textarea id="new-message-area" name="email[new_message]" rows="6" 
+                                    class="textarea textarea-bordered border-primary/50 focus:border-primary bg-primary/5 ring-2 ring-primary/20 w-full min-h-32 font-mono text-sm" 
+                                    placeholder="Type your new message here using Markdown syntax..." 
+                                    phx-hook="FocusOnMount"></textarea>
+                          
+                          <!-- Preview Panel for Reply -->
+                          <div id="reply-preview-panel" class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-y-auto">
+                            <div class="prose prose-sm max-w-none" id="reply-preview-content">
+                              <!-- Preview content will be inserted here -->
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <!-- Markdown Help for Reply -->
+                        <div class="text-xs text-base-content/60 bg-base-200/50 p-2 rounded">
+                          <strong>Quick formatting:</strong> 
+                          **bold** • *italic* • [link](url) • # Heading • - List item • > Quote
+                        </div>
+                      </div>
+                    <% else %>
+                      <!-- Plain Text Reply -->
+                      <textarea id="new-message-area" name="email[new_message]" rows="6" 
+                                class="textarea textarea-bordered border-primary/50 focus:border-primary bg-primary/5 ring-2 ring-primary/20 w-full min-h-32" 
+                                placeholder="Type your new message here..." 
+                                phx-hook="FocusOnMount"></textarea>
+                    <% end %>
+                  </div>
+                  
+                  <!-- Divider -->
+                  <div class="divider text-xs text-base-content/60">
+                    <%= if @mode == "reply", do: "Original message below", else: "Forwarded message below" %>
+                  </div>
+                  
+                  <!-- Original message (read-only preview) -->
+                  <div class="relative pt-6">
+                    <div class="absolute top-0 left-0 text-sm font-medium text-base-content/60 flex items-center gap-2">
+                      <.icon name="hero-document-text" class="h-4 w-4" />
+                      <%= if @mode == "reply", do: "Original message:", else: "Forwarded message:" %>
+                    </div>
+                    <div class="textarea textarea-bordered bg-base-200/50 h-32 overflow-y-auto text-sm text-base-content/70 resize-none">
+                      <%= @form[:body].value %>
+                    </div>
+                  </div>
+                  
+                  <!-- Hidden field with full message body -->
+                  <input type="hidden" name="email[body]" id="full-message-body" value={@form[:body].value} />
+                </div>
+              <% else %>
+                <!-- Regular compose mode -->
+                <%= if assigns[:html_mode] do %>
+                  <!-- HTML Editor Mode -->
+                  <div class="space-y-3">
+                    <!-- Formatting Toolbar -->
+                    <div class="flex flex-wrap gap-1 p-2 bg-base-200 rounded border border-base-300">
+                      <button type="button" class="btn btn-xs btn-ghost" data-format="bold" title="Bold">
+                        <strong>B</strong>
+                      </button>
+                      <button type="button" class="btn btn-xs btn-ghost" data-format="italic" title="Italic">
+                        <em>I</em>
+                      </button>
+                      <button type="button" class="btn btn-xs btn-ghost" data-format="underline" title="Underline">
+                        <u>U</u>
+                      </button>
+                      <div class="divider divider-horizontal mx-1"></div>
+                      <button type="button" class="btn btn-xs btn-ghost" data-format="heading" title="Heading">
+                        H1
+                      </button>
+                      <button type="button" class="btn btn-xs btn-ghost" data-format="link" title="Link">
+                        🔗
+                      </button>
+                      <button type="button" class="btn btn-xs btn-ghost" data-format="list" title="List">
+                        •
+                      </button>
+                      <button type="button" class="btn btn-xs btn-ghost" data-format="quote" title="Quote">
+                        "
+                      </button>
+                      <div class="divider divider-horizontal mx-1"></div>
+                      <button type="button" class="btn btn-xs btn-ghost" data-action="preview" title="Preview">
+                        👁️
+                      </button>
+                    </div>
+                    
+                    <!-- Editor and Preview -->
+                    <div class="relative">
+                      <textarea id="html-editor" name="email[body]" rows="12" 
+                                class="textarea textarea-bordered resize-none w-full font-mono text-sm" 
+                                placeholder="Type your message here using Markdown syntax..." 
+                                phx-hook="MarkdownEditor" required><%= @form[:body].value %></textarea>
+                      
+                      <!-- Preview Panel (hidden by default) -->
+                      <div id="preview-panel" class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-y-auto">
+                        <div class="prose prose-sm max-w-none" id="preview-content">
+                          <!-- Preview content will be inserted here -->
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Markdown Help -->
+                    <div class="text-xs text-base-content/60 bg-base-200/50 p-2 rounded">
+                      <strong>Quick formatting:</strong> 
+                      **bold** • *italic* • [link](url) • # Heading • - List item • > Quote
+                    </div>
+                  </div>
+                <% else %>
+                  <!-- Plain Text Mode -->
+                  <textarea name="email[body]" rows="12" 
+                            class="textarea textarea-bordered resize-none" 
+                            placeholder="Type your message here..." required><%= @form[:body].value %></textarea>
+                <% end %>
+              <% end %>
             </div>
             
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text">Subject</span>
-              </label>
-              <input type="text" name="email[subject]" value={@form[:subject].value} class="input input-bordered" required />
-            </div>
-            
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text">Message</span>
-              </label>
-              <textarea name="email[body]" rows="10" class="textarea textarea-bordered" required><%= @form[:body].value %></textarea>
-            </div>
-            
-            <div class="form-control mt-6">
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-4">
               <button type="submit" class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
+                <.icon name="hero-paper-airplane" class="h-5 w-5 mr-2" />
                 Send Message
               </button>
+              <button type="button" class="btn btn-ghost" phx-click="clear_form">
+                <.icon name="hero-trash" class="h-5 w-5 mr-2" />
+                Clear
+              </button>
+              <.link href={~p"/email/inbox"} class="btn btn-outline">
+                <.icon name="hero-arrow-left" class="h-5 w-5 mr-2" />
+                Back to Inbox
+              </.link>
             </div>
           </.form>
         </div>

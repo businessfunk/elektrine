@@ -41,4 +41,13 @@ defmodule Elektrine.Email.Message do
     |> cast(attrs, [])
     |> put_change(:read, true)
   end
+  
+  @doc """
+  Mark a message as unread.
+  """
+  def unread_changeset(message, attrs \\ %{}) do
+    message
+    |> cast(attrs, [])
+    |> put_change(:read, false)
+  end
 end

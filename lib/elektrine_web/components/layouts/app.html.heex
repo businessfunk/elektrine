@@ -15,6 +15,7 @@
           <li><.link href={~p"/email/inbox"}>Inbox</.link></li>
           <li><.link href={~p"/email/sent"}>Sent</.link></li>
           <li><.link href={~p"/email/compose"}>Compose</.link></li>
+          <li><.link href={~p"/temp-mail"} target="_blank">Temp Mail</.link></li>
 
           <li class="menu-title mt-2">
             <span>Account</span>
@@ -39,6 +40,7 @@
       <li><a href="/contact" class={if assigns[:conn] && @conn.request_path == "/contact", do: "active", else: ""}>Contact</a></li>
       <%= if @current_user do %>
         <li><.link href={~p"/email/inbox"} class={if assigns[:conn] && String.starts_with?(@conn.request_path, "/email"), do: "active", else: ""}>Email</.link></li>
+        <li><.link href={~p"/temp-mail"} target="_blank">Temp Mail</.link></li>
       <% end %>
     </ul>
   </div>

@@ -70,17 +70,41 @@ defmodule ElektrineWeb.EmailLive.Show do
   def handle_event("reply", _params, socket) do
     message = socket.assigns.message
     
-    # Define a simple subject for replies
-    subject = if String.starts_with?(message.subject, "Re: ") do
-      message.subject
-    else
-      "Re: #{message.subject}"
-    end
-    
-    # Redirect to compose with prefilled fields
+    # Redirect to compose in reply mode
     {:noreply,
      socket
-     |> redirect(to: ~p"/email/compose?to=#{message.from}&subject=#{subject}")}
+     |> redirect(to: ~p"/email/compose?mode=reply&message_id=#{message.id}")}
+  end
+
+  @impl true
+  def handle_event("forward", _params, socket) do
+    message = socket.assigns.message
+    
+    # Redirect to compose in forward mode
+    {:noreply,
+     socket
+     |> redirect(to: ~p"/email/compose?mode=forward&message_id=#{message.id}")}
+  end
+
+  @impl true
+  def handle_event("mark_unread", _params, socket) do
+    message = socket.assigns.message
+    mailbox = socket.assigns.mailbox
+    
+    if message.mailbox_id == mailbox.id do
+      {:ok, updated_message} = Email.mark_as_unread(message)
+      unread_count = Email.unread_count(mailbox.id)
+      
+      {:noreply,
+       socket
+       |> assign(:message, updated_message)
+       |> assign(:unread_count, unread_count)
+       |> put_flash(:info, "Message marked as unread")}
+    else
+      {:noreply,
+       socket
+       |> put_flash(:error, "Unable to mark message as unread")}
+    end
   end
   
   @impl true
@@ -93,6 +117,11 @@ defmodule ElektrineWeb.EmailLive.Show do
     {:noreply,
      socket
      |> assign(:unread_count, unread_count)}
+  end
+
+  @impl true
+  def handle_info({:unread_count_updated, new_count}, socket) do
+    {:noreply, assign(socket, :unread_count, new_count)}
   end
   
   defp get_or_create_mailbox(user) do

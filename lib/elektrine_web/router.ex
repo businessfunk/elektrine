@@ -81,6 +81,8 @@ defmodule ElektrineWeb.Router do
     post "/ejabberd/auth", EjabberdAuthController, :auth
     post "/ejabberd/isuser", EjabberdAuthController, :isuser
     post "/ejabberd/setpass", EjabberdAuthController, :setpass
+    post "/ejabberd/get_avatar", EjabberdAuthController, :get_avatar
+    post "/ejabberd/get_user_info", EjabberdAuthController, :get_user_info
 
     # Email API endpoints
     post "/postal/inbound", PostalInboundController, :create

@@ -12,6 +12,10 @@ defmodule ElektrineWeb.EmailLive.Sent do
     user = socket.assigns.current_user
     mailbox = get_or_create_mailbox(user)
     unread_count = Email.unread_count(mailbox.id)
+    
+    # Get paginated messages
+    page = 1
+    pagination = Email.list_sent_messages_paginated(mailbox.id, page, 20)
 
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Elektrine.PubSub, "user:#{user.id}")
@@ -21,12 +25,22 @@ defmodule ElektrineWeb.EmailLive.Sent do
      socket
      |> assign(:page_title, "Sent Messages")
      |> assign(:mailbox, mailbox)
-     |> assign(:messages, list_sent_messages(mailbox.id))
+     |> assign(:messages, pagination.messages)
+     |> assign(:pagination, pagination)
      |> assign(:unread_count, unread_count)}
   end
 
   @impl true
-  def handle_params(_params, _url, socket) do
+  def handle_params(params, _url, socket) do
+    page = String.to_integer(params["page"] || "1")
+    mailbox = socket.assigns.mailbox
+    pagination = Email.list_sent_messages_paginated(mailbox.id, page, 20)
+    
+    socket =
+      socket
+      |> assign(:messages, pagination.messages)
+      |> assign(:pagination, pagination)
+    
     {:noreply, socket}
   end
   
@@ -37,10 +51,15 @@ defmodule ElektrineWeb.EmailLive.Sent do
     if message && message.mailbox_id == socket.assigns.mailbox.id do
       {:ok, _} = Email.delete_message(message)
       
+      # Get updated pagination
+      page = socket.assigns.pagination.page
+      pagination = Email.list_sent_messages_paginated(socket.assigns.mailbox.id, page, 20)
+      
       {:noreply,
        socket
        |> put_flash(:info, "Message deleted successfully")
-       |> assign(:messages, list_sent_messages(socket.assigns.mailbox.id))}
+       |> assign(:messages, pagination.messages)
+       |> assign(:pagination, pagination)}
     else
       {:noreply,
        socket
@@ -69,11 +88,4 @@ defmodule ElektrineWeb.EmailLive.Sent do
     end
   end
 
-  defp list_sent_messages(mailbox_id) do
-    Message
-    |> where(mailbox_id: ^mailbox_id, status: "sent")
-    |> order_by(desc: :inserted_at)
-    |> limit(50)
-    |> Repo.all()
-  end
 end

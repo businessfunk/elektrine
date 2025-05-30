@@ -9,7 +9,10 @@ defmodule ElektrineWeb.EmailLive.Inbox do
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
     mailbox = get_or_create_mailbox(user)
-    messages = list_messages(mailbox.id)
+    
+    # Get paginated messages
+    page = 1
+    pagination = Email.list_messages_paginated(mailbox.id, page, 20)
 
     # Subscribe to the PubSub topic only when the socket is connected
     if connected?(socket) do
@@ -23,18 +26,44 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     socket =
       socket
       |> stream_configure(:messages, dom_id: &"message-#{&1.id}")
-      |> stream(:messages, messages)
+      |> stream(:messages, pagination.messages)
       |> assign(:page_title, "Inbox")
       |> assign(:mailbox, mailbox)
-      |> assign(:messages, messages)  # Keep for backward compatibility
+      |> assign(:messages, pagination.messages)  # Keep for backward compatibility
+      |> assign(:pagination, pagination)
       |> assign(:unread_count, Email.unread_count(mailbox.id))
 
     {:ok, socket}
   end
 
   @impl true
-  def handle_params(_params, _url, socket) do
+  def handle_params(params, _url, socket) do
+    page = String.to_integer(params["page"] || "1")
+    mailbox = socket.assigns.mailbox
+    pagination = Email.list_messages_paginated(mailbox.id, page, 20)
+    
+    socket =
+      socket
+      |> assign(:messages, pagination.messages)
+      |> assign(:pagination, pagination)
+      |> stream(:messages, pagination.messages, reset: true)
+    
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("refresh", _params, socket) do
+    page = socket.assigns.pagination.page
+    pagination = Email.list_messages_paginated(socket.assigns.mailbox.id, page, 20)
+    unread_count = Email.unread_count(socket.assigns.mailbox.id)
+
+    {:noreply,
+     socket
+     |> assign(:messages, pagination.messages)
+     |> assign(:pagination, pagination)
+     |> assign(:unread_count, unread_count)
+     |> stream(:messages, pagination.messages, reset: true)
+     |> put_flash(:info, "Inbox refreshed")}
   end
 
   @impl true
@@ -45,15 +74,17 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     if message && message.mailbox_id == socket.assigns.mailbox.id do
       {:ok, _} = Email.delete_message(message)
 
-      # Get updated message list
-      messages = list_messages(socket.assigns.mailbox.id)
+      # Get updated pagination
+      page = socket.assigns.pagination.page
+      pagination = Email.list_messages_paginated(socket.assigns.mailbox.id, page, 20)
 
       Logger.info("Deleted message #{id}, updating stream")
 
       {:noreply,
        socket
        |> stream_delete(:messages, message)
-       |> assign(:messages, messages)  # Keep for backward compatibility
+       |> assign(:messages, pagination.messages)
+       |> assign(:pagination, pagination)
        |> put_flash(:info, "Message deleted successfully")}
     else
       {:noreply,
@@ -69,20 +100,25 @@ defmodule ElektrineWeb.EmailLive.Inbox do
 
     # Log when we receive a message to help debugging
     Logger.info("Inbox LiveView received new_email event for mailbox #{mailbox.id}")
-    Logger.debug("Message details: #{inspect(message)}")
+    Logger.info("Message type: #{if is_struct(message), do: inspect(message.__struct__), else: "plain map"}")
+    Logger.info("Message keys: #{inspect(if is_map(message), do: Map.keys(message), else: "not a map")}")
+    Logger.debug("Full message details: #{inspect(message, pretty: true)}")
 
-    # Get the latest messages directly - more reliable for real-time updates
-    latest_messages = list_messages(mailbox.id)
+    # Get the latest messages with pagination - stay on page 1 for new messages
+    pagination = Email.list_messages_paginated(mailbox.id, 1, 20)
     unread_count = Email.unread_count(mailbox.id)
+    
+    Logger.info("Retrieved #{length(pagination.messages)} messages from database")
+    Logger.info("Current messages in socket: #{length(socket.assigns.messages)}")
 
     # For logging purposes, try to find the new message in the latest batch
     db_message =
       if is_map(message) and Map.has_key?(message, :message_id) and not is_nil(message.message_id) do
         # Try to find by message_id first
-        Enum.find(latest_messages, fn m -> m.message_id == message.message_id end)
+        Enum.find(pagination.messages, fn m -> m.message_id == message.message_id end)
       else
         # Otherwise just use the most recent message
-        List.first(latest_messages)
+        List.first(pagination.messages)
       end
 
     if db_message do
@@ -95,14 +131,28 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     # This ensures the view is always up-to-date with the database
     Logger.info("Performing full refresh of inbox messages")
 
+    # Force a unique key to ensure DOM updates
     socket =
       socket
       |> assign(:unread_count, unread_count)
-      |> assign(:messages, latest_messages)
-      |> stream(:messages, latest_messages, reset: true)
+      |> assign(:messages, pagination.messages)
+      |> assign(:pagination, pagination)
+      |> stream(:messages, pagination.messages, reset: true)
+      |> push_event("inbox-updated", %{count: length(pagination.messages)})
 
+    Logger.info("Socket updated with #{length(pagination.messages)} messages")
+    Logger.info("Stream should be reset with new messages")
+    Logger.info("Pushed inbox-updated event to client")
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:unread_count_updated, new_count}, socket) do
+    require Logger
+    Logger.info("Inbox received unread count update: #{new_count}")
+    
+    {:noreply, assign(socket, :unread_count, new_count)}
   end
 
   defp get_or_create_mailbox(user) do
@@ -112,10 +162,6 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         mailbox
       mailbox -> mailbox
     end
-  end
-
-  defp list_messages(mailbox_id) do
-    Email.list_messages(mailbox_id, 50)
   end
 
 end

@@ -81,6 +81,76 @@ defmodule Elektrine.Email do
     |> offset(^offset)
     |> Repo.all()
   end
+  
+  @doc """
+  Returns paginated messages for a mailbox with metadata.
+  """
+  def list_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    total_count = 
+      Message
+      |> where(mailbox_id: ^mailbox_id)
+      |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = list_messages(mailbox_id, per_page, offset)
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
+  
+  @doc """
+  Returns paginated sent messages for a mailbox with metadata.
+  """
+  def list_sent_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    total_count = 
+      Message
+      |> where([m], m.mailbox_id == ^mailbox_id and m.status == "sent")
+      |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = 
+      Message
+      |> where([m], m.mailbox_id == ^mailbox_id and m.status == "sent")
+      |> order_by(desc: :inserted_at)
+      |> limit(^per_page)
+      |> offset(^offset)
+      |> Repo.all()
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
 
   @doc """
   Returns the list of unread messages for a user.
@@ -172,16 +242,100 @@ defmodule Elektrine.Email do
   Marks a message as read.
   """
   def mark_as_read(%Message{} = message) do
-    message
+    result = message
     |> Message.read_changeset()
     |> Repo.update()
+    
+    case result do
+      {:ok, updated_message} ->
+        # Get the mailbox to find the user_id
+        mailbox = get_mailbox(updated_message.mailbox_id)
+        
+        if mailbox && mailbox.user_id do
+          # Get the new unread count
+          new_unread_count = unread_count(updated_message.mailbox_id)
+          
+          # Broadcast the unread count update
+          Phoenix.PubSub.broadcast!(
+            Elektrine.PubSub,
+            "user:#{mailbox.user_id}",
+            {:unread_count_updated, new_unread_count}
+          )
+        end
+        
+        {:ok, updated_message}
+        
+      error ->
+        error
+    end
+  end
+
+  @doc """
+  Marks a message as unread.
+  """
+  def mark_as_unread(%Message{} = message) do
+    result = message
+    |> Message.unread_changeset()
+    |> Repo.update()
+    
+    case result do
+      {:ok, updated_message} ->
+        # Get the mailbox to find the user_id
+        mailbox = get_mailbox(updated_message.mailbox_id)
+        
+        if mailbox && mailbox.user_id do
+          # Get the new unread count
+          new_unread_count = unread_count(updated_message.mailbox_id)
+          
+          # Broadcast the unread count update
+          Phoenix.PubSub.broadcast!(
+            Elektrine.PubSub,
+            "user:#{mailbox.user_id}",
+            {:unread_count_updated, new_unread_count}
+          )
+        end
+        
+        {:ok, updated_message}
+        
+      error ->
+        error
+    end
   end
 
   @doc """
   Deletes a message.
   """
   def delete_message(%Message{} = message) do
-    Repo.delete(message)
+    # Store info before deletion
+    was_unread = !message.read
+    mailbox_id = message.mailbox_id
+    
+    result = Repo.delete(message)
+    
+    case result do
+      {:ok, _deleted_message} ->
+        # Only broadcast if the deleted message was unread
+        if was_unread do
+          mailbox = get_mailbox(mailbox_id)
+          
+          if mailbox && mailbox.user_id do
+            # Get the new unread count
+            new_unread_count = unread_count(mailbox_id)
+            
+            # Broadcast the unread count update
+            Phoenix.PubSub.broadcast!(
+              Elektrine.PubSub,
+              "user:#{mailbox.user_id}",
+              {:unread_count_updated, new_unread_count}
+            )
+          end
+        end
+        
+        result
+        
+      error ->
+        error
+    end
   end
 
   @doc """

@@ -152,27 +152,11 @@ defmodule ElektrineWeb.PostalInboundController do
             }
           }
 
-          # Notify connected clients
-          # First, broadcast to the user's topic if this is a user mailbox
-          if mailbox.user_id do
-            Logger.info("Broadcasting :new_email event for user:#{mailbox.user_id}")
-
-            # Broadcast updated email_data with read flag explicitly set to false
-            email_data = Map.put(email_data, :read, false)
-
-            # Broadcasting to the user's PubSub topic
-            Phoenix.PubSub.broadcast!(
-              Elektrine.PubSub,
-              "user:#{mailbox.user_id}",
-              {:new_email, email_data}
-            )
-          end
-          
-          # Always broadcast to the mailbox topic for temporary mailboxes
-          Logger.info("Broadcasting :new_email event for mailbox:#{mailbox.id}")
+          # Log that we're about to process the email
+          Logger.info("Processing email for mailbox:#{mailbox.id}" <> if(mailbox.user_id, do: " (user:#{mailbox.user_id})", else: ""))
           
           # Check if this message already exists before creating
-          case Elektrine.Email.get_message_by_id(email_data.message_id, mailbox.id) do
+          result = case Elektrine.Email.get_message_by_id(email_data.message_id, mailbox.id) do
             nil ->
               # Message doesn't exist, create it using the adapter
               Elektrine.Email.MailboxAdapter.create_message(email_data)
@@ -181,6 +165,22 @@ defmodule ElektrineWeb.PostalInboundController do
               # Message already exists, return it
               Logger.info("Message with ID #{email_data.message_id} already exists, skipping creation")
               {:ok, existing_message}
+          end
+          
+          # Broadcast the actual message struct to user topic after creation
+          case result do
+            {:ok, message} ->
+              if mailbox.user_id do
+                Logger.info("Broadcasting created message to user:#{mailbox.user_id}")
+                Phoenix.PubSub.broadcast!(
+                  Elektrine.PubSub,
+                  "user:#{mailbox.user_id}",
+                  {:new_email, message}
+                )
+              end
+              result
+            error ->
+              error
           end
 
         {:error, reason} ->
