@@ -1,0 +1,153 @@
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+  <div class="flex flex-col lg:flex-row gap-6">
+    <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="inbox" current_user={@current_user} />
+
+    <!-- Main content -->
+    <div class="flex-1">
+      <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
+        <div class="card-body p-6">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
+              <div class="p-2 bg-primary/10 rounded-lg">
+                <.icon name="hero-inbox" class="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h2 class="text-2xl font-bold">Inbox</h2>
+                <p class="text-sm text-base-content/70">Manage your messages</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button class="btn btn-ghost btn-sm" phx-click="refresh">
+                <.icon name="hero-arrow-path" class="h-4 w-4" />
+                Refresh
+              </button>
+            </div>
+          </div>
+          
+          <%= if Enum.empty?(@messages) do %>
+            <div class="flex flex-col items-center justify-center py-16">
+              <div class="p-4 bg-base-200 rounded-full mb-6">
+                <.icon name="hero-inbox" class="h-16 w-16 text-base-content/40" />
+              </div>
+              <h3 class="text-xl font-semibold mb-2">Your inbox is empty</h3>
+              <p class="text-base-content/70 mb-6 text-center max-w-md">No messages have arrived yet. When someone sends you an email, it will appear here.</p>
+              <.link href={~p"/email/compose"} class="btn btn-primary">
+                <.icon name="hero-pencil-square" class="h-5 w-5 mr-2" />
+                Compose your first message
+              </.link>
+            </div>
+          <% else %>
+            <!-- Messages List -->
+            <div class="space-y-2">
+              <div id="messages-list" phx-update="stream" class="space-y-2" phx-hook="InboxDebug">
+                <%= for {id, message} <- @streams.messages do %>
+                  <div class={"card transition-all duration-200 #{message_class(message)} hover:shadow-xl hover:scale-[1.02] hover:border-primary/30 hover:bg-primary/5 border border-base-300 cursor-pointer"} id={id}>
+                    <div class="card-body p-4">
+                      <div class="flex items-start justify-between">
+                        <.link navigate={~p"/email/view/#{message.id}"} class="flex-1 min-w-0 cursor-pointer">
+                          <div class="flex items-center space-x-3 mb-2">
+                            <div class="avatar placeholder">
+                              <div class="bg-primary/20 text-primary rounded-full w-8 h-8">
+                                <span class="text-xs font-bold"><%= String.first(message.from) |> String.upcase() %></span>
+                              </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                              <div class="flex items-center justify-between">
+                                <p class="font-semibold text-sm truncate"><%= message.from %></p>
+                                <span class="text-xs text-base-content/60 font-mono ml-2"><%= format_date(message.inserted_at) %></span>
+                              </div>
+                              <h3 class="font-bold text-base truncate mt-1"><%= message.subject %></h3>
+                            </div>
+                          </div>
+                          <p class="text-sm text-base-content/70 line-clamp-2"><%= truncate(message.text_body, 150) %></p>
+                        </.link>
+                        
+                        <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
+                          <%= if not message.read do %>
+                            <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                          <% end %>
+                          <%= if message.spam do %>
+                            <div class="badge badge-error badge-xs">SPAM</div>
+                          <% end %>
+                          <%= if message.archived do %>
+                            <div class="badge badge-secondary badge-xs">ARCHIVED</div>
+                          <% end %>
+                          <div class="dropdown dropdown-end dropdown-top">
+                            <div tabindex="0" role="button" class="btn btn-ghost btn-xs opacity-60 hover:opacity-100">
+                              <.icon name="hero-ellipsis-horizontal" class="h-4 w-4" />
+                            </div>
+                            <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-32 z-[9999]">
+                              <li>
+                                <button phx-click="archive" phx-value-id={message.id} class="text-sm">
+                                  <.icon name="hero-archive-box" class="h-4 w-4" />
+                                  Archive
+                                </button>
+                              </li>
+                              <li>
+                                <button phx-click="mark_spam" phx-value-id={message.id} class="text-sm">
+                                  <.icon name="hero-exclamation-triangle" class="h-4 w-4" />
+                                  Mark Spam
+                                </button>
+                              </li>
+                              <li>
+                                <button phx-click="delete" phx-value-id={message.id} class="text-sm text-error" data-confirm="Are you sure you want to delete this message?">
+                                  <.icon name="hero-trash" class="h-4 w-4" />
+                                  Delete
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+            
+            <!-- Pagination Controls -->
+            <%= if @pagination.total_pages > 1 do %>
+              <div class="flex justify-center items-center space-x-2 mt-6">
+                <%= if @pagination.has_prev do %>
+                  <.link 
+                    patch={~p"/email/inbox?page=#{@pagination.page - 1}"}
+                    class="btn btn-sm"
+                  >
+                    <.icon name="hero-chevron-left" class="h-4 w-4" />
+                    Previous
+                  </.link>
+                <% else %>
+                  <button class="btn btn-sm btn-disabled" disabled>
+                    <.icon name="hero-chevron-left" class="h-4 w-4" />
+                    Previous
+                  </button>
+                <% end %>
+                
+                <div class="text-sm text-base-content/70">
+                  Page <%= @pagination.page %> of <%= @pagination.total_pages %>
+                  <span class="text-xs ml-2">(<%= @pagination.total_count %> total)</span>
+                </div>
+                
+                <%= if @pagination.has_next do %>
+                  <.link 
+                    patch={~p"/email/inbox?page=#{@pagination.page + 1}"}
+                    class="btn btn-sm"
+                  >
+                    Next
+                    <.icon name="hero-chevron-right" class="h-4 w-4" />
+                  </.link>
+                <% else %>
+                  <button class="btn btn-sm btn-disabled" disabled>
+                    Next
+                    <.icon name="hero-chevron-right" class="h-4 w-4" />
+                  </button>
+                <% end %>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -423,3 +423,118 @@
   border-color: rgb(107, 114, 128) !important; /* gray-500 */
 }
 
+/* Flash message animations */
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+.slide-in-left {
+  animation: slide-in-left 0.4s ease-out forwards;
+}
+
+.slide-out-left {
+  animation: slide-out-left 0.4s ease-in forwards;
+}
+
+/* Flash progress bar animation */
+@keyframes flash-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.flash-progress.animate {
+  animation: flash-countdown 5s linear forwards;
+}
+
+/* Enhanced flash message styling */
+.alert {
+  border-radius: 0.75rem;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.alert-info {
+  background-color: rgba(34, 197, 94, 0.9);
+  color: white;
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.3);
+}
+
+.alert-error {
+  background-color: rgba(239, 68, 68, 0.9);
+  color: white;
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
+}
+
+/* Force flash messages to bottom-left */
+#flash-info,
+#flash-error {
+  position: fixed !important;
+  bottom: 1rem !important;
+  left: 1rem !important;
+  top: auto !important;
+  right: auto !important;
+  z-index: 9999 !important;
+}
+
+/* Custom toggle switch */
+.custom-toggle {
+  position: relative;
+  width: 3rem;
+  height: 1.5rem;
+  background-color: #374151;
+  border-radius: 9999px;
+  border: 1px solid #4b5563;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.custom-toggle:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.3);
+}
+
+.custom-toggle.active {
+  background-color: #0891b2;
+  border-color: #0891b2;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 50%;
+  left: 0.125rem;
+  width: 1rem;
+  height: 1rem;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: translateY(-50%);
+}
+
+.custom-toggle.active .toggle-slider {
+  transform: translateY(-50%) translateX(1.5rem);
+}
+
+

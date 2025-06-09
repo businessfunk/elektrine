@@ -11,6 +11,7 @@ defmodule Elektrine.Email do
   alias Elektrine.Email.Mailbox
   alias Elektrine.Email.Message
   alias Elektrine.Email.TemporaryMailbox
+  alias Elektrine.Email.ApprovedSender
   alias Elektrine.Accounts
 
   @doc """
@@ -81,6 +82,42 @@ defmodule Elektrine.Email do
     |> offset(^offset)
     |> Repo.all()
   end
+
+  @doc """
+  Returns the list of non-spam, non-archived messages for a mailbox.
+  """
+  def list_inbox_messages(mailbox_id, limit \\ 50, offset \\ 0) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, spam: false, archived: false)
+    |> order_by(desc: :inserted_at)
+    |> limit(^limit)
+    |> offset(^offset)
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns the list of spam messages for a mailbox.
+  """
+  def list_spam_messages(mailbox_id, limit \\ 50, offset \\ 0) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, spam: true)
+    |> order_by(desc: :inserted_at)
+    |> limit(^limit)
+    |> offset(^offset)
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns the list of archived messages for a mailbox.
+  """
+  def list_archived_messages(mailbox_id, limit \\ 50, offset \\ 0) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, archived: true)
+    |> order_by(desc: :inserted_at)
+    |> limit(^limit)
+    |> offset(^offset)
+    |> Repo.all()
+  end
   
   @doc """
   Returns paginated messages for a mailbox with metadata.
@@ -97,6 +134,102 @@ defmodule Elektrine.Email do
     
     # Get messages for current page
     messages = list_messages(mailbox_id, per_page, offset)
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
+
+  @doc """
+  Returns paginated inbox messages (non-spam, non-archived) for a mailbox with metadata.
+  """
+  def list_inbox_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    total_count = 
+      Message
+      |> where(mailbox_id: ^mailbox_id, spam: false, archived: false)
+      |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = list_inbox_messages(mailbox_id, per_page, offset)
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
+
+  @doc """
+  Returns paginated spam messages for a mailbox with metadata.
+  """
+  def list_spam_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    total_count = 
+      Message
+      |> where(mailbox_id: ^mailbox_id, spam: true)
+      |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = list_spam_messages(mailbox_id, per_page, offset)
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
+
+  @doc """
+  Returns paginated archived messages for a mailbox with metadata.
+  """
+  def list_archived_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    total_count = 
+      Message
+      |> where(mailbox_id: ^mailbox_id, archived: true)
+      |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = list_archived_messages(mailbox_id, per_page, offset)
     
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
@@ -303,6 +436,42 @@ defmodule Elektrine.Email do
   end
 
   @doc """
+  Marks a message as spam.
+  """
+  def mark_as_spam(%Message{} = message) do
+    message
+    |> Message.spam_changeset()
+    |> Repo.update()
+  end
+
+  @doc """
+  Marks a message as not spam.
+  """
+  def mark_as_not_spam(%Message{} = message) do
+    message
+    |> Message.unspam_changeset()
+    |> Repo.update()
+  end
+
+  @doc """
+  Archives a message.
+  """
+  def archive_message(%Message{} = message) do
+    message
+    |> Message.archive_changeset()
+    |> Repo.update()
+  end
+
+  @doc """
+  Unarchives a message.
+  """
+  def unarchive_message(%Message{} = message) do
+    message
+    |> Message.unarchive_changeset()
+    |> Repo.update()
+  end
+
+  @doc """
   Deletes a message.
   """
   def delete_message(%Message{} = message) do
@@ -463,4 +632,565 @@ defmodule Elektrine.Email do
     
     {:ok, count}
   end
+  
+  #
+  # Hey.com Features
+  #
+  
+  @doc """
+  Returns messages pending approval in The Screener.
+  """
+  def list_screener_messages(mailbox_id, limit \\ 50, offset \\ 0) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, screener_status: "pending")
+    |> where([m], not m.spam and not m.archived)
+    |> order_by(desc: :inserted_at)
+    |> limit(^limit)
+    |> offset(^offset)
+    |> Repo.all()
+  end
+  
+  @doc """
+  Returns paginated screener messages for a mailbox with metadata.
+  """
+  def list_screener_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    total_count = 
+      Message
+      |> where(mailbox_id: ^mailbox_id, screener_status: "pending")
+      |> where([m], not m.spam and not m.archived)
+      |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = list_screener_messages(mailbox_id, per_page, offset)
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
+  
+  @doc """
+  Returns messages in The Feed (newsletters, notifications).
+  """
+  def list_feed_messages(mailbox_id, limit \\ 50, offset \\ 0) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, category: "feed")
+    |> where([m], not m.spam and not m.archived)
+    |> order_by(desc: :inserted_at)
+    |> limit(^limit)
+    |> offset(^offset)
+    |> Repo.all()
+  end
+  
+  @doc """
+  Returns paginated feed messages for a mailbox with metadata.
+  """
+  def list_feed_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    total_count = 
+      Message
+      |> where(mailbox_id: ^mailbox_id, category: "feed")
+      |> where([m], not m.spam and not m.archived)
+      |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = list_feed_messages(mailbox_id, per_page, offset)
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
+  
+  @doc """
+  Returns messages in Paper Trail (receipts, confirmations).
+  """
+  def list_paper_trail_messages(mailbox_id, limit \\ 50, offset \\ 0) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, category: "paper_trail")
+    |> where([m], not m.spam and not m.archived)
+    |> order_by(desc: :inserted_at)
+    |> limit(^limit)
+    |> offset(^offset)
+    |> Repo.all()
+  end
+  
+  @doc """
+  Returns paginated paper trail messages for a mailbox with metadata.
+  """
+  def list_paper_trail_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    total_count = 
+      Message
+      |> where(mailbox_id: ^mailbox_id, category: "paper_trail")
+      |> where([m], not m.spam and not m.archived)
+      |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = list_paper_trail_messages(mailbox_id, per_page, offset)
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
+  
+  @doc """
+  Returns messages that are set aside.
+  """
+  def list_set_aside_messages(mailbox_id, limit \\ 50, offset \\ 0) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, category: "set_aside")
+    |> where([m], not is_nil(m.set_aside_at))
+    |> where([m], not m.spam and not m.archived)
+    |> order_by(desc: :set_aside_at)
+    |> limit(^limit)
+    |> offset(^offset)
+    |> Repo.all()
+  end
+  
+  @doc """
+  Returns paginated set aside messages for a mailbox with metadata.
+  """
+  def list_set_aside_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    total_count = 
+      Message
+      |> where(mailbox_id: ^mailbox_id, category: "set_aside")
+      |> where([m], not is_nil(m.set_aside_at))
+      |> where([m], not m.spam and not m.archived)
+      |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = list_set_aside_messages(mailbox_id, per_page, offset)
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
+  
+  @doc """
+  Returns messages marked for reply later.
+  """
+  def list_reply_later_messages(mailbox_id, limit \\ 50, offset \\ 0) do
+    Message
+    |> where(mailbox_id: ^mailbox_id)
+    |> where([m], not is_nil(m.reply_later_at))
+    |> where([m], not m.spam and not m.archived)
+    |> order_by(:reply_later_at)
+    |> limit(^limit)
+    |> offset(^offset)
+    |> Repo.all()
+  end
+  
+  @doc """
+  Returns paginated reply later messages for a mailbox with metadata.
+  """
+  def list_reply_later_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    total_count = 
+      Message
+      |> where(mailbox_id: ^mailbox_id)
+      |> where([m], not is_nil(m.reply_later_at))
+      |> where([m], not m.spam and not m.archived)
+      |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = list_reply_later_messages(mailbox_id, per_page, offset)
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
+  
+  @doc """
+  Approves a sender in The Screener.
+  """
+  def approve_sender(%Message{} = message) do
+    result = message
+    |> Message.approve_sender_changeset()
+    |> Repo.update()
+    
+    case result do
+      {:ok, updated_message} ->
+        # Add sender to approved list
+        create_approved_sender(%{
+          email_address: updated_message.from,
+          mailbox_id: updated_message.mailbox_id,
+          approved_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+        
+        {:ok, updated_message}
+        
+      error ->
+        error
+    end
+  end
+  
+  @doc """
+  Rejects a sender in The Screener.
+  """
+  def reject_sender(%Message{} = message) do
+    message
+    |> Message.reject_sender_changeset()
+    |> Repo.update()
+  end
+  
+  @doc """
+  Sets aside a message for later processing.
+  """
+  def set_aside_message(%Message{} = message, reason \\ nil) do
+    message
+    |> Message.set_aside_changeset(%{set_aside_reason: reason})
+    |> Repo.update()
+  end
+  
+  @doc """
+  Removes a message from set aside.
+  """
+  def unset_aside_message(%Message{} = message) do
+    message
+    |> Message.unset_aside_changeset()
+    |> Repo.update()
+  end
+  
+  @doc """
+  Sets a message for reply later.
+  """
+  def reply_later_message(%Message{} = message, reply_at, reminder \\ false) do
+    message
+    |> Message.reply_later_changeset(%{
+      reply_later_at: reply_at,
+      reply_later_reminder: reminder
+    })
+    |> Repo.update()
+  end
+  
+  @doc """
+  Clears reply later for a message.
+  """
+  def clear_reply_later(%Message{} = message) do
+    message
+    |> Message.clear_reply_later_changeset()
+    |> Repo.update()
+  end
+  
+  @doc """
+  Tracks when a message is opened.
+  """
+  def track_message_open(%Message{} = message) do
+    message
+    |> Message.track_open_changeset()
+    |> Repo.update()
+  end
+  
+  @doc """
+  Checks if a sender is approved for a mailbox.
+  """
+  def sender_approved?(email_address, mailbox_id) do
+    ApprovedSender
+    |> where(email_address: ^email_address, mailbox_id: ^mailbox_id)
+    |> Repo.exists?()
+  end
+  
+  @doc """
+  Creates an approved sender.
+  """
+  def create_approved_sender(attrs \\ %{}) do
+    %ApprovedSender{}
+    |> ApprovedSender.changeset(attrs)
+    |> Repo.insert()
+  end
+  
+  @doc """
+  Lists all approved senders for a mailbox.
+  """
+  def list_approved_senders(mailbox_id) do
+    ApprovedSender
+    |> where(mailbox_id: ^mailbox_id)
+    |> order_by(desc: :approved_at)
+    |> Repo.all()
+  end
+  
+  @doc """
+  Gets a single approved sender.
+  """
+  def get_approved_sender(id), do: Repo.get(ApprovedSender, id)
+  
+  @doc """
+  Deletes an approved sender.
+  """
+  def delete_approved_sender(%ApprovedSender{} = approved_sender) do
+    Repo.delete(approved_sender)
+  end
+  
+  @doc """
+  Updates an approved sender.
+  """
+  def update_approved_sender(%ApprovedSender{} = approved_sender, attrs) do
+    approved_sender
+    |> ApprovedSender.changeset(attrs)
+    |> Repo.update()
+  end
+  
+  @doc """
+  Updates tracking for an approved sender when they send an email.
+  """
+  def track_approved_sender_email(email_address, mailbox_id) do
+    case Repo.get_by(ApprovedSender, email_address: email_address, mailbox_id: mailbox_id) do
+      nil -> :ok # Sender not approved, nothing to track
+      sender ->
+        sender
+        |> ApprovedSender.track_email_changeset()
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  Lists all blocked/rejected senders for a mailbox.
+  Returns unique senders who have been rejected in the screener.
+  """
+  def list_blocked_senders(mailbox_id) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, screener_status: "rejected")
+    |> group_by(:from)
+    |> select([m], %{
+      email_address: m.from,
+      rejected_at: max(m.updated_at),
+      message_count: count(m.id)
+    })
+    |> order_by([m], desc: max(m.updated_at))
+    |> Repo.all()
+  end
+
+  @doc """
+  Blocks a sender by rejecting all their messages and marking them as blocked.
+  """
+  def block_sender(email_address, mailbox_id) do
+    # First, reject any pending messages from this sender
+    Message
+    |> where(mailbox_id: ^mailbox_id, from: ^email_address, screener_status: "pending")
+    |> Repo.update_all(set: [screener_status: "rejected", updated_at: DateTime.utc_now()])
+
+    # Mark all future messages from this sender as spam
+    Message
+    |> where(mailbox_id: ^mailbox_id, from: ^email_address)
+    |> Repo.update_all(set: [spam: true, updated_at: DateTime.utc_now()])
+
+    :ok
+  end
+
+  @doc """
+  Unblocks a sender by removing their rejected status and allowing their messages.
+  """
+  def unblock_sender(email_address, mailbox_id) do
+    # Reset rejected messages to pending for re-screening
+    Message
+    |> where(mailbox_id: ^mailbox_id, from: ^email_address, screener_status: "rejected")
+    |> Repo.update_all(set: [screener_status: "pending", spam: false, updated_at: DateTime.utc_now()])
+
+    :ok
+  end
+  
+  @doc """
+  Categorizes an incoming message based on content analysis.
+  """
+  def categorize_message(message_attrs) do
+    subject = String.downcase(message_attrs["subject"] || "")
+    from = String.downcase(message_attrs["from"] || "")
+    body = String.downcase(message_attrs["text_body"] || "")
+    
+    cond do
+      # Receipt detection
+      receipt_keywords?(subject, body) ->
+        Map.merge(message_attrs, %{
+          "category" => "paper_trail",
+          "is_receipt" => true
+        })
+      
+      # Newsletter detection  
+      newsletter_keywords?(subject, from, body) ->
+        Map.merge(message_attrs, %{
+          "category" => "feed",
+          "is_newsletter" => true
+        })
+      
+      # Notification detection
+      notification_keywords?(subject, from, body) ->
+        Map.merge(message_attrs, %{
+          "category" => "feed", 
+          "is_notification" => true
+        })
+      
+      true ->
+        message_attrs
+    end
+  end
+  
+  # Private helper functions for categorization
+  defp receipt_keywords?(subject, body) do
+    receipt_terms = [
+      "receipt", "invoice", "payment", "confirmation", "order", 
+      "purchase", "transaction", "billing", "refund", "shipping"
+    ]
+    
+    Enum.any?(receipt_terms, fn term -> 
+      String.contains?(subject, term) or String.contains?(body, term)
+    end)
+  end
+  
+  defp newsletter_keywords?(subject, from, body) do
+    newsletter_terms = [
+      "newsletter", "unsubscribe", "weekly", "monthly", "digest",
+      "news", "update", "announcement"
+    ]
+    
+    newsletter_domains = [
+      "newsletter", "news", "updates", "marketing", "promo"
+    ]
+    
+    has_newsletter_terms = Enum.any?(newsletter_terms, fn term ->
+      String.contains?(subject, term) or String.contains?(body, term)
+    end)
+    
+    has_newsletter_domain = Enum.any?(newsletter_domains, fn domain ->
+      String.contains?(from, domain)
+    end)
+    
+    has_newsletter_terms or has_newsletter_domain
+  end
+  
+  defp notification_keywords?(subject, from, body) do
+    notification_terms = [
+      "notification", "alert", "reminder", "notice", "security",
+      "login", "password", "reset", "account", "verify", "welcome",
+      "password reset", "forgot password", "reset password"
+    ]
+    
+    notification_domains = [
+      "no-reply", "noreply", "notification", "alert", "system",
+      "security", "auth", "account"
+    ]
+    
+    has_notification_terms = Enum.any?(notification_terms, fn term ->
+      String.contains?(subject, term) or String.contains?(body, term)
+    end)
+    
+    has_notification_domain = Enum.any?(notification_domains, fn domain ->
+      String.contains?(from, domain)
+    end)
+    
+    has_notification_terms or has_notification_domain
+  end
+  
+  @doc """
+  Re-categorizes existing messages in a mailbox based on current categorization rules.
+  Useful for applying updated categorization logic to existing messages.
+  """
+  def recategorize_messages(mailbox_id) do
+    messages = Message
+    |> where(mailbox_id: ^mailbox_id)
+    |> where([m], not m.spam)
+    |> Repo.all()
+    
+    Enum.each(messages, fn message ->
+      # Create attrs map similar to what's used during message creation
+      message_attrs = %{
+        "subject" => message.subject || "",
+        "from" => message.from || "",
+        "text_body" => message.text_body || ""
+      }
+      
+      # Apply categorization
+      categorized_attrs = categorize_message(message_attrs)
+      
+      # Extract only the categorization fields
+      update_attrs = %{}
+      |> maybe_put(:category, categorized_attrs["category"])
+      |> maybe_put(:is_receipt, categorized_attrs["is_receipt"])
+      |> maybe_put(:is_newsletter, categorized_attrs["is_newsletter"])
+      |> maybe_put(:is_notification, categorized_attrs["is_notification"])
+      
+      # Update the message if any categorization changed
+      if map_size(update_attrs) > 0 do
+        message
+        |> Message.changeset(update_attrs)
+        |> Repo.update()
+      end
+    end)
+    
+    :ok
+  end
+  
+  # Helper function to conditionally put values in a map
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 end

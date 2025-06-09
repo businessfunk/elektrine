@@ -25,6 +25,73 @@ import { initGenerativeArt, initDigitalEffects } from "./generative_art"
 
 // Define hooks for custom JavaScript behaviors
 const Hooks = {
+  FlashMessage: {
+    mounted() {
+      // Add slide-in animation immediately
+      this.el.classList.add('slide-in-left')
+      
+      // Find and start progress bar animation
+      this.progressBar = this.el.querySelector('.flash-progress')
+      if (this.progressBar) {
+        // Start progress bar animation after slide-in completes
+        setTimeout(() => {
+          this.progressBar.classList.add('animate')
+        }, 400)
+      }
+      
+      // Set up auto-hide timer
+      this.autoHideTimer = setTimeout(() => {
+        this.hideWithClear()
+      }, 5000)
+      
+      // Handle click to dismiss
+      this.el.addEventListener('click', () => {
+        this.hideWithClear()
+      })
+    },
+    
+    destroyed() {
+      // Clear timer if element is destroyed
+      if (this.autoHideTimer) {
+        clearTimeout(this.autoHideTimer)
+      }
+    },
+    
+    hideWithClear() {
+      // Clear any existing timer
+      if (this.autoHideTimer) {
+        clearTimeout(this.autoHideTimer)
+        this.autoHideTimer = null
+      }
+      
+      // Stop progress bar animation
+      if (this.progressBar) {
+        this.progressBar.classList.remove('animate')
+      }
+      
+      // Extract the flash type from the element ID (flash-info or flash-error)
+      const flashType = this.el.id.replace('flash-', '')
+      
+      // Clear the flash from LiveView state
+      this.pushEvent("lv:clear-flash", {key: flashType})
+      
+      // Start hide animation
+      this.hide()
+    },
+    
+    hide() {
+      // Add slide-out animation
+      this.el.classList.remove('slide-in-left')
+      this.el.classList.add('slide-out-left')
+      
+      // Remove element after animation
+      setTimeout(() => {
+        if (this.el && this.el.parentNode) {
+          this.el.remove()
+        }
+      }, 400)
+    }
+  },
   CopyToClipboard: {
     mounted() {
       this.el.addEventListener("click", e => {
@@ -84,15 +151,21 @@ const Hooks = {
   },
   MarkdownEditor: {
     mounted() {
+      // Regular compose mode only
       this.setupToolbar('#html-editor', 'preview-panel', 'preview-content')
       this.setupPreview('#html-editor', 'preview-panel', 'preview-content')
-      
-      // Also setup toolbar for any reply/forward toolbars
-      this.setupReplyToolbars()
     },
     
     setupToolbar(targetSelector, previewPanelId, previewContentId) {
-      const toolbar = document.querySelector('[data-format]:not([data-target])')?.closest('.flex')
+      // Find the toolbar that's a sibling of the target textarea
+      const textarea = document.querySelector(targetSelector)
+      if (!textarea) return
+      
+      // Look for toolbar in the parent form control div
+      const formControl = textarea.closest('.form-control')
+      if (!formControl) return
+      
+      const toolbar = formControl.querySelector('.flex.flex-wrap')
       if (!toolbar) return
       
       toolbar.addEventListener('click', (e) => {
@@ -120,16 +193,22 @@ const Hooks = {
         
         e.preventDefault()
         
-        const targetId = button.dataset.target
-        if (!targetId) return
-        
-        const targetElement = document.getElementById(targetId)
-        if (!targetElement) return
-        
         if (button.dataset.format) {
-          this.insertFormatInTarget(button.dataset.format, targetElement)
+          this.insertFormatInTarget(button.dataset.format, this.el)
         } else if (button.dataset.action === 'preview') {
-          this.toggleReplyPreview(targetElement)
+          this.toggleReplyPreview(this.el)
+        }
+      })
+    },
+    
+    setupReplyPreview() {
+      // Auto-update preview if it's visible for reply mode
+      this.el.addEventListener('input', () => {
+        const previewPanel = document.getElementById('reply-preview-panel')
+        const previewContent = document.getElementById('reply-preview-content')
+        if (previewPanel && !previewPanel.classList.contains('hidden')) {
+          const html = this.markdownToHtml(this.el.value)
+          previewContent.innerHTML = html
         }
       })
     },
@@ -289,6 +368,163 @@ const Hooks = {
         }
       })
     }
+  },
+  ReplyMarkdownEditor: {
+    mounted() {
+      console.log("ReplyMarkdownEditor mounted on:", this.el)
+      // Focus on the textarea when mounted (FocusOnMount functionality)
+      this.el.focus()
+      
+      // Add event listener to combine new message with original when form is submitted
+      const form = this.el.closest('form')
+      if (form) {
+        form.addEventListener('submit', (e) => {
+          const newMessage = this.el.value.trim()
+          const hiddenBodyField = form.querySelector('#full-message-body')
+          const originalMessage = hiddenBodyField.value
+          
+          // Combine new message with original
+          if (newMessage) {
+            hiddenBodyField.value = newMessage + originalMessage
+          } else {
+            // If no new message, just use original (for forwarding without adding text)
+            hiddenBodyField.value = originalMessage
+          }
+        })
+      }
+      
+      // Setup markdown toolbar functionality
+      this.setupReplyToolbars()
+      this.setupReplyPreview()
+    },
+    
+    setupReplyToolbars() {
+      // Setup toolbar for reply/forward mode
+      // Look for toolbar in the parent form control div
+      const formControl = this.el.closest('.form-control')
+      if (!formControl) {
+        console.log("No form control found for reply editor!")
+        return
+      }
+      
+      const toolbar = formControl.querySelector('.flex.flex-wrap')
+      if (!toolbar) {
+        console.log("No toolbar found for reply editor!")
+        return
+      }
+      
+      console.log("Setting up event listener for reply toolbar")
+      toolbar.addEventListener('click', (e) => {
+        console.log("Toolbar clicked!", e.target)
+        const button = e.target.closest('[data-format], [data-action]')
+        if (!button) {
+          console.log("No button found")
+          return
+        }
+        
+        console.log("Button found:", button, "format:", button.dataset.format)
+        e.preventDefault()
+        
+        if (button.dataset.format) {
+          console.log("Inserting format:", button.dataset.format)
+          this.insertFormatInTarget(button.dataset.format, this.el)
+        } else if (button.dataset.action === 'preview') {
+          console.log("Toggling preview")
+          this.toggleReplyPreview(this.el)
+        }
+      })
+    },
+    
+    setupReplyPreview() {
+      // Auto-update preview if it's visible for reply mode
+      this.el.addEventListener('input', () => {
+        const previewPanel = document.getElementById('reply-preview-panel')
+        const previewContent = document.getElementById('reply-preview-content')
+        if (previewPanel && !previewPanel.classList.contains('hidden')) {
+          const html = this.markdownToHtml(this.el.value)
+          previewContent.innerHTML = html
+        }
+      })
+    },
+    
+    insertFormatInTarget(format, textarea) {
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selectedText = textarea.value.substring(start, end)
+      let replacement = ''
+      
+      switch (format) {
+        case 'bold':
+          replacement = `**${selectedText || 'bold text'}**`
+          break
+        case 'italic':
+          replacement = `*${selectedText || 'italic text'}*`
+          break
+        case 'underline':
+          replacement = `<u>${selectedText || 'underlined text'}</u>`
+          break
+        case 'heading':
+          replacement = `# ${selectedText || 'Heading'}`
+          break
+        case 'link':
+          const url = selectedText.startsWith('http') ? selectedText : 'https://example.com'
+          const linkText = selectedText.startsWith('http') ? 'link text' : selectedText || 'link text'
+          replacement = `[${linkText}](${url})`
+          break
+        case 'list':
+          replacement = `- ${selectedText || 'list item'}`
+          break
+        case 'quote':
+          replacement = `> ${selectedText || 'quoted text'}`
+          break
+      }
+      
+      textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end)
+      textarea.focus()
+      
+      // Set cursor position
+      const newPos = start + replacement.length
+      textarea.setSelectionRange(newPos, newPos)
+    },
+    
+    toggleReplyPreview(textarea) {
+      const previewPanel = document.getElementById('reply-preview-panel')
+      const previewContent = document.getElementById('reply-preview-content')
+      
+      if (!previewPanel || !previewContent) return
+      
+      if (previewPanel.classList.contains('hidden')) {
+        // Show preview
+        const markdown = textarea.value
+        const html = this.markdownToHtml(markdown)
+        previewContent.innerHTML = html
+        previewPanel.classList.remove('hidden')
+      } else {
+        // Hide preview
+        previewPanel.classList.add('hidden')
+      }
+    },
+    
+    markdownToHtml(markdown) {
+      return markdown
+        // Headers
+        .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+        // Bold
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Italic
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        // Links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary underline">$1</a>')
+        // Lists
+        .replace(/^- (.*$)/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul class="list-disc list-inside">$1</ul>')
+        // Quotes
+        .replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-primary pl-4 italic">$1</blockquote>')
+        // Line breaks
+        .replace(/\n/g, '<br>')
+    }
   }
 }
 
@@ -313,39 +549,6 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
-// Global markdown toolbar handler
-document.addEventListener('DOMContentLoaded', () => {
-  // Handle all markdown toolbar buttons globally
-  document.addEventListener('click', (e) => {
-    const button = e.target.closest('[data-format], [data-action]')
-    if (!button) return
-    
-    // Only handle toolbar buttons (inside toolbar containers)
-    const toolbar = button.closest('.flex')
-    if (!toolbar || !toolbar.querySelector('[data-format]')) return
-    
-    e.preventDefault()
-    
-    let targetTextarea = null
-    
-    // Determine which textarea to target
-    if (button.dataset.target) {
-      // Reply/Forward mode - use data-target
-      targetTextarea = document.getElementById(button.dataset.target)
-    } else {
-      // Compose mode - find the nearby textarea
-      targetTextarea = document.getElementById('html-editor')
-    }
-    
-    if (!targetTextarea) return
-    
-    if (button.dataset.format) {
-      insertMarkdownFormat(button.dataset.format, targetTextarea)
-    } else if (button.dataset.action === 'preview') {
-      toggleMarkdownPreview(targetTextarea, button.dataset.target)
-    }
-  })
-})
 
 function insertMarkdownFormat(format, textarea) {
   const start = textarea.selectionStart
@@ -435,31 +638,14 @@ function markdownToHtml(markdown) {
     .replace(/\n/g, '<br>')
 }
 
-// Auto-hide all flash messages and initialize homepage effects
+// Make markdown functions globally available
+window.insertMarkdownFormat = insertMarkdownFormat
+window.toggleMarkdownPreview = toggleMarkdownPreview
+window.markdownToHtml = markdownToHtml
+
+// Initialize homepage effects
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize generative art and digital effects for homepage
   initGenerativeArt()
   initDigitalEffects()
-  
-  // Find all flash messages (using data-auto-hide attribute)
-  const flashElements = document.querySelectorAll('[data-auto-hide]')
-
-  flashElements.forEach(flashElement => {
-    setTimeout(() => {
-      // Add transition classes - only fade out, no translation/movement
-      flashElement.classList.add(
-        'transition-opacity',
-        'duration-300',
-        'ease-in'
-      )
-
-      // Fade out
-      flashElement.style.opacity = "0"
-
-      // Remove from DOM after transition
-      setTimeout(() => {
-        flashElement.remove()
-      }, 300)
-    }, 3000) // Hide after 3 seconds
-  })
 })

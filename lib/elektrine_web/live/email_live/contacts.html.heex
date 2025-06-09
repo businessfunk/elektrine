@@ -1,0 +1,231 @@
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+  <div class="flex flex-col lg:flex-row gap-6">
+    <.sidebar mailbox={@mailbox} unread_count={0} current_page="contacts" current_user={@current_user} />
+
+    <!-- Main content -->
+    <div class="flex-1">
+      <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
+        <div class="card-body p-6">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
+              <div class="p-2 bg-primary/10 rounded-lg">
+                <.icon name="hero-user-group" class="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h2 class="text-2xl font-bold">Contacts</h2>
+                <p class="text-sm text-base-content/70">Manage your approved senders</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button class="btn btn-primary btn-sm" phx-click="show_add_contact_modal">
+                <.icon name="hero-plus" class="h-4 w-4 mr-2" />
+                Add Contact
+              </button>
+            </div>
+          </div>
+          
+          <%= if Enum.empty?(@contacts) do %>
+            <div class="flex flex-col items-center justify-center py-16">
+              <div class="p-4 bg-base-200 rounded-full mb-6">
+                <.icon name="hero-user-group" class="h-16 w-16 text-base-content/40" />
+              </div>
+              <h3 class="text-xl font-semibold mb-2">No contacts yet</h3>
+              <p class="text-base-content/70 mb-6 text-center max-w-md">
+                Add contacts to automatically approve emails from trusted senders.
+              </p>
+              <button class="btn btn-primary" phx-click="show_add_contact_modal">
+                <.icon name="hero-plus" class="h-5 w-5 mr-2" />
+                Add your first contact
+              </button>
+            </div>
+          <% else %>
+            <!-- Contacts List -->
+            <div class="space-y-4">
+              <%= for contact <- @contacts do %>
+                <div class="card bg-base-50 border border-base-200 hover:shadow-md transition-shadow">
+                  <div class="card-body p-4">
+                    <div class="flex items-start justify-between">
+                      <div class="flex items-center space-x-3 flex-1">
+                        <div class="avatar placeholder">
+                          <div class="bg-primary/20 text-primary rounded-full w-10 h-10">
+                            <span class="text-sm font-bold">
+                              <%= String.first(contact.email_address) |> String.upcase() %>
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <h3 class="font-semibold text-base truncate"><%= contact.email_address %></h3>
+                          <div class="flex items-center space-x-4 text-xs text-base-content/60 mt-1">
+                            <span>Added <%= format_date(contact.approved_at) %></span>
+                            <%= if contact.email_count > 0 do %>
+                              <span><%= contact.email_count %> emails</span>
+                            <% end %>
+                            <%= if contact.last_email_at do %>
+                              <span>Last email <%= format_date(contact.last_email_at) %></span>
+                            <% end %>
+                          </div>
+                          
+                          <!-- Notes Section -->
+                          <div class="mt-3">
+                            <div class="relative">
+                              <form phx-change="update_contact_notes" phx-value-id={contact.id}>
+                                <textarea 
+                                  class="textarea textarea-bordered textarea-xs w-full pr-8" 
+                                  placeholder="Add notes about this contact..."
+                                  name="notes"
+                                  phx-debounce="1000"
+                                  rows="2"
+                                ><%= contact.notes || "" %></textarea>
+                              </form>
+                              <%= if String.trim(contact.notes || "") != "" do %>
+                                <div class="absolute top-1 right-2 text-xs text-success">
+                                  <.icon name="hero-check-circle" class="h-3 w-3" />
+                                </div>
+                              <% end %>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div class="flex items-center space-x-2 ml-4">
+                        <div class="badge badge-success badge-xs">APPROVED</div>
+                        <div class="dropdown dropdown-end">
+                          <div tabindex="0" role="button" class="btn btn-ghost btn-xs">
+                            <.icon name="hero-ellipsis-horizontal" class="h-4 w-4" />
+                          </div>
+                          <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-32 z-50">
+                            <li>
+                              <button 
+                                phx-click="remove_contact" 
+                                phx-value-id={contact.id} 
+                                class="text-sm text-error"
+                                data-confirm="Are you sure you want to remove this contact?"
+                              >
+                                <.icon name="hero-trash" class="h-4 w-4" />
+                                Remove
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+          
+          <!-- Blocked Senders Section -->
+          <div class="mt-8">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="p-2 bg-error/10 rounded-lg">
+                <.icon name="hero-no-symbol" class="h-6 w-6 text-error" />
+              </div>
+              <div>
+                <h3 class="text-xl font-bold">Blocked Senders</h3>
+                <p class="text-sm text-base-content/70">Manage blocked email addresses</p>
+              </div>
+            </div>
+            
+            <%= if Enum.empty?(@blocked_senders) do %>
+              <div class="card bg-base-50 border border-base-200">
+                <div class="card-body p-6 text-center">
+                  <div class="p-4 bg-base-200 rounded-full mb-4 inline-block">
+                    <.icon name="hero-shield-check" class="h-12 w-12 text-base-content/40" />
+                  </div>
+                  <p class="text-base-content/70">No blocked senders yet</p>
+                  <p class="text-sm text-base-content/50 mt-1">
+                    Senders will appear here when you block them from The Screener
+                  </p>
+                </div>
+              </div>
+            <% else %>
+              <div class="space-y-3">
+                <%= for blocked <- @blocked_senders do %>
+                  <div class="card bg-base-50 border border-error/20 hover:shadow-md transition-shadow">
+                    <div class="card-body p-4">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3 flex-1">
+                          <div class="avatar placeholder">
+                            <div class="bg-error/20 text-error rounded-full w-10 h-10">
+                              <span class="text-sm font-bold">
+                                <%= String.first(blocked.email_address) |> String.upcase() %>
+                              </span>
+                            </div>
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <h4 class="font-semibold text-base truncate"><%= blocked.email_address %></h4>
+                            <div class="flex items-center space-x-4 text-xs text-base-content/60 mt-1">
+                              <span>Blocked <%= format_date(blocked.rejected_at) %></span>
+                              <span><%= blocked.message_count %> blocked messages</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 ml-4">
+                          <div class="badge badge-error badge-xs">BLOCKED</div>
+                          <div class="dropdown dropdown-end">
+                            <div tabindex="0" role="button" class="btn btn-ghost btn-xs">
+                              <.icon name="hero-ellipsis-horizontal" class="h-4 w-4" />
+                            </div>
+                            <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-36 z-50">
+                              <li>
+                                <button 
+                                  phx-click="unblock_sender" 
+                                  phx-value-email={blocked.email_address} 
+                                  class="text-sm text-success"
+                                  data-confirm="Are you sure you want to unblock this sender?"
+                                >
+                                  <.icon name="hero-check-circle" class="h-4 w-4" />
+                                  Unblock
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Contact Modal -->
+<%= if @show_add_contact_modal do %>
+  <div class="modal modal-open">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4">Add New Contact</h3>
+      
+      <form phx-submit="add_contact" class="space-y-4">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Email Address</span>
+          </label>
+          <input 
+            type="email" 
+            name="email" 
+            placeholder="contact@example.com"
+            class="input input-bordered" 
+            required
+            value={@add_contact_email}
+          />
+          <label class="label">
+            <span class="label-text-alt">This email will be automatically approved for future messages</span>
+          </label>
+        </div>
+        
+        <div class="modal-action">
+          <button type="button" phx-click="close_add_contact_modal" class="btn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Contact</button>
+        </div>
+      </form>
+    </div>
+  </div>
+<% end %>

@@ -96,7 +96,9 @@
                   <div class="form-control">
                     <label class="label cursor-pointer gap-3">
                       <span class={"label-text text-xs #{if assigns[:html_mode], do: "text-base-content/60", else: "text-primary font-semibold"}"}>Plain Text</span>
-                      <input type="checkbox" id="html-mode-toggle" class="toggle toggle-sm toggle-primary" phx-click="toggle_html_mode" {if assigns[:html_mode], do: [checked: true], else: []} />
+                      <button type="button" class={"custom-toggle #{if assigns[:html_mode], do: "active", else: ""}"} phx-click="toggle_html_mode">
+                        <span class="toggle-slider"></span>
+                      </button>
                       <span class={"label-text text-xs #{if assigns[:html_mode], do: "text-primary font-semibold", else: "text-base-content/60"}"}>HTML</span>
                     </label>
                   </div>
@@ -118,30 +120,30 @@
                       <div class="space-y-2">
                         <!-- Formatting Toolbar for Reply/Forward -->
                         <div class="flex flex-wrap gap-1 p-2 bg-base-200 rounded border border-base-300">
-                          <button type="button" class="btn btn-xs btn-ghost" data-format="bold" data-target="new-message-area" title="Bold">
+                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('bold', document.getElementById('new-message-area'))" title="Bold">
                             <strong>B</strong>
                           </button>
-                          <button type="button" class="btn btn-xs btn-ghost" data-format="italic" data-target="new-message-area" title="Italic">
+                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('italic', document.getElementById('new-message-area'))" title="Italic">
                             <em>I</em>
                           </button>
-                          <button type="button" class="btn btn-xs btn-ghost" data-format="underline" data-target="new-message-area" title="Underline">
+                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('underline', document.getElementById('new-message-area'))" title="Underline">
                             <u>U</u>
                           </button>
                           <div class="divider divider-horizontal mx-1"></div>
-                          <button type="button" class="btn btn-xs btn-ghost" data-format="heading" data-target="new-message-area" title="Heading">
+                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('heading', document.getElementById('new-message-area'))" title="Heading">
                             H1
                           </button>
-                          <button type="button" class="btn btn-xs btn-ghost" data-format="link" data-target="new-message-area" title="Link">
+                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('link', document.getElementById('new-message-area'))" title="Link">
                             🔗
                           </button>
-                          <button type="button" class="btn btn-xs btn-ghost" data-format="list" data-target="new-message-area" title="List">
+                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('list', document.getElementById('new-message-area'))" title="List">
                             •
                           </button>
-                          <button type="button" class="btn btn-xs btn-ghost" data-format="quote" data-target="new-message-area" title="Quote">
+                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('quote', document.getElementById('new-message-area'))" title="Quote">
                             "
                           </button>
                           <div class="divider divider-horizontal mx-1"></div>
-                          <button type="button" class="btn btn-xs btn-ghost" data-action="preview" data-target="new-message-area" title="Preview">
+                          <button type="button" class="btn btn-xs btn-ghost" onclick="toggleMarkdownPreview(document.getElementById('new-message-area'), 'new-message-area')" title="Preview">
                             👁️
                           </button>
                         </div>
@@ -151,7 +153,7 @@
                           <textarea id="new-message-area" name="email[new_message]" rows="6" 
                                     class="textarea textarea-bordered border-primary/50 focus:border-primary bg-primary/5 ring-2 ring-primary/20 w-full min-h-32 font-mono text-sm" 
                                     placeholder="Type your new message here using Markdown syntax..." 
-                                    phx-hook="FocusOnMount"></textarea>
+                                    phx-hook="ReplyMarkdownEditor"></textarea>
                           
                           <!-- Preview Panel for Reply -->
                           <div id="reply-preview-panel" class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-y-auto">
@@ -202,30 +204,30 @@
                   <div class="space-y-3">
                     <!-- Formatting Toolbar -->
                     <div class="flex flex-wrap gap-1 p-2 bg-base-200 rounded border border-base-300">
-                      <button type="button" class="btn btn-xs btn-ghost" data-format="bold" title="Bold">
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('bold', document.getElementById('html-editor'))" title="Bold">
                         <strong>B</strong>
                       </button>
-                      <button type="button" class="btn btn-xs btn-ghost" data-format="italic" title="Italic">
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('italic', document.getElementById('html-editor'))" title="Italic">
                         <em>I</em>
                       </button>
-                      <button type="button" class="btn btn-xs btn-ghost" data-format="underline" title="Underline">
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('underline', document.getElementById('html-editor'))" title="Underline">
                         <u>U</u>
                       </button>
                       <div class="divider divider-horizontal mx-1"></div>
-                      <button type="button" class="btn btn-xs btn-ghost" data-format="heading" title="Heading">
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('heading', document.getElementById('html-editor'))" title="Heading">
                         H1
                       </button>
-                      <button type="button" class="btn btn-xs btn-ghost" data-format="link" title="Link">
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('link', document.getElementById('html-editor'))" title="Link">
                         🔗
                       </button>
-                      <button type="button" class="btn btn-xs btn-ghost" data-format="list" title="List">
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('list', document.getElementById('html-editor'))" title="List">
                         •
                       </button>
-                      <button type="button" class="btn btn-xs btn-ghost" data-format="quote" title="Quote">
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('quote', document.getElementById('html-editor'))" title="Quote">
                         "
                       </button>
                       <div class="divider divider-horizontal mx-1"></div>
-                      <button type="button" class="btn btn-xs btn-ghost" data-action="preview" title="Preview">
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="toggleMarkdownPreview(document.getElementById('html-editor'), 'html-editor')" title="Preview">
                         👁️
                       </button>
                     </div>

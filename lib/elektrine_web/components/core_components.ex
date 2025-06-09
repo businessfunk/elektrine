@@ -112,16 +112,20 @@ defmodule ElektrineWeb.CoreComponents do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
-      data-auto-hide
-      phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
+      phx-hook="FlashMessage"
       role="alert"
       class={[
-        "fixed top-2 right-2 mr-2 w-80 sm:w-96 z-50 shadow-lg",
+        "fixed bottom-4 left-4 w-80 sm:w-96 z-[9999] shadow-xl rounded-lg relative",
         @kind == :info && "alert alert-info",
         @kind == :error && "alert alert-error"
       ]}
       {@rest}
     >
+      <!-- Progress bar -->
+      <div class="absolute bottom-0 left-0 h-1 bg-white/30 w-full rounded-b-lg overflow-hidden">
+        <div class="flash-progress h-full bg-white/60 w-full origin-left"></div>
+      </div>
+      
       <div class="flex items-center gap-3">
         <div :if={@kind == :info} class="flex-shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>

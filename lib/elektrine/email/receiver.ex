@@ -81,32 +81,90 @@ defmodule Elektrine.Email.Receiver do
 
   # Stores the incoming message in the database
   defp store_incoming_message(mailbox_id, params) do
+    sender_email = params["from"] || params["mail_from"]
+    
+    # Check if sender is approved
+    sender_approved = Email.sender_approved?(sender_email, mailbox_id)
+    
+    # Base message attributes
     message_attrs = %{
-      message_id: params["message_id"] || "incoming-#{:rand.uniform(1000000)}",
-      from: params["from"] || params["mail_from"],
-      to: params["to"] || params["rcpt_to"],
-      cc: params["cc"],
-      subject: params["subject"],
-      text_body: params["plain_body"] || params["text_body"],
-      html_body: params["html_body"],
-      status: "received",
-      read: false, # New messages start as unread
-      mailbox_id: mailbox_id,
-      metadata: extract_metadata(params)
+      "message_id" => params["message_id"] || "incoming-#{:rand.uniform(1000000)}",
+      "from" => sender_email,
+      "to" => params["to"] || params["rcpt_to"],
+      "cc" => params["cc"],
+      "subject" => params["subject"],
+      "text_body" => params["plain_body"] || params["text_body"],
+      "html_body" => params["html_body"],
+      "status" => "received",
+      "read" => false,
+      "spam" => is_spam?(params),
+      "archived" => false,
+      "mailbox_id" => mailbox_id,
+      "metadata" => extract_metadata(params),
+      # Hey.com features
+      "screener_status" => if(sender_approved, do: "approved", else: "pending"),
+      "sender_approved" => sender_approved
     }
-
-    Email.create_message(message_attrs)
+    
+    # Apply automatic categorization if not spam
+    message_attrs = if not message_attrs["spam"] do
+      Email.categorize_message(message_attrs)
+    else
+      message_attrs
+    end
+    
+    # Convert string keys to atoms for changeset
+    message_attrs = for {key, val} <- message_attrs, into: %{} do
+      {String.to_existing_atom(key), val}
+    end
+    
+    case Email.create_message(message_attrs) do
+      {:ok, message} ->
+        # Track email for approved senders
+        if sender_approved do
+          Email.track_approved_sender_email(sender_email, mailbox_id)
+        end
+        
+        {:ok, message}
+        
+      error ->
+        error
+    end
   end
 
   # Extracts useful metadata from the webhook payload
   defp extract_metadata(params) do
+    headers = params["headers"] || %{}
+    
     %{
       received_at: DateTime.utc_now() |> DateTime.to_iso8601(),
-      spam_score: params["spam_score"],
+      spam_score: params["spam_score"] || headers["x-postal-spam-score"],
+      spam_threshold: headers["x-postal-spam-threshold"],
+      postal_spam_flag: headers["x-postal-spam"],
       attachments: params["attachments"],
       headers: params["headers"]
     }
     |> Enum.filter(fn {_k, v} -> v != nil end)
     |> Enum.into(%{})
+  end
+
+  # Determines if the message is spam based on Postal's spam headers
+  defp is_spam?(params) do
+    # Check the x-postal-spam header
+    headers = params["headers"] || %{}
+    
+    case headers["x-postal-spam"] do
+      "yes" -> true
+      "YES" -> true
+      # Also check legacy spam field for backwards compatibility
+      _ -> 
+        case params["spam"] do
+          true -> true
+          "true" -> true
+          1 -> true
+          "1" -> true
+          _ -> false
+        end
+    end
   end
 end

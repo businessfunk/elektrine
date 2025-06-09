@@ -95,6 +95,24 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
                 Temp Mail
               </.link>
             </li>
+            <li>
+              <.link href={~p"/email/spam"} class={if @current_page == "spam", do: "active", else: "hover:bg-base-200"}>
+                <.icon name="hero-exclamation-triangle" class="h-5 w-5" />
+                Spam
+              </.link>
+            </li>
+            <li>
+              <.link href={~p"/email/archive"} class={if @current_page == "archive", do: "active", else: "hover:bg-base-200"}>
+                <.icon name="hero-archive-box" class="h-5 w-5" />
+                Archive
+              </.link>
+            </li>
+            <li>
+              <.link href={~p"/email/contacts"} class={if @current_page == "contacts", do: "active", else: "hover:bg-base-200"}>
+                <.icon name="hero-user-group" class="h-5 w-5" />
+                Contacts
+              </.link>
+            </li>
           </ul>
           
           <!-- Compose Button - Separate from menu -->
