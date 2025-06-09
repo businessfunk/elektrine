@@ -64,7 +64,12 @@ if config_env() == :prod do
       port: port
     ],
     secret_key_base: secret_key_base,
-    check_origin: ["https://elektrine.com", "https://www.elektrine.com"]
+    check_origin: [
+      "https://elektrine.com", 
+      "https://www.elektrine.com",
+      "https://z.org",
+      "https://www.z.org"
+    ]
 
   # ## SSL Support
   #

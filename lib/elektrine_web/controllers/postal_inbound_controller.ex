@@ -440,16 +440,22 @@ defmodule ElektrineWeb.PostalInboundController do
     import Ecto.Query
 
     case String.split(email, "@") do
-      [local_part, _domain] ->
-        # Get application domain
-        _app_domain = Application.get_env(:elektrine, :postal)[:domain] || "elektrine.com"
+      [local_part, domain] ->
+        # Get supported domains
+        supported_domains = Application.get_env(:elektrine, :email)[:supported_domains] || ["elektrine.com"]
 
-        # Try to match by username
-        Mailbox
-        |> join(:inner, [m], u in assoc(m, :user))
-        |> where([_, u], fragment("lower(?)", u.username) == ^String.downcase(local_part))
-        |> preload([_, u], user: u)
-        |> Repo.one()
+        # Only proceed if the domain is supported
+        if domain in supported_domains do
+          # Try to match by username across all supported domains
+          possible_emails = Enum.map(supported_domains, fn d -> "#{local_part}@#{d}" end)
+          
+          Mailbox
+          |> where([m], m.email in ^possible_emails)
+          |> preload([:user])
+          |> Repo.one()
+        else
+          nil
+        end
 
       _ -> nil
     end

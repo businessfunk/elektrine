@@ -41,7 +41,7 @@ defmodule Elektrine.Email.TemporaryMailbox do
   """
   def generate_email do
     username = generate_random_username()
-    domain = Application.get_env(:elektrine, :postal)[:domain] || "elektrine.com"
+    domain = Application.get_env(:elektrine, :email)[:domain] || "elektrine.com"
     "#{username}@#{domain}"
   end
   

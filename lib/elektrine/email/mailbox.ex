@@ -41,9 +41,10 @@ defmodule Elektrine.Email.Mailbox do
 
   @doc """
   Creates a user's mailbox based on their username.
+  Optionally accepts a domain override, otherwise uses the configured default.
   """
-  def create_for_user(user) do
-    domain = Application.get_env(:elektrine, :postal)[:domain] || "elektrine.com"
+  def create_for_user(user, domain \\ nil) do
+    domain = domain || Application.get_env(:elektrine, :email)[:domain] || "elektrine.com"
     email = "#{user.username}@#{domain}"
 
     %Elektrine.Email.Mailbox{}

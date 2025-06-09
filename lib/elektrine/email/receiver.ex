@@ -66,16 +66,54 @@ defmodule Elektrine.Email.Receiver do
 
     import Ecto.Query
 
+    # First try exact email match
     mailbox = Mailbox
               |> where(email: ^recipient)
               |> Repo.one()
 
     case mailbox do
       nil ->
-        Logger.warn("No mailbox found for recipient: #{recipient}")
-        {:error, :no_mailbox_found}
+        # If no exact match, try to find by username across supported domains
+        case find_mailbox_by_cross_domain_lookup(recipient) do
+          nil ->
+            Logger.warn("No mailbox found for recipient: #{recipient}")
+            {:error, :no_mailbox_found}
+          found_mailbox ->
+            {:ok, found_mailbox}
+        end
       mailbox ->
         {:ok, mailbox}
+    end
+  end
+
+  # Attempts to find a mailbox by looking up the username across all supported domains
+  defp find_mailbox_by_cross_domain_lookup(email) do
+    case extract_username_and_domain(email) do
+      {username, domain} ->
+        supported_domains = Application.get_env(:elektrine, :email)[:supported_domains] || ["elektrine.com"]
+        
+        if domain in supported_domains do
+          # Try to find a mailbox for this username with any of the supported domains
+          import Ecto.Query
+          
+          like_patterns = Enum.map(supported_domains, fn d -> "#{username}@#{d}" end)
+          
+          Mailbox
+          |> where([m], m.email in ^like_patterns)
+          |> Repo.one()
+        else
+          nil
+        end
+      _ ->
+        nil
+    end
+  end
+
+  # Extracts username and domain from an email address
+  defp extract_username_and_domain(email) do
+    case String.split(email, "@") do
+      [username, domain] -> {username, domain}
+      _ -> nil
     end
   end
 

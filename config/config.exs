@@ -13,7 +13,12 @@ config :elektrine,
 
 # Configure email settings
 config :elektrine, :email,
-  domain: System.get_env("EMAIL_DOMAIN") || "elektrine.com"
+  domain: System.get_env("EMAIL_DOMAIN") || "elektrine.com",
+  # Supported domains for multi-domain access
+  supported_domains: [
+    "elektrine.com", 
+    "z.org"
+  ]
 
 # Configures the endpoint
 config :elektrine, ElektrineWeb.Endpoint,
