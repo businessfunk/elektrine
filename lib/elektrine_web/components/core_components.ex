@@ -115,7 +115,7 @@ defmodule ElektrineWeb.CoreComponents do
       phx-hook="FlashMessage"
       role="alert"
       class={[
-        "fixed bottom-4 left-4 w-80 sm:w-96 z-[9999] shadow-xl rounded-lg relative",
+        "fixed bottom-4 left-4 w-80 sm:w-96 z-[9999] shadow-xl rounded-lg relative transition-opacity duration-200",
         @kind == :info && "alert alert-info",
         @kind == :error && "alert alert-error"
       ]}

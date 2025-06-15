@@ -8,6 +8,7 @@ defmodule ElektrineWeb.TemporaryMailboxSessionController do
   def set_token(conn, %{"token" => token}) do
     conn
     |> put_session("temporary_mailbox_token", token)
+    |> put_flash(:info, "New temporary mailbox created.")
     |> redirect(to: ~p"/temp-mail/#{token}")
   end
 end

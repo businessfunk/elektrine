@@ -1,17 +1,50 @@
-<div class="card bg-base-200 shadow-xl mx-auto max-w-2xl mt-8">
-  <div class="card-body text-center">
-    <h1 class="text-4xl font-bold">About Elektrine</h1>
-    <p class="mt-4">
-      Elektrine is a Phoenix web application built with Elixir. It uses PostgreSQL for database storage,
-      Tailwind CSS for styling, and esbuild for JavaScript bundling. The project follows the standard
-      Phoenix framework structure and conventions.
-    </p>
-    <p class="mt-3">
-      This project showcases modern web development practices using the Elixir ecosystem, with a focus
-      on reliability, scalability, and developer experience.
-    </p>
-    <div class="card-actions justify-center mt-6">
-      <a href="/" class="btn btn-primary">Back to Home</a>
+<div class="max-w-3xl mx-auto mt-8 space-y-6">
+  <!-- Main Header -->
+  <div class="card bg-base-200 shadow-xl">
+    <div class="card-body text-center">
+      <h1 class="text-4xl font-bold text-primary">About Elektrine</h1>
+      <p class="text-lg mt-4">
+        Simple, reliable communication tools built on open standards.
+      </p>
+    </div>
+  </div>
+
+  <!-- Core Services -->
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title text-2xl flex items-center">
+        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+        </svg>
+        Email Service
+      </h2>
+      <p class="mb-4">
+        Straightforward email hosting. Custom domains, spam filtering, and mobile sync.
+      </p>
+      
+      <h2 class="card-title text-2xl flex items-center mt-6">
+        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+        </svg>
+        Messaging Service
+      </h2>
+      <p>
+        Instant messaging using XMPP. Works with existing chat clients and supports 
+        encryption and cross-server messaging.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- Call to Action -->
+  <div class="card bg-primary text-primary-content shadow-xl">
+    <div class="card-body text-center">
+      <h2 class="card-title text-2xl justify-center">Give It a Try</h2>
+      <p>Sign up and see what we're building.</p>
+      <div class="card-actions justify-center mt-4 space-x-4">
+        <a href="/" class="btn btn-secondary">Back to Home</a>
+        <a href="/users/register" class="btn btn-accent">Join Elektrine</a>
+      </div>
     </div>
   </div>
 </div>

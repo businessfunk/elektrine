@@ -117,7 +117,6 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Show do
     # So we'll redirect through a controller action that can set the session
     {:noreply,
      socket
-     |> Phoenix.LiveView.put_flash(:info, "New temporary mailbox created.")
      |> Phoenix.LiveView.redirect(to: ~p"/temp-mail/#{mailbox.token}/set_token")}
   end
   

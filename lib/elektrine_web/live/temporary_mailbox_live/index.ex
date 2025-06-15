@@ -18,7 +18,6 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Index do
         # Redirect to the controller that will set the session
         socket = 
           socket
-          |> Phoenix.LiveView.put_flash(:info, "Created new temporary mailbox")
           |> Phoenix.LiveView.redirect(to: ~p"/temp-mail/#{mailbox.token}/set_token")
         
         {:ok, socket}

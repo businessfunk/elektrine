@@ -27,69 +27,65 @@ import { initGenerativeArt, initDigitalEffects } from "./generative_art"
 const Hooks = {
   FlashMessage: {
     mounted() {
-      // Add slide-in animation immediately
-      this.el.classList.add('slide-in-left')
+      // Prevent multiple mounts on the same element
+      if (this.el.dataset.flashMounted) return
+      this.el.dataset.flashMounted = 'true'
+      
+      // Simple fade in
+      this.el.style.opacity = '0'
+      this.fadeInTimeout = setTimeout(() => {
+        if (this.el) this.el.style.opacity = '1'
+      }, 50)
       
       // Find and start progress bar animation
       this.progressBar = this.el.querySelector('.flash-progress')
       if (this.progressBar) {
-        // Start progress bar animation after slide-in completes
-        setTimeout(() => {
-          this.progressBar.classList.add('animate')
-        }, 400)
+        this.progressTimeout = setTimeout(() => {
+          if (this.progressBar) this.progressBar.classList.add('animate')
+        }, 200)
       }
       
       // Set up auto-hide timer
       this.autoHideTimer = setTimeout(() => {
-        this.hideWithClear()
+        this.hide()
       }, 5000)
       
       // Handle click to dismiss
-      this.el.addEventListener('click', () => {
-        this.hideWithClear()
-      })
+      this.clickHandler = () => this.hide()
+      this.el.addEventListener('click', this.clickHandler)
     },
     
     destroyed() {
-      // Clear timer if element is destroyed
-      if (this.autoHideTimer) {
-        clearTimeout(this.autoHideTimer)
+      // Clear all timeouts
+      if (this.autoHideTimer) clearTimeout(this.autoHideTimer)
+      if (this.fadeInTimeout) clearTimeout(this.fadeInTimeout)
+      if (this.progressTimeout) clearTimeout(this.progressTimeout)
+      if (this.fadeOutTimeout) clearTimeout(this.fadeOutTimeout)
+      
+      // Remove event listener
+      if (this.clickHandler) {
+        this.el.removeEventListener('click', this.clickHandler)
       }
     },
     
-    hideWithClear() {
-      // Clear any existing timer
+    hide() {
       if (this.autoHideTimer) {
         clearTimeout(this.autoHideTimer)
         this.autoHideTimer = null
       }
       
-      // Stop progress bar animation
-      if (this.progressBar) {
-        this.progressBar.classList.remove('animate')
-      }
+      // Prevent double hide
+      if (this.el.dataset.hiding) return
+      this.el.dataset.hiding = 'true'
       
-      // Extract the flash type from the element ID (flash-info or flash-error)
-      const flashType = this.el.id.replace('flash-', '')
+      // Simple fade out
+      this.el.style.opacity = '0'
       
-      // Clear the flash from LiveView state
-      this.pushEvent("lv:clear-flash", {key: flashType})
-      
-      // Start hide animation
-      this.hide()
-    },
-    
-    hide() {
-      // Add slide-out animation
-      this.el.classList.remove('slide-in-left')
-      this.el.classList.add('slide-out-left')
-      
-      // Remove element after animation
-      setTimeout(() => {
+      this.fadeOutTimeout = setTimeout(() => {
         if (this.el && this.el.parentNode) {
           this.el.remove()
         }
-      }, 400)
+      }, 200)
     }
   },
   CopyToClipboard: {
