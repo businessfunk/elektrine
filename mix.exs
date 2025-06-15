@@ -67,7 +67,8 @@ defmodule Elektrine.MixProject do
       {:quantum, "~> 3.5"},   # Added for scheduled job handling
       {:ex_aws, "~> 2.1"},    # AWS SDK for Elixir
       {:ex_aws_s3, "~> 2.0"}, # S3 support for ExAws
-      {:sweet_xml, "~> 0.6"}  # XML parsing for AWS responses
+      {:sweet_xml, "~> 0.6"},  # XML parsing for AWS responses
+      {:httpoison, "~> 2.0"}   # HTTP client for hCaptcha verification
     ]
   end
 

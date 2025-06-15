@@ -71,6 +71,20 @@ if config_env() == :prod do
       "https://www.z.org"
     ]
 
+  # hCaptcha configuration for production
+  config :elektrine, :hcaptcha,
+    site_key: System.get_env("HCAPTCHA_SITE_KEY") ||
+      raise("""
+      environment variable HCAPTCHA_SITE_KEY is missing.
+      Get your site key from https://dashboard.hcaptcha.com/sites
+      """),
+    secret_key: System.get_env("HCAPTCHA_SECRET_KEY") ||
+      raise("""
+      environment variable HCAPTCHA_SECRET_KEY is missing.
+      Get your secret key from https://dashboard.hcaptcha.com/sites
+      """),
+    verify_url: "https://hcaptcha.com/siteverify"
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key

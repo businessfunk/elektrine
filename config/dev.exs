@@ -104,3 +104,9 @@ config :elektrine, :uploads,
 #   adapter: :s3,
 #   bucket: System.get_env("BACKBLAZE_BUCKET_NAME") || "elektrine-uploads-dev",
 #   endpoint: System.get_env("BACKBLAZE_ENDPOINT") || "s3.us-west-002.backblazeb2.com"
+
+# hCaptcha configuration for development
+config :elektrine, :hcaptcha,
+  site_key: "ca682ffa-45c4-4fa6-99c0-067c28267116",
+  secret_key: System.get_env("HCAPTCHA_SECRET_KEY"),
+  verify_url: "https://hcaptcha.com/siteverify"

@@ -99,6 +99,12 @@ config :elektrine, :uploads,
   bucket: System.get_env("BACKBLAZE_BUCKET_NAME") || "elektrine-uploads-prod",
   endpoint: System.get_env("BACKBLAZE_ENDPOINT") || "s3.us-west-002.backblazeb2.com"
 
+# hCaptcha configuration
+config :elektrine, :hcaptcha,
+  site_key: System.get_env("HCAPTCHA_SITE_KEY"),
+  secret_key: System.get_env("HCAPTCHA_SECRET_KEY"),
+  verify_url: "https://hcaptcha.com/siteverify"
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

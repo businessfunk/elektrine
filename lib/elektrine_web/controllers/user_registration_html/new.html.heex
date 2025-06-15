@@ -18,6 +18,23 @@
       </div>
       <.input field={f[:password_confirmation]} type="password" label="Confirm password" placeholder="Confirm your password" required />
 
+      <div class="form-control">
+        <div id="hcaptcha-container" class="h-captcha" data-sitekey={Application.get_env(:elektrine, :hcaptcha)[:site_key]}></div>
+        <%= if captcha_errors = @changeset.errors[:captcha] do %>
+          <div class="label">
+            <span class="label-text-alt text-error text-sm">
+              <%= case captcha_errors do
+                {msg, _opts} -> msg
+                [{msg, _opts} | _] -> msg
+                list when is_list(list) -> 
+                  list |> List.first() |> elem(0)
+                _ -> "Please complete the captcha verification"
+              end %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+
       <:actions>
         <.button class="w-full">Create account</.button>
       </:actions>

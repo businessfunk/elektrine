@@ -16,5 +16,11 @@ config :swoosh, local: false
 # Do not print debug messages in production
 config :logger, level: :info
 
+# hCaptcha configuration for production
+config :elektrine, :hcaptcha,
+  site_key: System.get_env("HCAPTCHA_SITE_KEY"),
+  secret_key: System.get_env("HCAPTCHA_SECRET_KEY"),
+  verify_url: "https://hcaptcha.com/siteverify"
+
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
