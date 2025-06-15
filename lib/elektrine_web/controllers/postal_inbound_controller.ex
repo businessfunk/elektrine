@@ -521,7 +521,7 @@ defmodule ElektrineWeb.PostalInboundController do
   # IP verification check
   defp verify_ip(conn) do
     # Always allow in development environment
-    if Application.get_env(:elektrine, :env) == :dev || Mix.env() == :dev do
+    if Application.get_env(:elektrine, :env) == :dev do
       :ok
     else
       remote_ip = conn.remote_ip |> Tuple.to_list() |> Enum.join(".")
