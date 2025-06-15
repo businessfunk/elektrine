@@ -19,7 +19,7 @@ defmodule Elektrine.Accounts.User do
     user
     |> cast(attrs, [:username, :password, :password_confirmation])
     |> validate_required([:username, :password, :password_confirmation])
-    |> validate_length(:username, min: 3, max: 30)
+    |> validate_length(:username, min: 1, max: 30)
     |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")
     |> unique_constraint(:username)
     |> validate_length(:password, min: 8, max: 72)
@@ -40,7 +40,7 @@ defmodule Elektrine.Accounts.User do
     user
     |> cast(attrs, [:username, :avatar])
     |> validate_required([:username])
-    |> validate_length(:username, min: 3, max: 30)
+    |> validate_length(:username, min: 1, max: 30)
     |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")
     |> unique_constraint(:username)
   end
@@ -55,5 +55,18 @@ defmodule Elektrine.Accounts.User do
     |> validate_length(:password, min: 8, max: 72)
     |> validate_confirmation(:password, message: "does not match password")
     |> hash_password()
+  end
+
+  @doc """
+  A changeset for importing users with pre-hashed passwords.
+  For use in migrations only.
+  """
+  def import_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:username, :password_hash])
+    |> validate_required([:username, :password_hash])
+    |> validate_length(:username, min: 1, max: 30)
+    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")
+    |> unique_constraint(:username)
   end
 end
