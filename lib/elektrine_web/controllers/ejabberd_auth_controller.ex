@@ -2,7 +2,7 @@ defmodule ElektrineWeb.EjabberdAuthController do
   use ElektrineWeb, :controller
   alias Elektrine.Accounts
 
-  def auth(conn, %{"user" => username, "server" => server, "password" => password}) do
+  def auth(conn, %{"user" => username, "server" => _server, "password" => password}) do
     result = 
       case Accounts.authenticate_user(username, password) do
         {:ok, _user} -> true
@@ -12,7 +12,7 @@ defmodule ElektrineWeb.EjabberdAuthController do
     json(conn, %{result: result})
   end
 
-  def isuser(conn, %{"user" => username, "server" => server}) do
+  def isuser(conn, %{"user" => username, "server" => _server}) do
     result = 
       case Accounts.get_user_by_username(username) do
         nil -> false
@@ -22,7 +22,7 @@ defmodule ElektrineWeb.EjabberdAuthController do
     json(conn, %{result: result})
   end
 
-  def setpass(conn, %{"user" => username, "server" => server, "password" => password}) do
+  def setpass(conn, %{"user" => username, "server" => _server, "password" => password}) do
     result =
       case Accounts.get_user_by_username(username) do
         nil -> false

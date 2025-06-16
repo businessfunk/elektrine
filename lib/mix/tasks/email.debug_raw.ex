@@ -35,7 +35,6 @@ defmodule Mix.Tasks.Email.DebugRaw do
   end
 
   defp debug_message(encoded_message) do
-    alias ElektrineWeb.PostalInboundController
 
     Mix.shell().info("Got Base64 encoded message of length: #{String.length(encoded_message)}")
     Mix.shell().info("First 100 characters: #{String.slice(encoded_message, 0, 100)}...")
@@ -228,7 +227,7 @@ defmodule Mix.Tasks.Email.DebugRaw do
       # Standard header with possible continuation lines
       result = Regex.run(~r/#{header_name}:\s*(.+?)(\r\n(?![\w-]+:|\r\n).*?)*?(\r\n[\w-]+:|\r\n\r\n|\z)/s, headers) ->
         case result do
-          [match, value | _] ->
+          [match, _value | _] ->
             # Extract the entire matched value including continuation lines
             full_value = String.slice(headers, String.length(headers) - String.length(match), String.length(match))
             # Remove the header name and trailing delimiter

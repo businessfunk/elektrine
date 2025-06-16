@@ -3,7 +3,6 @@ defmodule ElektrineWeb.EmailLive.TempMail do
   import ElektrineWeb.EmailLive.EmailHelpers
 
   alias Elektrine.Email
-  alias Elektrine.Email.TemporaryMailbox
 
   @impl true
   def mount(params, _session, socket) do

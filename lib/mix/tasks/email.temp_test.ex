@@ -63,14 +63,14 @@ defmodule Mix.Tasks.Email.TempTest do
     base64_email = Base.encode64(raw_email)
     
     # Create a mock webhook payload
-    webhook_payload = %{
+    _webhook_payload = %{
       "message" => base64_email,
       "rcpt_to" => temp_mailbox.email,
       "mail_from" => from
     }
     
     # Simulate processing of the webhook
-    conn = %Plug.Conn{
+    _conn = %Plug.Conn{
       remote_ip: {127, 0, 0, 1},
       req_headers: []
     }

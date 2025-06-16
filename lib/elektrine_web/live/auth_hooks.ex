@@ -6,7 +6,6 @@ defmodule ElektrineWeb.Live.AuthHooks do
   import Phoenix.Component
 
   alias Elektrine.Accounts
-  alias Phoenix.LiveView.Socket
 
   @max_age 60 * 60 * 24 * 60
 

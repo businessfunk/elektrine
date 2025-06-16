@@ -1,7 +1,6 @@
 defmodule Elektrine.Email.TemporaryMailbox do
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
 
   schema "temporary_mailboxes" do
     field :email, :string

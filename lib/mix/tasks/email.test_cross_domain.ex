@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Email.TestCrossDomain do
     end
   end
   
-  defp test_cross_domain_lookup(username, existing_email) do
+  defp test_cross_domain_lookup(username, _existing_email) do
     # Test both domains
     domains = Application.get_env(:elektrine, :email)[:supported_domains] || ["elektrine.com"]
     

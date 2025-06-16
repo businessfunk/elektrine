@@ -297,7 +297,6 @@ defmodule ElektrineWeb.PostalInboundController do
   # Find mailbox from email address or rcpt_to, create if needed
   defp find_or_create_mailbox(to, rcpt_to) do
     alias Elektrine.Email.Mailbox
-    alias Elektrine.Email.TemporaryMailbox
     alias Elektrine.Repo
     import Ecto.Query
 
@@ -334,7 +333,6 @@ defmodule ElektrineWeb.PostalInboundController do
   # Internal helper to find existing mailbox without creating
   defp _find_existing_mailbox(to, rcpt_to) do
     alias Elektrine.Email.Mailbox
-    alias Elektrine.Email.TemporaryMailbox
     alias Elektrine.Repo
     import Ecto.Query
 

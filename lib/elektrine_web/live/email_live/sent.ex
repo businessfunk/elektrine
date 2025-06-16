@@ -1,11 +1,8 @@
 defmodule ElektrineWeb.EmailLive.Sent do
   use ElektrineWeb, :live_view
   import ElektrineWeb.EmailLive.EmailHelpers
-  import Ecto.Query
 
   alias Elektrine.Email
-  alias Elektrine.Email.Message
-  alias Elektrine.Repo
 
   @impl true
   def mount(_params, _session, socket) do

@@ -2,7 +2,6 @@ defmodule ElektrineWeb.EmailLive.Index do
   use ElektrineWeb, :live_view
 
   alias Elektrine.Email
-  alias Elektrine.Accounts
 
   @impl true
   def mount(_params, _session, socket) do
@@ -28,7 +27,7 @@ defmodule ElektrineWeb.EmailLive.Index do
   defp apply_action(socket, :index, _params) do
     # Redirect to inbox
     socket
-    |> push_redirect(to: ~p"/email/inbox")
+    |> push_navigate(to: ~p"/email/inbox")
   end
 
   defp update_unread_count(socket) do

@@ -125,6 +125,38 @@ defmodule Elektrine.Uploads do
     end
   end
 
+  @doc """
+  Returns the public URL for an avatar.
+  
+  The avatar value could be a filename or a full URL depending on storage adapter.
+  """
+  def avatar_url(nil), do: nil
+  def avatar_url(""), do: nil
+  
+  def avatar_url(avatar) when is_binary(avatar) do
+    case get_config(:adapter) do
+      :local -> 
+        # For local storage, if it's already a URL path, return as-is
+        # If it's just a filename, prepend the path
+        if String.starts_with?(avatar, "/") do
+          avatar
+        else
+          "/uploads/avatars/#{avatar}"
+        end
+      
+      :s3 -> 
+        # For S3, if it's already a full URL, return as-is
+        # If it's just a key/filename, construct the full URL
+        if String.starts_with?(avatar, "http") do
+          avatar
+        else
+          bucket = get_config(:bucket)
+          endpoint = get_config(:endpoint) || "s3.us-west-002.backblazeb2.com"
+          "https://#{bucket}.#{endpoint}/avatars/#{avatar}"
+        end
+    end
+  end
+
   defp get_config(key) do
     Application.get_env(:elektrine, :uploads, []) |> Keyword.get(key)
   end

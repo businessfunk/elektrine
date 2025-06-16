@@ -2,12 +2,11 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Index do
   use ElektrineWeb, :live_view
   
   alias Elektrine.Email
-  alias Elektrine.Email.TemporaryMailbox
   
   @impl true
   def mount(_params, session, socket) do
     # Preserve current_user if they're authenticated, otherwise set to nil
-    current_user = socket.assigns[:current_user]
+    _current_user = socket.assigns[:current_user]
     
     # Check if user has a temporary mailbox token in session
     case Map.get(session, "temporary_mailbox_token") do

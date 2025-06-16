@@ -184,7 +184,7 @@ defmodule ElektrineWeb.EmailController do
   defp format_html_body(text) do
     text
     |> String.split("\n")
-    |> Enum.map(&Phoenix.HTML.Tag.content_tag(:p, &1))
+    |> Enum.map(&("<p>" <> to_string(Phoenix.HTML.html_escape(&1)) <> "</p>"))
     |> Enum.join("")
   end
 end

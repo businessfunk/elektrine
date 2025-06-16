@@ -1,7 +1,6 @@
 defmodule Elektrine.Email.Message do
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
 
   schema "email_messages" do
     field :message_id, :string

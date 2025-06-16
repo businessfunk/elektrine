@@ -68,7 +68,7 @@ defmodule Elektrine.Email.Postal do
     # Find the mailbox for this recipient
     case find_mailbox_for_email(recipient) do
       nil ->
-        Logger.warn("No mailbox found for recipient: #{recipient}")
+        Logger.warning("No mailbox found for recipient: #{recipient}")
         {:error, :no_mailbox}
 
       mailbox ->

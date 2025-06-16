@@ -4,7 +4,6 @@ defmodule ElektrineWeb.EmailLive.Inbox do
   import Phoenix.HTML, only: [raw: 1]
 
   alias Elektrine.Email
-  alias Elektrine.Email.Message
 
   @impl true
   def mount(params, _session, socket) do
@@ -191,7 +190,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     if db_message do
       Logger.info("Found new message #{db_message.id} in database")
     else
-      Logger.warn("Could not find new message in database, using raw message data")
+      Logger.warning("Could not find new message in database, using raw message data")
     end
 
     # Always do a full refresh of the message list for reliability

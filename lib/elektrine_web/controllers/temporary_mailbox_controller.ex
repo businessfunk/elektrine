@@ -2,8 +2,6 @@ defmodule ElektrineWeb.TemporaryMailboxController do
   use ElektrineWeb, :controller
 
   alias Elektrine.Email
-  alias Elektrine.Email.TemporaryMailbox
-  alias Elektrine.Email.Message
 
   @doc """
   Main entry point for temporary email - creates a new mailbox if none exists in session.
@@ -112,7 +110,7 @@ defmodule ElektrineWeb.TemporaryMailboxController do
         mailbox ->
           # Extend for another 24 hours
           case Email.extend_temporary_mailbox(mailbox.id) do
-            {:ok, updated_mailbox} ->
+            {:ok, _updated_mailbox} ->
               conn
               |> put_flash(:info, "Mailbox extended for another 24 hours.")
               |> redirect(to: ~p"/temp-mail/#{token}")

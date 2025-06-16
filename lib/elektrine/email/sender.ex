@@ -5,7 +5,6 @@ defmodule Elektrine.Email.Sender do
 
   alias Elektrine.Email
   alias Elektrine.Email.Postal
-  alias Elektrine.Email.Message
   alias Elektrine.Email.Mailbox
   alias Elektrine.Repo
 

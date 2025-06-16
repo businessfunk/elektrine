@@ -47,7 +47,7 @@ defmodule Elektrine.Email.Receiver do
   end
 
   # Validates the webhook request authenticity
-  defp validate_webhook(params) do
+  defp validate_webhook(_params) do
     # In a real implementation, you would verify the webhook signature
     # using the webhook secret defined in your config
 
@@ -76,7 +76,7 @@ defmodule Elektrine.Email.Receiver do
         # If no exact match, try to find by username across supported domains
         case find_mailbox_by_cross_domain_lookup(recipient) do
           nil ->
-            Logger.warn("No mailbox found for recipient: #{recipient}")
+            Logger.warning("No mailbox found for recipient: #{recipient}")
             {:error, :no_mailbox_found}
           found_mailbox ->
             {:ok, found_mailbox}

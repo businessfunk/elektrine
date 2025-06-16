@@ -33,6 +33,11 @@ defmodule ElektrineWeb.Router do
     
     # Route for setting session data from LiveView
     get "/temp-mail/:token/set_token", TemporaryMailboxSessionController, :set_token
+    
+    # Temporary mailbox controller routes
+    get "/temp-mail/:token/refresh", TemporaryMailboxController, :refresh
+    post "/temp-mail/:token/extend", TemporaryMailboxController, :extend
+    delete "/temp-mail/:token/message/:id/delete", TemporaryMailboxController, :delete_message
   end
 
   # Routes that are specifically for unauthenticated users
@@ -69,7 +74,15 @@ defmodule ElektrineWeb.Router do
       live "/email/temp/:token/message/:id", EmailLive.TempMail, :message
     end
 
-    # Mailbox management (removed for single mailbox per user)
+    # Email controller routes
+    delete "/email/:id", EmailController, :delete
+
+    # Mailbox management
+    get "/mailboxes", MailboxController, :index
+    get "/mailboxes/new", MailboxController, :new
+    post "/mailboxes", MailboxController, :create
+    delete "/mailboxes/:id", MailboxController, :delete
+    put "/mailboxes/:id/primary", MailboxController, :set_primary
   end
 
   # Admin routes - require admin privileges

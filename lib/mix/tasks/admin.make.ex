@@ -9,8 +9,7 @@ defmodule Mix.Tasks.Admin.Make do
   """
   use Mix.Task
 
-  alias Elektrine.{Accounts, Repo}
-  import Ecto.Query
+  alias Elektrine.Accounts
 
   @shortdoc "Make a user an admin"
 

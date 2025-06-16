@@ -12,7 +12,6 @@ defmodule Elektrine.Email do
   alias Elektrine.Email.Message
   alias Elektrine.Email.TemporaryMailbox
   alias Elektrine.Email.ApprovedSender
-  alias Elektrine.Accounts
 
   @doc """
   Gets a user's mailbox.
@@ -43,8 +42,17 @@ defmodule Elektrine.Email do
   @doc """
   Creates a mailbox for a user.
   """
-  def create_mailbox(user) do
+  def create_mailbox(user) when is_struct(user) do
     Mailbox.create_for_user(user)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Creates a mailbox with the given parameters.
+  """
+  def create_mailbox(mailbox_params) when is_map(mailbox_params) do
+    %Mailbox{}
+    |> Mailbox.changeset(mailbox_params)
     |> Repo.insert()
   end
 
@@ -56,6 +64,32 @@ defmodule Elektrine.Email do
       nil -> create_mailbox(user)
       mailbox -> {:ok, mailbox}
     end
+  end
+
+  @doc """
+  Returns the list of mailboxes for a user.
+  """
+  def list_mailboxes(user_id) do
+    Mailbox
+    |> where(user_id: ^user_id)
+    |> order_by([m], [desc: m.primary, asc: m.email])
+    |> Repo.all()
+  end
+
+  @doc """
+  Updates a mailbox.
+  """
+  def update_mailbox(mailbox, attrs) do
+    mailbox
+    |> Mailbox.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a mailbox.
+  """
+  def delete_mailbox(mailbox) do
+    Repo.delete(mailbox)
   end
 
   @doc """
