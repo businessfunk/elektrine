@@ -72,6 +72,23 @@ defmodule ElektrineWeb.Router do
     # Mailbox management (removed for single mailbox per user)
   end
 
+  # Admin routes - require admin privileges
+  scope "/admin", ElektrineWeb do
+    pipe_through [:browser, :require_authenticated_user, :require_admin_user]
+
+    get "/", AdminController, :dashboard
+    get "/users", AdminController, :users
+    get "/users/:id/edit", AdminController, :edit
+    put "/users/:id", AdminController, :update
+    post "/users/:id/toggle_admin", AdminController, :toggle_admin
+    get "/users/:id/ban", AdminController, :ban
+    post "/users/:id/ban", AdminController, :confirm_ban
+    post "/users/:id/unban", AdminController, :unban
+    delete "/users/:id", AdminController, :delete
+    get "/mailboxes", AdminController, :mailboxes
+    get "/messages", AdminController, :messages
+  end
+
   # Routes for all users (authenticated or not)
   scope "/", ElektrineWeb do
     pipe_through [:browser]
@@ -112,19 +129,21 @@ defmodule ElektrineWeb.Router do
     end
   end
 
-  # Enable LiveDashboard and Swoosh mailbox preview in development
-  if Application.compile_env(:elektrine, :dev_routes) do
-    # If you want to use the LiveDashboard in production, you should put
-    # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
-    import Phoenix.LiveDashboard.Router
+  # Enable LiveDashboard and Swoosh mailbox preview
+  import Phoenix.LiveDashboard.Router
 
+  # LiveDashboard for admins in production
+  scope "/admin" do
+    pipe_through [:browser, :require_authenticated_user, :require_admin_user]
+
+    live_dashboard "/dashboard", metrics: ElektrineWeb.Telemetry
+  end
+
+  # Development-only routes
+  if Application.compile_env(:elektrine, :dev_routes) do
     scope "/dev" do
       pipe_through :browser
 
-      live_dashboard "/dashboard", metrics: ElektrineWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end

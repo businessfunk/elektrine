@@ -109,14 +109,21 @@ defmodule ElektrineWeb.UserAuth do
   Used as a plug to ensure authentication in controllers.
   """
   def require_authenticated_user(conn, _opts) do
-    if conn.assigns[:current_user] do
-      conn
-    else
-      conn
-      |> put_flash(:error, "You must log in to access this page.")
-      |> maybe_store_return_to()
-      |> redirect(to: ~p"/login")
-      |> halt()
+    case conn.assigns[:current_user] do
+      %{banned: true} ->
+        conn
+        |> put_flash(:error, "Your account has been banned. You have been logged out.")
+        |> log_out_user()
+      
+      %{} = _user ->
+        conn
+      
+      nil ->
+        conn
+        |> put_flash(:error, "You must log in to access this page.")
+        |> maybe_store_return_to()
+        |> redirect(to: ~p"/login")
+        |> halt()
     end
   end
 
@@ -138,6 +145,22 @@ defmodule ElektrineWeb.UserAuth do
       |> halt()
     else
       conn
+    end
+  end
+
+  @doc """
+  Ensures the current user is an admin.
+  Used as a plug to restrict admin-only routes.
+  """
+  def require_admin_user(conn, _opts) do
+    case conn.assigns[:current_user] do
+      %{is_admin: true} ->
+        conn
+      _ ->
+        conn
+        |> put_flash(:error, "You must be an admin to access this page.")
+        |> redirect(to: ~p"/")
+        |> halt()
     end
   end
 end

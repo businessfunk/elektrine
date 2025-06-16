@@ -1,0 +1,147 @@
+<div class="p-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+    <div class="text-sm opacity-70">
+      Welcome back, <%= @current_user.username %>
+    </div>
+  </div>
+
+  <!-- Quick Search -->
+  <div class="card bg-base-100 shadow-xl mb-8">
+    <div class="card-body">
+      <h2 class="card-title">Quick Search</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form method="get" action={~p"/admin/users"}>
+          <div class="input-group">
+            <input 
+              type="text" 
+              name="search" 
+              placeholder="Search users..." 
+              class="input input-bordered flex-1"
+            />
+            <button type="submit" class="btn btn-primary">
+              <.icon name="hero-users" class="w-4 h-4" />
+            </button>
+          </div>
+        </form>
+        
+        <form method="get" action={~p"/admin/mailboxes"}>
+          <div class="input-group">
+            <input 
+              type="text" 
+              name="search" 
+              placeholder="Search mailboxes..." 
+              class="input input-bordered flex-1"
+            />
+            <button type="submit" class="btn btn-success">
+              <.icon name="hero-envelope" class="w-4 h-4" />
+            </button>
+          </div>
+        </form>
+        
+        <form method="get" action={~p"/admin/messages"}>
+          <div class="input-group">
+            <input 
+              type="text" 
+              name="search" 
+              placeholder="Search messages..." 
+              class="input input-bordered flex-1"
+            />
+            <button type="submit" class="btn btn-warning">
+              <.icon name="hero-chat-bubble-left-ellipsis" class="w-4 h-4" />
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="stat bg-base-100 shadow rounded-lg">
+      <div class="stat-figure text-primary">
+        <.icon name="hero-users" class="w-8 h-8" />
+      </div>
+      <div class="stat-title">Total Users</div>
+      <div class="stat-value text-primary"><%= @stats.total_users %></div>
+    </div>
+
+    <div class="stat bg-base-100 shadow rounded-lg">
+      <div class="stat-figure text-success">
+        <.icon name="hero-envelope" class="w-8 h-8" />
+      </div>
+      <div class="stat-title">Mailboxes</div>
+      <div class="stat-value text-success"><%= @stats.total_mailboxes %></div>
+    </div>
+
+    <div class="stat bg-base-100 shadow rounded-lg">
+      <div class="stat-figure text-warning">
+        <.icon name="hero-chat-bubble-left-ellipsis" class="w-8 h-8" />
+      </div>
+      <div class="stat-title">Messages</div>
+      <div class="stat-value text-warning"><%= @stats.total_messages %></div>
+    </div>
+
+    <div class="stat bg-base-100 shadow rounded-lg">
+      <div class="stat-figure text-secondary">
+        <.icon name="hero-clock" class="w-8 h-8" />
+      </div>
+      <div class="stat-title">Temp Mailboxes</div>
+      <div class="stat-value text-secondary"><%= @stats.temp_mailboxes %></div>
+    </div>
+  </div>
+
+  <!-- Recent Users -->
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title">Recent Users</h2>
+      <p class="opacity-70">Latest registered users on the platform.</p>
+      
+      <div class="overflow-x-auto mt-4">
+        <table class="table table-zebra w-full">
+          <tbody>
+            <%= for user <- @stats.recent_users do %>
+              <tr>
+                <td>
+                  <div class="flex items-center gap-3">
+                    <div class="avatar placeholder">
+                      <div class="bg-neutral text-neutral-content rounded-full w-8 h-8">
+                        <span class="text-sm">
+                          <%= String.first(user.username) |> String.upcase() %>
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="font-bold"><%= user.username %></div>
+                      <div class="text-sm opacity-50">
+                        Joined <%= Calendar.strftime(user.inserted_at, "%B %d, %Y") %>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="flex gap-1">
+                    <%= cond do %>
+                      <% user.banned -> %>
+                        <div class="badge badge-error">Banned</div>
+                      <% user.is_admin -> %>
+                        <div class="badge badge-secondary">Admin</div>
+                      <% true -> %>
+                        <div class="badge badge-success">Active</div>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="card-actions justify-end mt-4">
+        <.link href={~p"/admin/users"} class="btn btn-primary btn-sm">
+          View all users →
+        </.link>
+      </div>
+    </div>
+  </div>
+</div>

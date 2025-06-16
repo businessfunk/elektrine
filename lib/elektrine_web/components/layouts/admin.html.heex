@@ -1,0 +1,99 @@
+<div class="navbar bg-base-200 shadow-md">
+  <div class="navbar-start">
+    <div class="dropdown">
+      <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
+        <.icon name="hero-bars-3" class="h-5 w-5" />
+      </div>
+      <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+        <li><.link href={~p"/admin"} class={if assigns[:conn] && @conn.request_path == "/admin", do: "active", else: ""}>
+          <.icon name="hero-squares-2x2" class="w-4 h-4" />
+          Dashboard
+        </.link></li>
+        <li><.link href={~p"/admin/users"} class={if assigns[:conn] && @conn.request_path == "/admin/users", do: "active", else: ""}>
+          <.icon name="hero-users" class="w-4 h-4" />
+          Users
+        </.link></li>
+        <li><.link href={~p"/admin/mailboxes"} class={if assigns[:conn] && @conn.request_path == "/admin/mailboxes", do: "active", else: ""}>
+          <.icon name="hero-envelope" class="w-4 h-4" />
+          Mailboxes
+        </.link></li>
+        <li><.link href={~p"/admin/messages"} class={if assigns[:conn] && @conn.request_path == "/admin/messages", do: "active", else: ""}>
+          <.icon name="hero-chat-bubble-left-ellipsis" class="w-4 h-4" />
+          Messages
+        </.link></li>
+        <li><.link href={~p"/admin/dashboard"}>
+          <.icon name="hero-computer-desktop" class="w-4 h-4" />
+          System Dashboard
+        </.link></li>
+        <li class="divider"></li>
+        <li><.link href={~p"/email/inbox"} class="text-primary">← Back to Email</.link></li>
+      </ul>
+    </div>
+    <.link href={~p"/admin"} class="btn btn-ghost text-xl">
+      <.icon name="hero-cog-6-tooth" class="w-6 h-6 mr-2" />
+      Admin Panel
+    </.link>
+  </div>
+  <div class="navbar-center hidden lg:flex">
+    <ul class="menu menu-horizontal px-1">
+      <li><.link href={~p"/admin"} class={if assigns[:conn] && @conn.request_path == "/admin", do: "active", else: ""}>Dashboard</.link></li>
+      <li><.link href={~p"/admin/users"} class={if assigns[:conn] && @conn.request_path == "/admin/users", do: "active", else: ""}>Users</.link></li>
+      <li><.link href={~p"/admin/mailboxes"} class={if assigns[:conn] && @conn.request_path == "/admin/mailboxes", do: "active", else: ""}>Mailboxes</.link></li>
+      <li><.link href={~p"/admin/messages"} class={if assigns[:conn] && @conn.request_path == "/admin/messages", do: "active", else: ""}>Messages</.link></li>
+      <li>
+        <details>
+          <summary class="btn btn-ghost">
+            <.icon name="hero-computer-desktop" class="w-4 h-4" />
+            System
+          </summary>
+          <ul class="p-2 bg-base-100 rounded-t-none shadow-lg">
+            <li><.link href={~p"/admin/dashboard"}>Live Dashboard</.link></li>
+          </ul>
+        </details>
+      </li>
+    </ul>
+  </div>
+  <div class="navbar-end">
+    <.link href={~p"/email/inbox"} class="btn btn-ghost btn-sm mr-2">
+      <.icon name="hero-envelope" class="w-4 h-4" />
+      Back to Email
+    </.link>
+    
+    <div class="dropdown dropdown-end">
+      <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
+        <%= if @current_user.avatar do %>
+          <div class="w-10 rounded-full">
+            <img src={@current_user.avatar} alt={@current_user.username} class="rounded-full object-cover" />
+          </div>
+        <% else %>
+          <div class="avatar placeholder">
+            <div class="bg-neutral text-neutral-content rounded-full w-10">
+              <span><%= String.first(@current_user.username) %></span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52">
+        <li class="menu-title">
+          <span>Admin: <%= @current_user.username %></span>
+        </li>
+        <li><.link href={~p"/account"}>
+          <.icon name="hero-user" class="w-4 h-4" />
+          Account
+        </.link></li>
+        <li>
+          <.link href={~p"/logout"} method="delete" class="text-error">
+            <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" />
+            Log out
+          </.link>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+<.flash_group flash={@flash} />
+<main class="container mx-auto px-4 py-8 bg-base-100 min-h-screen">
+  <div class="w-full">
+    {@inner_content}
+  </div>
+</main>

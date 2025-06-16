@@ -21,12 +21,14 @@
           <label for="mailbox_email" class="block text-sm font-medium text-gray-700">Email Address</label>
           <div class="mt-1 flex rounded-md shadow-sm">
             <input type="text" name="mailbox[username]" id="mailbox_username" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md border-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="username">
-            <span class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 rounded-r-md text-sm">
-              @elektrine.com
-            </span>
+            <select name="mailbox[domain]" id="mailbox_domain" class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 rounded-r-md text-sm focus:ring-blue-500 focus:border-blue-500">
+              <option value="elektrine.com">@elektrine.com</option>
+              <option value="z.org">@z.org</option>
+            </select>
           </div>
           <input type="hidden" name="mailbox[email]" id="mailbox_email" value="" />
           <p class="mt-2 text-sm text-gray-500">Your mailbox username can only contain letters, numbers, and underscores.</p>
+          <p class="mt-1 text-sm text-blue-600">📧 You can receive emails on both @elektrine.com and @z.org domains with the same username!</p>
         </div>
         
         <div class="flex items-center">
@@ -51,18 +53,21 @@
   // Combine username and domain to create the full email
   document.addEventListener('DOMContentLoaded', function() {
     const usernameInput = document.getElementById('mailbox_username');
+    const domainSelect = document.getElementById('mailbox_domain');
     const emailInput = document.getElementById('mailbox_email');
     
     function updateEmail() {
       const username = usernameInput.value.trim();
-      if (username) {
-        emailInput.value = username + '@elektrine.com';
+      const domain = domainSelect.value;
+      if (username && domain) {
+        emailInput.value = username + '@' + domain;
       } else {
         emailInput.value = '';
       }
     }
     
     usernameInput.addEventListener('input', updateEmail);
+    domainSelect.addEventListener('change', updateEmail);
     
     // Initial update
     updateEmail();

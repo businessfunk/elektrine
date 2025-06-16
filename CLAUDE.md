@@ -99,6 +99,7 @@ The application uses the following key dependencies:
 - Tailwind CSS (styling)
 - esbuild (JavaScript bundling)
 - DaisyUI
+- Hero Icons
 
 ## Development Guidelines
 

@@ -2,7 +2,7 @@
   <div class="navbar-start">
     <div class="dropdown">
       <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" /></svg>
+        <.icon name="hero-bars-3" class="h-5 w-5" />
       </div>
       <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
         <li><a href="/" class={if assigns[:conn] && @conn.request_path == "/", do: "active", else: ""}>Home</a></li>
@@ -15,6 +15,13 @@
           <li><.link href={~p"/email/inbox"} class={if assigns[:conn] && @conn.request_path == "/email/inbox", do: "active", else: ""}>Inbox</.link></li>
           <li><.link href={~p"/email/sent"} class={if assigns[:conn] && @conn.request_path == "/email/sent", do: "active", else: ""}>Sent</.link></li>
           <li><.link href={~p"/email/compose"} class={if assigns[:conn] && String.starts_with?(@conn.request_path, "/email/compose"), do: "active", else: ""}>Compose</.link></li>
+
+          <%= if @current_user.is_admin do %>
+            <li class="menu-title mt-2">
+              <span>Admin</span>
+            </li>
+            <li><.link href={~p"/admin"} class={if assigns[:conn] && String.starts_with?(@conn.request_path, "/admin"), do: "active", else: ""}>Admin Panel</.link></li>
+          <% end %>
 
           <li class="menu-title mt-2">
             <span>Account</span>
@@ -62,6 +69,9 @@
           </li>
           <li><.link href={~p"/email/inbox"}>Inbox</.link></li>
           <li><.link href={~p"/email/compose"}>Compose Email</.link></li>
+          <%= if @current_user.is_admin do %>
+            <li><.link href={~p"/admin"}>Admin Panel</.link></li>
+          <% end %>
           <li><.link href={~p"/account"}>Account</.link></li>
           <li>
             <.link href={~p"/logout"} method="delete">

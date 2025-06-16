@@ -32,7 +32,35 @@
         </div>
       </div>
 
-      <.input field={f[:username]} type="text" label="Username" required />
+      <%= if @user.last_username_change_at && !Elektrine.Accounts.User.can_change_username?(@user) do %>
+        <.input field={f[:username]} type="text" label="Username" required disabled />
+      <% else %>
+        <.input field={f[:username]} type="text" label="Username" required />
+      <% end %>
+      
+      <%= if @user.last_username_change_at do %>
+        <div class="alert alert-info mt-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <div>
+            <div class="text-sm">Username changes are limited to once per week.</div>
+            <%= if Elektrine.Accounts.User.can_change_username?(@user) do %>
+              <div class="text-sm font-semibold text-success">✓ You can change your username now.</div>
+            <% else %>
+              <% next_change = Elektrine.Accounts.User.next_username_change_date(@user) %>
+              <% days_remaining = div(DateTime.diff(next_change, DateTime.utc_now(), :second), 86400) + 1 %>
+              <div class="text-sm font-semibold text-warning">⏳ Next change allowed in <%= days_remaining %> day(s).</div>
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <div class="alert alert-success mt-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <div>
+            <div class="text-sm font-semibold">✓ You can change your username.</div>
+            <div class="text-sm">After changing, you'll need to wait one week before changing again.</div>
+          </div>
+        </div>
+      <% end %>
 
       <:actions>
         <.button>Save</.button>

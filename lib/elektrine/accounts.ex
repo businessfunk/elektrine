@@ -194,7 +194,7 @@ defmodule Elektrine.Accounts do
   def authenticate_user(username, password) when is_binary(username) and is_binary(password) do
     user = get_user_by_username(username)
 
-    with %User{} <- user,
+    with %User{banned: false} <- user,
          true <- verify_password_hash(password, user.password_hash) do
       # Rehash with Argon2 if the current hash is bcrypt
       if is_bcrypt_hash?(user.password_hash) do
@@ -205,6 +205,7 @@ defmodule Elektrine.Accounts do
 
       {:ok, user}
     else
+      %User{banned: true} -> {:error, :banned}
       _ -> {:error, :invalid_credentials}
     end
   end
@@ -222,4 +223,125 @@ defmodule Elektrine.Accounts do
     String.starts_with?(hash, ["$2", "$2a$", "$2b$", "$2y$"])
   end
   defp is_bcrypt_hash?(_), do: false
+
+  @doc """
+  Updates a user's admin status.
+
+  ## Examples
+
+      iex> update_user_admin_status(user, true)
+      {:ok, %User{}}
+
+      iex> update_user_admin_status(user, false)
+      {:ok, %User{}}
+
+  """
+  def update_user_admin_status(%User{} = user, is_admin) when is_boolean(is_admin) do
+    user
+    |> Ecto.Changeset.cast(%{is_admin: is_admin}, [:is_admin])
+    |> Repo.update()
+  end
+
+  @doc """
+  Updates a user (admin only).
+
+  ## Examples
+
+      iex> admin_update_user(user, %{username: "new_username"})
+      {:ok, %User{}}
+
+      iex> admin_update_user(user, %{username: ""})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def admin_update_user(%User{} = user, attrs) do
+    user
+    |> User.admin_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Bans a user with an optional reason.
+
+  ## Examples
+
+      iex> ban_user(user, %{banned_reason: "Violation of terms"})
+      {:ok, %User{}}
+
+      iex> ban_user(user)
+      {:ok, %User{}}
+
+  """
+  def ban_user(%User{} = user, attrs \\ %{}) do
+    user
+    |> User.ban_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Unbans a user.
+
+  ## Examples
+
+      iex> unban_user(user)
+      {:ok, %User{}}
+
+  """
+  def unban_user(%User{} = user) do
+    user
+    |> User.unban_changeset()
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a user and all associated data.
+
+  ## Examples
+
+      iex> admin_delete_user(user)
+      {:ok, %User{}}
+
+      iex> admin_delete_user(user)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def admin_delete_user(%User{} = user) do
+    # Delete all user's data first
+    Repo.transaction(fn ->
+      # Delete user's messages through their mailboxes
+      from(m in Elektrine.Email.Message,
+        join: mb in Elektrine.Email.Mailbox,
+        on: m.mailbox_id == mb.id,
+        where: mb.user_id == ^user.id
+      )
+      |> Repo.delete_all()
+
+      # Delete user's mailboxes
+      from(mb in Elektrine.Email.Mailbox, where: mb.user_id == ^user.id)
+      |> Repo.delete_all()
+
+      # Delete user's approved senders
+      from(as in Elektrine.Email.ApprovedSender, where: as.user_id == ^user.id)
+      |> Repo.delete_all()
+
+      # Finally delete the user
+      case Repo.delete(user) do
+        {:ok, user} -> user
+        {:error, changeset} -> Repo.rollback(changeset)
+      end
+    end)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking user admin changes.
+
+  ## Examples
+
+      iex> change_user_admin(user)
+      %Ecto.Changeset{data: %User{}}
+
+  """
+  def change_user_admin(%User{} = user, attrs \\ %{}) do
+    User.admin_changeset(user, attrs)
+  end
 end

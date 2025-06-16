@@ -17,6 +17,11 @@ defmodule ElektrineWeb.UserSessionController do
         |> put_flash(:info, "Welcome back!")
         |> UserAuth.log_in_user(user, user_params)
 
+      {:error, :banned} ->
+        conn
+        |> put_flash(:error, "Your account has been banned. Please contact support if you believe this is an error.")
+        |> render(:new, error_message: "Account banned")
+
       {:error, :invalid_credentials} ->
         conn
         |> put_flash(:error, "Invalid username or password")

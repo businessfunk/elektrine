@@ -1,0 +1,91 @@
+<div class="p-6">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold">Recent Messages</h1>
+    <p class="opacity-70 mt-2">Overview of recent email messages in the system.</p>
+  </div>
+
+  <!-- Search Form -->
+  <div class="card bg-base-100 shadow-xl mb-6">
+    <div class="card-body">
+      <form method="get" action={~p"/admin/messages"} class="flex gap-4 items-end">
+        <div class="form-control flex-1">
+          <label class="label">
+            <span class="label-text">Search messages</span>
+          </label>
+          <div class="input-group">
+            <input 
+              type="text" 
+              name="search" 
+              value={assigns[:search_query] || ""} 
+              placeholder="Search by subject, sender, or username..." 
+              class="input input-bordered flex-1"
+            />
+            <button type="submit" class="btn btn-primary">
+              <.icon name="hero-magnifying-glass" class="w-4 h-4" />
+              Search
+            </button>
+          </div>
+        </div>
+        <%= if assigns[:search_query] && @search_query != "" do %>
+          <.link href={~p"/admin/messages"} class="btn btn-ghost">
+            <.icon name="hero-x-mark" class="w-4 h-4" />
+            Clear
+          </.link>
+        <% end %>
+      </form>
+      
+      <%= if assigns[:search_query] && @search_query != "" do %>
+        <div class="mt-4">
+          <div class="alert alert-info">
+            <.icon name="hero-information-circle" class="stroke-current shrink-0 w-6 h-6" />
+            <span>
+              Showing results for "<strong><%= @search_query %></strong>" 
+              (<%= length(@messages) %> message<%= if length(@messages) != 1, do: "s" %> found)
+            </span>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th>Subject & From</th>
+              <th>Recipient</th>
+              <th>User</th>
+              <th>Received</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for message <- @messages do %>
+              <tr>
+                <td>
+                  <div class="font-medium truncate max-w-xs">
+                    <%= message.subject || "(No Subject)" %>
+                  </div>
+                  <div class="text-sm opacity-70 truncate max-w-xs">
+                    From: <%= message.from %>
+                  </div>
+                  <div class="text-xs opacity-50">ID: <%= message.id %></div>
+                </td>
+                <td>
+                  <div class="font-mono text-sm"><%= message.mailbox_email %></div>
+                </td>
+                <td>
+                  <div class="font-medium"><%= message.username %></div>
+                </td>
+                <td class="text-sm opacity-70">
+                  <%= Calendar.strftime(message.inserted_at, "%B %d, %Y at %I:%M %p") %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

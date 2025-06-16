@@ -1,0 +1,90 @@
+<div class="p-6">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold">Mailboxes</h1>
+    <p class="opacity-70 mt-2">Overview of all user mailboxes in the system.</p>
+  </div>
+
+  <!-- Search Form -->
+  <div class="card bg-base-100 shadow-xl mb-6">
+    <div class="card-body">
+      <form method="get" action={~p"/admin/mailboxes"} class="flex gap-4 items-end">
+        <div class="form-control flex-1">
+          <label class="label">
+            <span class="label-text">Search mailboxes</span>
+          </label>
+          <div class="input-group">
+            <input 
+              type="text" 
+              name="search" 
+              value={assigns[:search_query] || ""} 
+              placeholder="Search by email address or username..." 
+              class="input input-bordered flex-1"
+            />
+            <button type="submit" class="btn btn-primary">
+              <.icon name="hero-magnifying-glass" class="w-4 h-4" />
+              Search
+            </button>
+          </div>
+        </div>
+        <%= if assigns[:search_query] && @search_query != "" do %>
+          <.link href={~p"/admin/mailboxes"} class="btn btn-ghost">
+            <.icon name="hero-x-mark" class="w-4 h-4" />
+            Clear
+          </.link>
+        <% end %>
+      </form>
+      
+      <%= if assigns[:search_query] && @search_query != "" do %>
+        <div class="mt-4">
+          <div class="alert alert-info">
+            <.icon name="hero-information-circle" class="stroke-current shrink-0 w-6 h-6" />
+            <span>
+              Showing results for "<strong><%= @search_query %></strong>" 
+              (<%= length(@mailboxes) %> mailbox<%= if length(@mailboxes) != 1, do: "es" %> found)
+            </span>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th>Email Address</th>
+              <th>Owner</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for mailbox <- @mailboxes do %>
+              <tr>
+                <td>
+                  <div class="font-mono text-sm"><%= mailbox.email %></div>
+                  <div class="text-xs opacity-50">ID: <%= mailbox.id %></div>
+                </td>
+                <td>
+                  <div class="font-medium"><%= mailbox.username %></div>
+                </td>
+                <td>
+                  <%= if mailbox.temporary do %>
+                    <div class="badge badge-warning">Temporary</div>
+                  <% else %>
+                    <div class="badge badge-success">Permanent</div>
+                  <% end %>
+                </td>
+                <td class="text-sm opacity-70">
+                  <%= Calendar.strftime(mailbox.inserted_at, "%B %d, %Y") %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
