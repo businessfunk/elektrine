@@ -115,16 +115,37 @@ defmodule ElektrineWeb.PostalInboundController do
       body = extract_text_content(raw_body)
 
       # Extract basic headers
-      from = extract_header(headers, "From") || mail_from_to_from(rcpt_to) || "unknown@example.com"
-      to = extract_header(headers, "To") || rcpt_to || extract_header(headers, "Delivered-To") || "unknown@elektrine.com"
-      subject = extract_header(headers, "Subject") || "(No Subject)"
+      from = (extract_header(headers, "From") || mail_from_to_from(rcpt_to) || "unknown@example.com") |> decode_rfc2047_header()
+      to = (extract_header(headers, "To") || rcpt_to || extract_header(headers, "Delivered-To") || "unknown@elektrine.com") |> decode_rfc2047_header()
+      subject = (extract_header(headers, "Subject") || "(No Subject)") |> decode_rfc2047_header()
       message_id = extract_header(headers, "Message-ID") || extract_header(headers, "Message-Id") ||
                    "postal-#{:rand.uniform(1000000)}-#{System.system_time(:millisecond)}"
 
       Logger.info("Extracted email fields - From: #{from}, To: #{to}, Subject: #{subject}")
 
-      # Find or create the appropriate mailbox
-      case find_or_create_mailbox(to, rcpt_to) do
+      # Check if this is actually an inbound email (TO elektrine.com addresses)
+      # Skip processing outbound emails (FROM elektrine.com TO external addresses)
+      from_clean = extract_clean_email(from) || ""
+      to_clean = extract_clean_email(to) || ""
+      Logger.info("Clean addresses - From: #{from_clean}, To: #{to_clean}")
+      
+      # Always log the check results for debugging
+      is_outbound = is_outbound_email?(from, to)
+      is_loopback = is_loopback_email?(from, to, subject)
+      
+      Logger.info("Email checks - Outbound: #{is_outbound}, Loopback: #{is_loopback}")
+      
+      if is_outbound do
+        Logger.info("🚫 SKIPPING OUTBOUND EMAIL from #{from} to #{to}")
+        {:ok, %{id: "skipped-outbound", message_id: message_id}}
+      else
+        # Check if this is a recently sent email that's looping back
+        if is_loopback do
+          Logger.info("🔄 SKIPPING LOOPBACK EMAIL from #{from} to #{to} - Subject: #{subject}")
+          {:ok, %{id: "skipped-loopback", message_id: message_id}}
+        else
+        # Find or create the appropriate mailbox
+        case find_or_create_mailbox(to, rcpt_to) do
         {:ok, mailbox} ->
           Logger.info("Using mailbox: #{mailbox.email} (user_id: #{mailbox.user_id})")
 
@@ -187,6 +208,8 @@ defmodule ElektrineWeb.PostalInboundController do
           Logger.warning("Could not find or create mailbox: #{inspect(reason)}")
           {:error, :no_mailbox}
       end
+      end
+      end
     rescue
       e ->
         Logger.error("Error parsing email: #{inspect(e)}")
@@ -205,7 +228,7 @@ defmodule ElektrineWeb.PostalInboundController do
 
   # Extract HTML content from email body
   defp extract_html(email) do
-    cond do
+    html_content = cond do
       # Check if this is a multipart message
       Regex.match?(~r/Content-Type:\s*multipart\//i, email) ->
         # Find the boundary string
@@ -217,7 +240,10 @@ defmodule ElektrineWeb.PostalInboundController do
         if boundary do
           # Try to find a text/html part
           case Regex.run(~r/--#{Regex.escape(boundary)}.*?Content-Type:\s*text\/html.*?(?:\r\n\r\n|\n\n)(.*?)(?:--#{Regex.escape(boundary)}|$)/si, email) do
-            [_, content] -> content
+            [_, content] -> 
+              # Check for encoding and decode
+              encoding = extract_content_encoding(email, boundary, "text/html")
+              decode_content(content, encoding)
             _ -> html_fallback(email)
           end
         else
@@ -227,13 +253,21 @@ defmodule ElektrineWeb.PostalInboundController do
       # Direct text/html content
       Regex.match?(~r/Content-Type:.*text\/html/i, email) ->
         case Regex.run(~r/Content-Type:.*text\/html.*?(?:\r\n\r\n|\n\n)(.*?)(?:--.*?--|\z)/si, email) do
-          [_, html] -> html
+          [_, html] -> 
+            # Check for encoding in the Content-Type header
+            encoding = case Regex.run(~r/Content-Transfer-Encoding:\s*([^\r\n]+)/i, email) do
+              [_, enc] -> String.trim(enc)
+              _ -> nil
+            end
+            decode_content(html, encoding)
           _ -> html_fallback(email)
         end
 
       # Fallback
       true -> html_fallback(email)
     end
+
+    html_content
   end
 
   # Fallback for HTML extraction
@@ -249,9 +283,73 @@ defmodule ElektrineWeb.PostalInboundController do
     end
   end
 
+  # Extract content encoding for a specific part in multipart email
+  defp extract_content_encoding(email, boundary, content_type) do
+    case Regex.run(~r/--#{Regex.escape(boundary)}.*?Content-Type:\s*#{content_type}.*?Content-Transfer-Encoding:\s*([^\r\n]+)/si, email) do
+      [_, encoding] -> String.trim(encoding)
+      _ -> nil
+    end
+  end
+
+  # Decode content based on encoding
+  defp decode_content(content, encoding) when is_binary(content) do
+    case String.downcase(encoding || "") do
+      "quoted-printable" ->
+        decode_quoted_printable(content)
+      
+      "base64" ->
+        case Base.decode64(content) do
+          {:ok, decoded} -> decoded
+          :error -> content
+        end
+      
+      _ ->
+        content
+    end
+  end
+
+  defp decode_content(content, _), do: content
+
+  # Decode quoted-printable encoding
+  defp decode_quoted_printable(content) when is_binary(content) do
+    content
+    |> String.replace(~r/=\r?\n/, "")  # Remove soft line breaks
+    |> String.replace(~r/=([0-9A-Fa-f]{2})/, fn match ->
+      hex = String.slice(match, 1, 2)
+      case Integer.parse(hex, 16) do
+        {value, ""} -> <<value>>
+        _ -> match
+      end
+    end)
+  end
+
+  # Decode RFC 2047 encoded headers (like subjects)
+  defp decode_rfc2047_header(header) when is_binary(header) do
+    # Pattern: =?charset?encoding?encoded-text?=
+    header
+    |> String.replace(~r/=\?([^?]+)\?([QqBb])\?([^?]*)\?=/, fn match ->
+      case Regex.run(~r/=\?([^?]+)\?([QqBb])\?([^?]*)\?=/, match) do
+        [_, _charset, encoding, encoded_text] ->
+          case String.upcase(encoding) do
+            "Q" -> decode_quoted_printable(encoded_text |> String.replace("_", " "))
+            "B" -> 
+              case Base.decode64(encoded_text) do
+                {:ok, decoded} -> decoded
+                :error -> match
+              end
+            _ -> match
+          end
+        _ -> match
+      end
+    end)
+    |> String.trim()
+  end
+
+  defp decode_rfc2047_header(header), do: header
+
   # Extract plain text content from email body
   defp extract_text_content(body) do
-    cond do
+    text_content = cond do
       # Check if this is a multipart message
       Regex.match?(~r/Content-Type:\s*multipart\//i, body) ->
         # Find the boundary string
@@ -263,7 +361,10 @@ defmodule ElektrineWeb.PostalInboundController do
         if boundary do
           # Try to find a text/plain part
           case Regex.run(~r/--#{Regex.escape(boundary)}.*?Content-Type:\s*text\/plain.*?(?:\r\n\r\n|\n\n)(.*?)(?:--#{Regex.escape(boundary)}|$)/si, body) do
-            [_, content] -> content
+            [_, content] -> 
+              # Check for encoding and decode
+              encoding = extract_content_encoding(body, boundary, "text/plain")
+              decode_content(content, encoding)
             _ ->
               # If we couldn't find a text/plain part, just return the body without the MIME headers
               body
@@ -276,13 +377,21 @@ defmodule ElektrineWeb.PostalInboundController do
       # Check for simple text/plain content
       Regex.match?(~r/Content-Type:\s*text\/plain/i, body) ->
         case Regex.run(~r/(?:\r\n\r\n|\n\n)(.*)/si, body) do
-          [_, content] -> content
+          [_, content] -> 
+            # Check for encoding in the Content-Type header
+            encoding = case Regex.run(~r/Content-Transfer-Encoding:\s*([^\r\n]+)/i, body) do
+              [_, enc] -> String.trim(enc)
+              _ -> nil
+            end
+            decode_content(content, encoding)
           _ -> body
         end
 
       # Just plain text without MIME headers
       true -> body
     end
+
+    text_content
   end
 
   # Attempt to extract a From address from MAIL FROM value
@@ -428,6 +537,85 @@ defmodule ElektrineWeb.PostalInboundController do
         email
 
       true -> nil
+    end
+  end
+
+  # Check if this is an outbound email (FROM elektrine.com TO external addresses)
+  defp is_outbound_email?(from, to) do
+    from_clean = extract_clean_email(from) || ""
+    to_clean = extract_clean_email(to) || ""
+    
+    # Check if FROM is elektrine.com and TO is external
+    String.contains?(from_clean, "@elektrine.com") && 
+    !String.contains?(to_clean, "@elektrine.com")
+  end
+
+  # Check if this is a loopback email (sent by a user that's coming back through inbound)
+  defp is_loopback_email?(from, to, subject) do
+    import Ecto.Query
+    alias Elektrine.Email.Message
+    alias Elektrine.Email.Mailbox
+    alias Elektrine.Repo
+    
+    from_clean = extract_clean_email(from) || ""
+    to_clean = extract_clean_email(to) || ""
+    
+    Logger.info("Loopback check - From: #{from_clean}, To: #{to_clean}, Subject: #{subject}")
+    
+    # Check if we have a mailbox for both the sender and recipient
+    sender_mailbox = Mailbox
+                     |> where([m], fragment("lower(?)", m.email) == ^String.downcase(from_clean))
+                     |> Repo.one()
+    
+    recipient_mailbox = Mailbox
+                        |> where([m], fragment("lower(?)", m.email) == ^String.downcase(to_clean))
+                        |> Repo.one()
+    
+    Logger.info("Mailboxes - Sender: #{inspect(sender_mailbox && sender_mailbox.id)}, Recipient: #{inspect(recipient_mailbox && recipient_mailbox.id)}")
+    
+    cond do
+      # First check if both mailboxes belong to the same user (user emailing themselves)
+      sender_mailbox && recipient_mailbox && sender_mailbox.user_id && 
+      sender_mailbox.user_id == recipient_mailbox.user_id ->
+        Logger.info("Same user detected - User #{sender_mailbox.user_id} is emailing themselves")
+        # For same-user emails, we only need the sent copy, not the received copy
+        true
+        
+      # Check if we recently sent this email
+      sender_mailbox && recipient_mailbox ->
+        # Check if we recently sent this email (within last 10 minutes)
+        ten_minutes_ago = DateTime.utc_now() |> DateTime.add(-600, :second)
+        
+        recent_sent = Message
+                      |> where([m], m.mailbox_id == ^sender_mailbox.id)
+                      |> where([m], m.status == "sent")
+                      |> where([m], m.to == ^to or m.to == ^to_clean or ilike(m.to, ^("%#{to_clean}%")))
+                      |> where([m], m.subject == ^subject)
+                      |> where([m], m.inserted_at > ^ten_minutes_ago)
+                      |> limit(1)
+                      |> Repo.one()
+        
+        if recent_sent do
+          Logger.info("Found recently sent email matching this inbound email: #{inspect(recent_sent.id)}")
+          Logger.info("Sent email - To: #{recent_sent.to}, Subject: #{recent_sent.subject}")
+          true
+        else
+          # Log why we didn't find a match
+          recent_count = Message
+                         |> where([m], m.mailbox_id == ^sender_mailbox.id)
+                         |> where([m], m.status == "sent")
+                         |> where([m], m.inserted_at > ^ten_minutes_ago)
+                         |> select([m], %{id: m.id, to: m.to, subject: m.subject})
+                         |> limit(5)
+                         |> Repo.all()
+          
+          Logger.info("No loopback match found. Recent sent emails: #{inspect(recent_count)}")
+          false
+        end
+        
+      true ->
+        Logger.info("Loopback check skipped - missing mailboxes")
+        false
     end
   end
 

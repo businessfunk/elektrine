@@ -86,13 +86,21 @@ config :phoenix_live_view,
 config :swoosh, :api_client, false
 
 # Override mailer configuration to use local file adapter in development
-config :elektrine, Elektrine.Mailer,
-  adapter: Swoosh.Adapters.Local,
-  # We'll create this directory to store emails
-  file_path: "tmp/emails",
-  # Enable local preview in browser with
-  # http://localhost:4000/dev/mailbox
-  serve_endpoints: true
+# To use local file adapter instead of Postal API, set USE_LOCAL_EMAIL=true
+if System.get_env("USE_LOCAL_EMAIL") == "true" do
+  # Use local file adapter for testing
+  IO.puts("Using local file adapter for emails")
+  config :elektrine, Elektrine.Mailer,
+    adapter: Swoosh.Adapters.Local,
+    # We'll create this directory to store emails
+    file_path: "tmp/emails",
+    # Enable local preview in browser with
+    # http://localhost:4000/dev/mailbox
+    serve_endpoints: true
+else
+  # Use Postal API configuration from config.exs
+  IO.puts("Using Postal API for emails")
+end
 
 # Override uploads configuration to use local storage in development
 config :elektrine, :uploads,

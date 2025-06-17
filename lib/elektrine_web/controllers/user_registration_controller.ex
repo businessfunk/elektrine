@@ -37,12 +37,39 @@ defmodule ElektrineWeb.UserRegistrationController do
   end
 
   def create(conn, %{"user" => user_params}) do
-    changeset = 
-      %User{}
-      |> Accounts.change_user_registration(user_params)
-      |> Ecto.Changeset.add_error(:captcha, "Please complete the captcha verification")
-    
-    render(conn, :new, changeset: changeset)
+    # In development, if hCaptcha secret key is not configured, bypass verification
+    case Mix.env() do
+      :dev ->
+        config = Application.get_env(:elektrine, :hcaptcha)
+        secret_key = Keyword.get(config, :secret_key)
+        
+        if is_nil(secret_key) do
+          case Accounts.create_user(user_params) do
+            {:ok, user} ->
+              conn
+              |> put_flash(:info, "User created successfully.")
+              |> UserAuth.log_in_user(user)
+
+            {:error, %Ecto.Changeset{} = changeset} ->
+              render(conn, :new, changeset: changeset)
+          end
+        else
+          changeset = 
+            %User{}
+            |> Accounts.change_user_registration(user_params)
+            |> Ecto.Changeset.add_error(:captcha, "Please complete the captcha verification")
+          
+          render(conn, :new, changeset: changeset)
+        end
+        
+      _ ->
+        changeset = 
+          %User{}
+          |> Accounts.change_user_registration(user_params)
+          |> Ecto.Changeset.add_error(:captcha, "Please complete the captcha verification")
+        
+        render(conn, :new, changeset: changeset)
+    end
   end
 
   defp get_remote_ip(conn) do

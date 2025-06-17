@@ -22,11 +22,15 @@ defmodule Elektrine.HCaptcha do
     secret_key = Keyword.get(config, :secret_key)
     verify_url = Keyword.get(config, :verify_url)
 
-    case secret_key do
-      nil ->
+    case {secret_key, Mix.env()} do
+      {nil, :dev} ->
+        # In development, bypass verification if secret key is not set
+        {:ok, :verified}
+        
+      {nil, _} ->
         {:error, :missing_secret_key}
 
-      _ ->
+      {_, _} ->
         body = build_verification_body(secret_key, token, remote_ip)
         
         case HTTPoison.post(verify_url, body, [{"Content-Type", "application/x-www-form-urlencoded"}]) do

@@ -664,4 +664,75 @@ defmodule ElektrineWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  @doc """
+  Processes email HTML content, handling various encodings and cleaning up display issues.
+  """
+  def process_email_html(html_content) when is_binary(html_content) do
+    html_content
+    |> decode_if_base64()
+    |> String.trim()
+  end
+
+  def process_email_html(nil), do: nil
+
+  @doc """
+  Decodes email subject that may be RFC 2047 encoded.
+  """
+  def decode_email_subject(subject) when is_binary(subject) do
+    # Pattern: =?charset?encoding?encoded-text?=
+    subject
+    |> String.replace(~r/=\?([^?]+)\?([QqBb])\?([^?]*)\?=/, fn match ->
+      case Regex.run(~r/=\?([^?]+)\?([QqBb])\?([^?]*)\?=/, match) do
+        [_, _charset, encoding, encoded_text] ->
+          case String.upcase(encoding) do
+            "Q" -> decode_quoted_printable_simple(encoded_text |> String.replace("_", " "))
+            "B" -> 
+              case Base.decode64(encoded_text) do
+                {:ok, decoded} -> decoded
+                :error -> match
+              end
+            _ -> match
+          end
+        _ -> match
+      end
+    end)
+    |> String.trim()
+  end
+
+  def decode_email_subject(subject), do: subject
+
+  # Simple quoted-printable decoding for subjects
+  defp decode_quoted_printable_simple(content) when is_binary(content) do
+    content
+    |> String.replace(~r/=\r?\n/, "")  # Remove soft line breaks
+    |> String.replace(~r/=([0-9A-Fa-f]{2})/, fn match ->
+      hex = String.slice(match, 1, 2)
+      case Integer.parse(hex, 16) do
+        {value, ""} -> <<value>>
+        _ -> match
+      end
+    end)
+  end
+
+  # Try to decode content if it appears to be base64
+  defp decode_if_base64(content) when is_binary(content) do
+    # Check if content looks like base64 (only contains base64 chars and is reasonably long)
+    if String.match?(content, ~r/^[A-Za-z0-9+\/=\s]+$/) and String.length(content) > 100 and rem(String.length(String.replace(content, ~r/\s/, "")), 4) == 0 do
+      case Base.decode64(String.replace(content, ~r/\s/, "")) do
+        {:ok, decoded} -> 
+          # Check if decoded content looks like HTML
+          if String.contains?(decoded, "<") and String.contains?(decoded, ">") do
+            decoded
+          else
+            content
+          end
+        :error -> content
+      end
+    else
+      content
+    end
+  end
+
+  defp decode_if_base64(content), do: content
 end

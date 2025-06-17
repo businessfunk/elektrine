@@ -41,7 +41,7 @@
       <div class="bg-white rounded-lg shadow">
         <div class="p-4 border-b border-gray-200 flex justify-between items-center">
           <div class="flex-1">
-            <h1 class="text-xl font-semibold"><%= @message.subject %></h1>
+            <h1 class="text-xl font-semibold"><%= decode_email_subject(@message.subject) %></h1>
             <p class="text-sm text-gray-500">
               <%= format_date(@message.inserted_at) %>
             </p>
@@ -72,7 +72,7 @@
         <div class="p-4">
           <%= if @message.html_body do %>
             <div class="prose prose-sm max-w-none">
-              <%= raw @message.html_body %>
+              <%= Phoenix.HTML.raw(HtmlSanitizeEx.basic_html(process_email_html(@message.html_body))) %>
             </div>
           <% else %>
             <div class="whitespace-pre-wrap">

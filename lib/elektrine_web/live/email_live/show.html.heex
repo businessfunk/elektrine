@@ -3,7 +3,7 @@
     <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="view" current_user={@current_user} />
 
     <!-- Main content -->
-    <div class="flex-1">
+    <div class="flex-1 min-w-0 overflow-hidden">
       <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
         <div class="card-body p-6">
           <!-- Header -->
@@ -14,7 +14,7 @@
                   <.icon name="hero-envelope-open" class="h-6 w-6 text-primary" />
                 </div>
                 <div class="flex-1">
-                  <h2 class="text-2xl font-bold break-words"><%= @message.subject %></h2>
+                  <h2 class="text-2xl font-bold break-words"><%= decode_email_subject(@message.subject) %></h2>
                   <p class="text-sm text-base-content/70 font-mono"><%= format_date(@message.inserted_at) %></p>
                 </div>
               </div>
@@ -71,13 +71,13 @@
           </div>
           
           <!-- Message content -->
-          <div class="bg-base-50 rounded-lg p-6 border border-base-300 min-h-[20rem]">
+          <div class="bg-base-50 rounded-lg p-6 border border-base-300 min-h-[20rem] overflow-auto">
             <%= if @message.html_body do %>
-              <div class="prose prose-sm max-w-none">
-                <%= Phoenix.HTML.raw(@message.html_body) %>
+              <div class="prose prose-sm max-w-none break-words email-content-container">
+                <%= Phoenix.HTML.raw(HtmlSanitizeEx.basic_html(process_email_html(@message.html_body))) %>
               </div>
             <% else %>
-              <div class="whitespace-pre-wrap text-sm leading-relaxed">
+              <div class="whitespace-pre-wrap text-sm leading-relaxed break-words overflow-x-auto">
                 <%= @message.text_body %>
               </div>
             <% end %>

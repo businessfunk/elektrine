@@ -93,7 +93,7 @@
                                   <p class="font-semibold text-sm truncate"><%= message.from %></p>
                                   <span class="text-xs text-base-content/60 font-mono ml-2"><%= format_date(message.inserted_at) %></span>
                                 </div>
-                                <h3 class="font-bold text-base truncate mt-1"><%= message.subject %></h3>
+                                <h3 class="font-bold text-base truncate mt-1"><%= decode_email_subject(message.subject) %></h3>
                               </div>
                             </div>
                             <p class="text-sm text-base-content/70 line-clamp-2"><%= truncate(message.text_body, 150) %></p>
@@ -120,7 +120,7 @@
                   </div>
                   <div>
                     <h2 class="text-2xl font-bold">Message</h2>
-                    <p class="text-sm text-base-content/70"><%= @current_message.subject %></p>
+                    <p class="text-sm text-base-content/70"><%= decode_email_subject(@current_message.subject) %></p>
                   </div>
                 </div>
                 <.link href={~p"/email/temp/#{@current_temp_mailbox.token}"} class="btn btn-ghost btn-sm">
@@ -142,7 +142,7 @@
                     <span class="font-semibold">Date:</span> <%= format_date(@current_message.inserted_at) %>
                   </div>
                   <div>
-                    <span class="font-semibold">Subject:</span> <%= @current_message.subject %>
+                    <span class="font-semibold">Subject:</span> <%= decode_email_subject(@current_message.subject) %>
                   </div>
                 </div>
               </div>
@@ -150,7 +150,7 @@
               <!-- Message Content -->
               <div class="prose prose-sm max-w-none bg-white p-6 rounded-lg border">
                 <%= if @current_message.html_body do %>
-                  <%= raw(@current_message.html_body) %>
+                  <%= Phoenix.HTML.raw(HtmlSanitizeEx.basic_html(process_email_html(@current_message.html_body))) %>
                 <% else %>
                   <pre class="whitespace-pre-wrap font-sans"><%= @current_message.text_body %></pre>
                 <% end %>

@@ -25,7 +25,7 @@
 
     <div class="p-6">
       <div class="bg-base-200 p-4 rounded-lg mb-6">
-        <h2 class="text-xl font-bold mb-2"><%= @message.subject || "(No Subject)" %></h2>
+        <h2 class="text-xl font-bold mb-2"><%= decode_email_subject(@message.subject || "(No Subject)") %></h2>
         <div class="flex flex-col md:flex-row justify-between">
           <div>
             <p class="text-sm"><strong>From:</strong> <%= @message.from %></p>
@@ -57,7 +57,7 @@
             // Set HTML content safely using srcdoc
             document.addEventListener('DOMContentLoaded', function() {
               const frame = document.getElementById('message-frame');
-              const content = `<%= raw String.replace(@message.html_body || "", "\"", "\\\"") %>`;
+              const content = `<%= Phoenix.HTML.raw(String.replace(HtmlSanitizeEx.basic_html(process_email_html(@message.html_body) || ""), "\"", "\\\"")) %>`;
               frame.srcdoc = content;
             });
             

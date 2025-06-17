@@ -29,7 +29,7 @@
 
     <div class="p-6">
       <div class="bg-base-200 p-4 rounded-lg mb-6">
-        <h2 class="text-xl font-bold mb-2"><%= @message.subject || "(No Subject)" %></h2>
+        <h2 class="text-xl font-bold mb-2"><%= decode_email_subject(@message.subject || "(No Subject)") %></h2>
         <div class="flex flex-col md:flex-row justify-between">
           <div>
             <p class="text-sm"><strong>From:</strong> <%= @message.from %></p>
@@ -50,7 +50,7 @@
           </div>
           
           <div id="html-content" class={"border p-4 rounded-lg bg-white #{if @active_tab != "html", do: "hidden"}"}>
-            <iframe id="message-frame" sandbox="allow-same-origin" class="w-full min-h-[500px]" srcdoc={raw(@message.html_body || "")}></iframe>
+            <iframe id="message-frame" sandbox="allow-same-origin" class="w-full min-h-[500px]" srcdoc={Phoenix.HTML.raw(HtmlSanitizeEx.basic_html(process_email_html(@message.html_body) || ""))}></iframe>
           </div>
           
           <div id="plain-content" class={"border p-4 rounded-lg whitespace-pre-wrap font-mono text-sm #{if @active_tab != "plain", do: "hidden"}"}>

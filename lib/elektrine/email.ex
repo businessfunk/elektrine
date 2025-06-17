@@ -123,6 +123,7 @@ defmodule Elektrine.Email do
   def list_inbox_messages(mailbox_id, limit \\ 50, offset \\ 0) do
     Message
     |> where(mailbox_id: ^mailbox_id, spam: false, archived: false)
+    |> where([m], m.status != "sent" or is_nil(m.status))
     |> order_by(desc: :inserted_at)
     |> limit(^limit)
     |> offset(^offset)
@@ -196,6 +197,7 @@ defmodule Elektrine.Email do
     total_count = 
       Message
       |> where(mailbox_id: ^mailbox_id, spam: false, archived: false)
+      |> where([m], m.status != "sent" or is_nil(m.status))
       |> Repo.aggregate(:count)
     
     # Get messages for current page

@@ -4,6 +4,8 @@ defmodule ElektrineWeb.EmailLive.Compose do
 
   alias Elektrine.Email
   alias Elektrine.Email.Sender
+  
+  require Logger
 
   @impl true
   def mount(params, _session, socket) do
@@ -172,8 +174,16 @@ defmodule ElektrineWeb.EmailLive.Compose do
         # Format the quoted reply body
         quoted_body = format_quoted_reply(message)
         
+        # For sent messages, reply to the recipient (to field)
+        # For received messages, reply to the sender (from field)
+        reply_to = if message.status == "sent" do
+          extract_clean_email(message.to)
+        else
+          extract_clean_email(message.from)
+        end
+        
         %{
-          "to" => message.from,
+          "to" => reply_to,
           "cc" => "",
           "bcc" => "",
           "subject" => subject,
@@ -210,10 +220,17 @@ defmodule ElektrineWeb.EmailLive.Compose do
   defp format_quoted_reply(message) do
     date_str = format_date_for_quote(message.inserted_at)
     
+    # For sent messages, show "you wrote" instead of the from address
+    sender_text = if message.status == "sent" do
+      "you"
+    else
+      message.from
+    end
+    
     """
     
     
-    On #{date_str}, #{message.from} wrote:
+    On #{date_str}, #{sender_text} wrote:
     #{quote_message_body(message.text_body)}
     """
   end
@@ -289,6 +306,36 @@ defmodule ElektrineWeb.EmailLive.Compose do
     |> String.replace(~r/^> (.*)$/m, "<blockquote>\\1</blockquote>")
     # Line breaks
     |> String.replace("\n", "<br>")
+  end
+
+  # Extract clean email address from strings like "Display Name <email@domain.com>"
+  defp extract_clean_email(nil), do: nil
+  defp extract_clean_email(email) when is_binary(email) do
+    # Handle multiple recipients by taking only the first one
+    first_email = email
+                  |> String.split(",")
+                  |> List.first()
+                  |> String.trim()
+    
+    cond do
+      # Handle "Display Name <email@domain.com>" format
+      Regex.match?(~r/<([^@>]+@[^>]+)>/, first_email) ->
+        [_, clean] = Regex.run(~r/<([^@>]+@[^>]+)>/, first_email)
+        String.trim(clean)
+
+      # Handle plain email addresses that might have whitespace
+      Regex.match?(~r/([^\s<>]+@[^\s<>]+)/, first_email) ->
+        [_, clean] = Regex.run(~r/([^\s<>]+@[^\s<>]+)/, first_email)
+        String.trim(clean)
+
+      # Return as-is if it looks like a plain email
+      Regex.match?(~r/^[^\s]+@[^\s]+$/, first_email) ->
+        String.trim(first_email)
+
+      true -> 
+        # Fallback: return original if no patterns match
+        String.trim(first_email)
+    end
   end
 
   @impl true

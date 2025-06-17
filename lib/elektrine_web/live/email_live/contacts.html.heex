@@ -3,7 +3,7 @@
     <.sidebar mailbox={@mailbox} unread_count={0} current_page="contacts" current_user={@current_user} />
 
     <!-- Main content -->
-    <div class="flex-1">
+    <div class="flex-1 min-w-0 overflow-hidden">
       <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
         <div class="card-body p-6">
           <!-- Header -->
@@ -54,8 +54,8 @@
                             </span>
                           </div>
                         </div>
-                        <div class="flex-1 min-w-0">
-                          <h3 class="font-semibold text-base truncate"><%= contact.email_address %></h3>
+                        <div class="flex-1 min-w-0 overflow-hidden">
+                          <h3 class="font-semibold text-base truncate break-all"><%= contact.email_address %></h3>
                           <div class="flex items-center space-x-4 text-xs text-base-content/60 mt-1">
                             <span>Added <%= format_date(contact.approved_at) %></span>
                             <%= if contact.email_count > 0 do %>
@@ -154,8 +154,8 @@
                               </span>
                             </div>
                           </div>
-                          <div class="flex-1 min-w-0">
-                            <h4 class="font-semibold text-base truncate"><%= blocked.email_address %></h4>
+                          <div class="flex-1 min-w-0 overflow-hidden">
+                            <h4 class="font-semibold text-base truncate break-all"><%= blocked.email_address %></h4>
                             <div class="flex items-center space-x-4 text-xs text-base-content/60 mt-1">
                               <span>Blocked <%= format_date(blocked.rejected_at) %></span>
                               <span><%= blocked.message_count %> blocked messages</span>

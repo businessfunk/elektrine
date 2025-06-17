@@ -3,7 +3,7 @@
     <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="compose" current_user={@current_user} />
 
     <!-- Main content -->
-    <div class="flex-1">
+    <div class="flex-1 min-w-0 overflow-hidden">
       <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
         <div class="card-body p-6">
           <!-- Header -->
@@ -30,9 +30,9 @@
                 <span class="label-text font-semibold">From</span>
               </label>
               <div class="relative">
-                <div class="input input-bordered bg-base-200/50 flex items-center px-4 py-3 font-mono text-sm">
-                  <.icon name="hero-at-symbol" class="h-5 w-5 mr-3 text-base-content/60" />
-                  <%= @mailbox.email %>
+                <div class="input input-bordered bg-base-200/50 flex items-center px-4 py-3 font-mono text-sm overflow-hidden">
+                  <.icon name="hero-at-symbol" class="h-5 w-5 mr-3 text-base-content/60 flex-shrink-0" />
+                  <span class="truncate"><%= @mailbox.email %></span>
                 </div>
               </div>
             </div>
@@ -156,8 +156,8 @@
                                     phx-hook="ReplyMarkdownEditor"></textarea>
                           
                           <!-- Preview Panel for Reply -->
-                          <div id="reply-preview-panel" class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-y-auto">
-                            <div class="prose prose-sm max-w-none" id="reply-preview-content">
+                          <div id="reply-preview-panel" class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-auto">
+                            <div class="prose prose-sm max-w-full overflow-x-auto" id="reply-preview-content">
                               <!-- Preview content will be inserted here -->
                             </div>
                           </div>
@@ -189,7 +189,7 @@
                       <.icon name="hero-document-text" class="h-4 w-4" />
                       <%= if @mode == "reply", do: "Original message:", else: "Forwarded message:" %>
                     </div>
-                    <div class="textarea textarea-bordered bg-base-200/50 h-32 overflow-y-auto text-sm text-base-content/70 resize-none">
+                    <div class="textarea textarea-bordered bg-base-200/50 h-32 overflow-auto text-sm text-base-content/70 resize-none break-words">
                       <%= @form[:body].value %>
                     </div>
                   </div>
@@ -240,8 +240,8 @@
                                 phx-hook="MarkdownEditor" required><%= @form[:body].value %></textarea>
                       
                       <!-- Preview Panel (hidden by default) -->
-                      <div id="preview-panel" class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-y-auto">
-                        <div class="prose prose-sm max-w-none" id="preview-content">
+                      <div id="preview-panel" class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-auto">
+                        <div class="prose prose-sm max-w-full overflow-x-auto" id="preview-content">
                           <!-- Preview content will be inserted here -->
                         </div>
                       </div>

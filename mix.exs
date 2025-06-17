@@ -68,7 +68,8 @@ defmodule Elektrine.MixProject do
       {:ex_aws, "~> 2.1"},    # AWS SDK for Elixir
       {:ex_aws_s3, "~> 2.0"}, # S3 support for ExAws
       {:sweet_xml, "~> 0.6"},  # XML parsing for AWS responses
-      {:httpoison, "~> 2.0"}   # HTTP client for hCaptcha verification
+      {:httpoison, "~> 2.0"},   # HTTP client for hCaptcha verification
+      {:html_sanitize_ex, "~> 1.4"}  # HTML sanitization for email content
     ]
   end
 

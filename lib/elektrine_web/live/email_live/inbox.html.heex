@@ -3,7 +3,7 @@
     <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="inbox" current_user={@current_user} />
 
     <!-- Main content -->
-    <div class="flex-1">
+    <div class="flex-1 min-w-0 overflow-hidden">
       <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
         <div class="card-body p-6">
           <!-- Header -->
@@ -104,22 +104,22 @@
                   <div class={"card transition-all duration-200 #{get_message_card_class(message, @current_filter)} hover:shadow-xl hover:scale-[1.02] hover:border-primary/30 hover:bg-primary/5 border border-base-300 cursor-pointer"} id={id}>
                     <div class="card-body p-4">
                       <div class="flex items-start justify-between">
-                        <.link navigate={~p"/email/view/#{message.id}"} class="flex-1 min-w-0 cursor-pointer">
+                        <.link navigate={~p"/email/view/#{message.id}"} class="flex-1 min-w-0 overflow-hidden cursor-pointer">
                           <div class="flex items-center space-x-3 mb-2">
                             <div class="avatar placeholder">
                               <div class="bg-primary/20 text-primary rounded-full w-8 h-8">
                                 <span class="text-xs font-bold"><%= String.first(message.from) |> String.upcase() %></span>
                               </div>
                             </div>
-                            <div class="flex-1 min-w-0">
+                            <div class="flex-1 min-w-0 overflow-hidden">
                               <div class="flex items-center justify-between">
-                                <p class="font-semibold text-sm truncate"><%= message.from %></p>
+                                <p class="font-semibold text-sm truncate break-all"><%= message.from %></p>
                                 <span class="text-xs text-base-content/60 font-mono ml-2"><%= format_date(message.inserted_at) %></span>
                               </div>
-                              <h3 class="font-bold text-base truncate mt-1"><%= message.subject %></h3>
+                              <h3 class="font-bold text-base truncate break-all mt-1"><%= message.subject %></h3>
                             </div>
                           </div>
-                          <p class="text-sm text-base-content/70 line-clamp-2"><%= truncate(message.text_body, 150) %></p>
+                          <p class="text-sm text-base-content/70 line-clamp-2 break-words"><%= truncate(message.text_body, 150) %></p>
                         </.link>
                         
                         <div class="flex items-center space-x-2 ml-4 flex-shrink-0">

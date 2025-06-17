@@ -537,4 +537,46 @@
   transform: translateY(-50%) translateX(1.5rem);
 }
 
+/* Email content overflow handling */
+.prose table {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+.prose pre {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.prose code {
+  word-wrap: break-word;
+}
+
+/* Force all email content to respect container width */
+.prose > * {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Ensure email content container has proper overflow */
+.email-content-container {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Fix for wide tables in emails */
+.prose table td,
+.prose table th {
+  min-width: auto;
+  white-space: normal;
+}
+
 

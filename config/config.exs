@@ -16,7 +16,7 @@ config :elektrine, :email,
   domain: System.get_env("EMAIL_DOMAIN") || "elektrine.com",
   # Supported domains for multi-domain access
   supported_domains: [
-    "elektrine.com", 
+    "elektrine.com",
     "z.org"
   ]
 
@@ -33,18 +33,9 @@ config :elektrine, ElektrineWeb.Endpoint,
 
 # Configures the mailer
 #
-# Use SMTP adapter for sending emails through Postal
+# Use SMTP adapter as a placeholder - we'll override in runtime
 config :elektrine, Elektrine.Mailer,
-  adapter: Swoosh.Adapters.SMTP,
-  relay: System.get_env("POSTAL_SMTP_HOST") || "localhost",
-  port: String.to_integer(System.get_env("POSTAL_SMTP_PORT") || "2525"),
-  username: System.get_env("POSTAL_SMTP_USERNAME") || "postal",
-  password: System.get_env("POSTAL_SMTP_PASSWORD") || "password",
-  ssl: false,
-  tls: :always,
-  auth: :always,
-  retries: 2,
-  no_mx_lookups: true
+  adapter: Swoosh.Adapters.Local
 
 # Configure esbuild (the version is required)
 config :esbuild,
@@ -75,6 +66,9 @@ config :logger, :console,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+# Configure Swoosh API client
+config :swoosh, :api_client, Swoosh.ApiClient.Hackney
 
 # Quantum scheduler configuration
 config :elektrine, Elektrine.Scheduler,
