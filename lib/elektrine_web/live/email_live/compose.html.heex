@@ -189,6 +189,7 @@
                       <.icon name="hero-document-text" class="h-4 w-4" />
                       <%= if @mode == "reply", do: "Original message:", else: "Forwarded message:" %>
                     </div>
+                    <!-- Always show plain text preview since body field contains plain text -->
                     <div class="textarea textarea-bordered bg-base-200/50 h-32 overflow-auto text-sm text-base-content/70 resize-none break-words">
                       <%= @form[:body].value %>
                     </div>
