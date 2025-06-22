@@ -18,17 +18,23 @@ defmodule Elektrine.HCaptcha do
   
   """
   def verify(token, remote_ip \\ nil) do
+    require Logger
+    
     config = Application.get_env(:elektrine, :hcaptcha)
     secret_key = Keyword.get(config, :secret_key)
     verify_url = Keyword.get(config, :verify_url)
     skip_in_dev = Keyword.get(config, :skip_in_dev, false)
 
+    Logger.debug("hCaptcha verification - secret_key present: #{!is_nil(secret_key)}, token length: #{String.length(token || "")}")
+
     cond do
       # Allow skipping in development if configured
       skip_in_dev and is_nil(secret_key) ->
+        Logger.debug("hCaptcha verification skipped in dev")
         {:ok, :verified}
         
       is_nil(secret_key) ->
+        Logger.error("hCaptcha secret key not configured")
         {:error, :missing_secret_key}
 
       true ->
@@ -36,12 +42,15 @@ defmodule Elektrine.HCaptcha do
         
         case HTTPoison.post(verify_url, body, [{"Content-Type", "application/x-www-form-urlencoded"}]) do
           {:ok, %HTTPoison.Response{status_code: 200, body: response_body}} ->
+            Logger.debug("hCaptcha API response: #{response_body}")
             handle_response(response_body)
 
           {:ok, %HTTPoison.Response{status_code: status_code}} ->
+            Logger.error("hCaptcha API HTTP error: #{status_code}")
             {:error, {:http_error, status_code}}
 
           {:error, %HTTPoison.Error{reason: reason}} ->
+            Logger.error("hCaptcha API network error: #{inspect(reason)}")
             {:error, {:network_error, reason}}
         end
     end
