@@ -13,8 +13,11 @@ defmodule ElektrineWeb.UserRegistrationController do
 
   def create(conn, %{"user" => user_params, "h-captcha-response" => captcha_token}) do
     remote_ip = get_remote_ip(conn)
+    require Logger
+    Logger.debug("Using remote IP for hCaptcha: #{inspect(remote_ip)}")
     
-    case HCaptcha.verify(captcha_token, remote_ip) do
+    # Try without IP first, as remoteip is optional for hCaptcha
+    case HCaptcha.verify(captcha_token, nil) do
       {:ok, :verified} ->
         case Accounts.create_user(user_params) do
           {:ok, user} ->
@@ -52,8 +55,18 @@ defmodule ElektrineWeb.UserRegistrationController do
 
   defp get_remote_ip(conn) do
     case Plug.Conn.get_req_header(conn, "x-forwarded-for") do
-      [ip | _] -> ip
-      [] -> to_string(:inet.ntoa(conn.remote_ip))
+      [forwarded_ips | _] ->
+        # X-Forwarded-For can contain multiple IPs, take the first one
+        forwarded_ips
+        |> String.split(",")
+        |> List.first()
+        |> String.trim()
+      
+      [] ->
+        # Convert tuple IP to string format
+        conn.remote_ip
+        |> :inet.ntoa()
+        |> to_string()
     end
   end
 end
