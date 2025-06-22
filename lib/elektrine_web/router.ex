@@ -83,6 +83,7 @@ defmodule ElektrineWeb.Router do
     post "/mailboxes", MailboxController, :create
     delete "/mailboxes/:id", MailboxController, :delete
     put "/mailboxes/:id/primary", MailboxController, :set_primary
+
   end
 
   # Admin routes - require admin privileges

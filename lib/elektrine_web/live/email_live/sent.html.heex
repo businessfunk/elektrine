@@ -58,7 +58,7 @@
                             <h3 class="font-bold text-base truncate mt-1"><%= message.subject %></h3>
                           </div>
                         </div>
-                        <p class="text-sm text-base-content/70 line-clamp-2"><%= truncate(message.text_body, 150) %></p>
+                        <p class="text-sm text-base-content/70 line-clamp-2"><%= email_preview(message, 150) %></p>
                       </.link>
                       
                       <div class="flex items-center space-x-2 ml-4 flex-shrink-0">

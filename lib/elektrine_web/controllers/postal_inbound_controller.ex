@@ -413,25 +413,48 @@ defmodule ElektrineWeb.PostalInboundController do
     clean_email = extract_clean_email(to) || extract_clean_email(rcpt_to)
 
     if clean_email do
-      # Try to find existing mailbox (including temporary mailboxes)
-      case _find_existing_mailbox(to, rcpt_to) do
-        {:ok, mailbox} ->
-          # Found existing mailbox
-          Logger.info("Found existing mailbox for email: #{clean_email} (id: #{mailbox.id})")
-          {:ok, mailbox}
+      # First check if this email is an alias
+      case Elektrine.Email.resolve_alias(clean_email) do
+        target_email when is_binary(target_email) ->
+          Logger.info("Email #{clean_email} is an alias, forwarding to #{target_email}")
+          # Forward the email to the target address
+          forward_email_to_alias(clean_email, target_email, to, rcpt_to)
+        
+        :no_forward ->
+          Logger.info("Email #{clean_email} is an alias without forwarding, delivering to main mailbox")
+          # Alias exists but no forwarding, find the user's main mailbox
+          find_main_mailbox_for_alias(clean_email)
         
         nil ->
-          # Try to find or create user
-          case find_or_create_user_for_email(clean_email) do
-            {:ok, user} ->
-              # Create mailbox for user
-              Logger.info("Creating mailbox for email: #{clean_email} (user_id: #{user.id})")
-              Elektrine.Email.create_mailbox(user)
+          # Not an alias, proceed with normal mailbox lookup
+          # Try to find existing mailbox (including temporary mailboxes)
+          case _find_existing_mailbox(to, rcpt_to) do
+            {:ok, mailbox} ->
+              # Found existing mailbox, check if it has forwarding enabled
+              case Elektrine.Email.get_mailbox_forward_target(mailbox) do
+                target_email when is_binary(target_email) ->
+                  Logger.info("Mailbox #{clean_email} has forwarding enabled, forwarding to #{target_email}")
+                  forward_email_to_alias(clean_email, target_email, to, rcpt_to)
+                
+                nil ->
+                  # No forwarding, use the mailbox normally
+                  Logger.info("Found existing mailbox for email: #{clean_email} (id: #{mailbox.id})")
+                  {:ok, mailbox}
+              end
+            
+            nil ->
+              # Try to find or create user
+              case find_or_create_user_for_email(clean_email) do
+                {:ok, user} ->
+                  # Create mailbox for user
+                  Logger.info("Creating mailbox for email: #{clean_email} (user_id: #{user.id})")
+                  Elektrine.Email.create_mailbox(user)
 
-            {:error, reason} ->
-              # Create "orphaned" mailbox without user
-              Logger.info("Creating orphaned mailbox for email: #{clean_email}: #{inspect(reason)}")
-              create_orphaned_mailbox(clean_email)
+                {:error, reason} ->
+                  # Create "orphaned" mailbox without user
+                  Logger.info("Creating orphaned mailbox for email: #{clean_email}: #{inspect(reason)}")
+                  create_orphaned_mailbox(clean_email)
+              end
           end
       end
     else
@@ -726,6 +749,69 @@ defmodule ElektrineWeb.PostalInboundController do
         Logger.warning("Unauthorized postal inbound access attempt from IP: #{incoming_ip}")
         {:error, :unauthorized}
       end
+    end
+  end
+
+  # Forward email to alias target address
+  defp forward_email_to_alias(alias_email, target_email, original_to, original_rcpt_to) do
+    Logger.info("Forwarding email from alias #{alias_email} to #{target_email}")
+    
+    # Check if the target email is internal (within our domains)
+    if is_internal_email?(target_email) do
+      # Internal forwarding - find or create mailbox for target
+      case _find_existing_mailbox(target_email, target_email) do
+        {:ok, mailbox} ->
+          Logger.info("Found internal mailbox for forwarding target: #{target_email}")
+          {:ok, mailbox}
+        
+        nil ->
+          # Try to find or create user for target email
+          case find_or_create_user_for_email(target_email) do
+            {:ok, user} ->
+              Logger.info("Creating internal mailbox for forwarding target: #{target_email}")
+              Elektrine.Email.create_mailbox(user)
+            
+            {:error, reason} ->
+              Logger.info("Creating orphaned mailbox for forwarding target: #{target_email}")
+              create_orphaned_mailbox(target_email)
+          end
+      end
+    else
+      # External forwarding - use Postal to forward the email
+      Logger.info("External forwarding not yet implemented for #{target_email}")
+      {:error, :external_forwarding_not_implemented}
+    end
+  end
+
+  # Check if an email address belongs to our internal domains
+  defp is_internal_email?(email) do
+    email = String.downcase(email)
+    String.contains?(email, "@elektrine.com") || String.contains?(email, "@z.org")
+  end
+
+  # Find the main mailbox for an alias that doesn't have forwarding
+  defp find_main_mailbox_for_alias(alias_email) do
+    alias Elektrine.Email
+    alias Elektrine.Repo
+    import Ecto.Query
+
+    # Get the alias to find the user
+    case Email.get_alias_by_email(alias_email) do
+      %Email.Alias{user_id: user_id} when is_integer(user_id) ->
+        # Find the user's main mailbox
+        case Email.get_user_mailbox(user_id) do
+          %Email.Mailbox{} = mailbox ->
+            Logger.info("Found main mailbox for alias #{alias_email} (user_id: #{user_id}, mailbox_id: #{mailbox.id})")
+            {:ok, mailbox}
+          
+          nil ->
+            Logger.warning("No main mailbox found for user #{user_id} (alias: #{alias_email})")
+            {:error, :no_main_mailbox}
+        end
+      
+      nil ->
+        Logger.warning("Alias #{alias_email} not found when looking for main mailbox")
+        {:error, :alias_not_found}
     end
   end
 end

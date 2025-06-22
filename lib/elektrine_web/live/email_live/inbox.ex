@@ -12,9 +12,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     
     # Get filter and page from params
     filter = params["filter"] || "inbox"
-    page = String.to_integer(params["page"] || "1")
-    pagination = get_filtered_messages(mailbox.id, filter, page, 20)
-
+    
     # Subscribe to the PubSub topic only when the socket is connected
     if connected?(socket) do
       require Logger
@@ -25,39 +23,81 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     end
 
     socket =
-      socket
-      |> stream_configure(:messages, dom_id: &"message-#{&1.id}")
-      |> stream(:messages, pagination.messages)
-      |> assign(:page_title, get_page_title(filter))
-      |> assign(:mailbox, mailbox)
-      |> assign(:messages, pagination.messages)
-      |> assign(:pagination, pagination)
-      |> assign(:current_filter, filter)
-      |> assign(:unread_count, Email.unread_count(mailbox.id))
-      |> assign(:new_contacts_count, get_new_contacts_count(mailbox.id))
-      |> assign(:bulk_mail_count, get_bulk_mail_count(mailbox.id))
-      |> assign(:show_reply_later_modal, false)
-      |> assign(:reply_later_message, nil)
+      if filter == "aliases" do
+        # For aliases tab, load aliases instead of messages
+        aliases = Email.list_aliases(user.id)
+        alias_changeset = Email.change_alias(%Email.Alias{})
+        mailbox_changeset = Email.change_mailbox_forwarding(mailbox)
+        
+        socket
+        |> assign(:page_title, "Email Aliases")
+        |> assign(:mailbox, mailbox)
+        |> assign(:aliases, aliases)
+        |> assign(:alias_form, to_form(alias_changeset))
+        |> assign(:mailbox_form, to_form(mailbox_changeset))
+        |> assign(:current_filter, filter)
+        |> assign(:unread_count, Email.unread_count(mailbox.id))
+        |> assign(:new_contacts_count, get_new_contacts_count(mailbox.id))
+        |> assign(:bulk_mail_count, get_bulk_mail_count(mailbox.id))
+        |> assign(:show_reply_later_modal, false)
+        |> assign(:reply_later_message, nil)
+      else
+        # For regular email tabs, load messages
+        page = String.to_integer(params["page"] || "1")
+        pagination = get_filtered_messages(mailbox.id, filter, page, 20)
+        
+        socket
+        |> stream_configure(:messages, dom_id: &"message-#{&1.id}")
+        |> stream(:messages, pagination.messages)
+        |> assign(:page_title, get_page_title(filter))
+        |> assign(:mailbox, mailbox)
+        |> assign(:messages, pagination.messages)
+        |> assign(:pagination, pagination)
+        |> assign(:current_filter, filter)
+        |> assign(:unread_count, Email.unread_count(mailbox.id))
+        |> assign(:new_contacts_count, get_new_contacts_count(mailbox.id))
+        |> assign(:bulk_mail_count, get_bulk_mail_count(mailbox.id))
+        |> assign(:show_reply_later_modal, false)
+        |> assign(:reply_later_message, nil)
+      end
 
     {:ok, socket}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
-    page = String.to_integer(params["page"] || "1")
     filter = params["filter"] || "inbox"
-    mailbox = socket.assigns.mailbox
-    pagination = get_filtered_messages(mailbox.id, filter, page, 20)
+    user = socket.assigns.current_user
     
     socket =
-      socket
-      |> assign(:messages, pagination.messages)
-      |> assign(:pagination, pagination)
-      |> assign(:current_filter, filter)
-      |> assign(:page_title, get_page_title(filter))
-      |> assign(:new_contacts_count, get_new_contacts_count(mailbox.id))
-      |> assign(:bulk_mail_count, get_bulk_mail_count(mailbox.id))
-      |> stream(:messages, pagination.messages, reset: true)
+      if filter == "aliases" do
+        # For aliases tab, load aliases instead of messages
+        aliases = Email.list_aliases(user.id)
+        alias_changeset = Email.change_alias(%Email.Alias{})
+        mailbox = Email.get_user_mailbox(user.id)
+        mailbox_changeset = Email.change_mailbox_forwarding(mailbox)
+        
+        socket
+        |> assign(:page_title, "Email Aliases")
+        |> assign(:aliases, aliases)
+        |> assign(:alias_form, to_form(alias_changeset))
+        |> assign(:mailbox_form, to_form(mailbox_changeset))
+        |> assign(:current_filter, filter)
+      else
+        # For regular email tabs, load messages
+        page = String.to_integer(params["page"] || "1")
+        mailbox = socket.assigns.mailbox
+        pagination = get_filtered_messages(mailbox.id, filter, page, 20)
+        
+        socket
+        |> assign(:messages, pagination.messages)
+        |> assign(:pagination, pagination)
+        |> assign(:current_filter, filter)
+        |> assign(:page_title, get_page_title(filter))
+        |> assign(:new_contacts_count, get_new_contacts_count(mailbox.id))
+        |> assign(:bulk_mail_count, get_bulk_mail_count(mailbox.id))
+        |> stream(:messages, pagination.messages, reset: true)
+      end
     
     {:noreply, socket}
   end
@@ -390,6 +430,109 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       {:noreply, put_flash(socket, :error, "Message not found")}
     end
   end
+
+  # Alias management events
+  @impl true
+  def handle_event("create_alias", %{"alias" => alias_params}, socket) do
+    user = socket.assigns.current_user
+    alias_params = Map.put(alias_params, "user_id", user.id)
+
+    case Email.create_alias(alias_params) do
+      {:ok, _alias} ->
+        aliases = Email.list_aliases(user.id)
+        alias_changeset = Email.change_alias(%Email.Alias{})
+
+        {:noreply,
+         socket
+         |> assign(:aliases, aliases)
+         |> assign(:alias_form, to_form(alias_changeset))
+         |> put_flash(:info, "Email alias created successfully")}
+
+      {:error, changeset} ->
+        {:noreply,
+         socket
+         |> assign(:alias_form, to_form(changeset))
+         |> put_flash(:error, "Failed to create alias")}
+    end
+  end
+
+  @impl true
+  def handle_event("toggle_alias", %{"id" => id}, socket) do
+    user = socket.assigns.current_user
+
+    case Email.get_alias(id, user.id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Alias not found")}
+
+      alias ->
+        case Email.update_alias(alias, %{enabled: !alias.enabled}) do
+          {:ok, _alias} ->
+            aliases = Email.list_aliases(user.id)
+            status = if alias.enabled, do: "disabled", else: "enabled"
+
+            {:noreply,
+             socket
+             |> assign(:aliases, aliases)
+             |> put_flash(:info, "Alias #{status} successfully")}
+
+          {:error, _changeset} ->
+            {:noreply, put_flash(socket, :error, "Failed to update alias")}
+        end
+    end
+  end
+
+  @impl true
+  def handle_event("delete_alias", %{"id" => id}, socket) do
+    user = socket.assigns.current_user
+
+    case Email.get_alias(id, user.id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Alias not found")}
+
+      alias ->
+        case Email.delete_alias(alias) do
+          {:ok, _alias} ->
+            aliases = Email.list_aliases(user.id)
+
+            {:noreply,
+             socket
+             |> assign(:aliases, aliases)
+             |> put_flash(:info, "Alias deleted successfully")}
+
+          {:error, _changeset} ->
+            {:noreply, put_flash(socket, :error, "Failed to delete alias")}
+        end
+    end
+  end
+
+  @impl true
+  def handle_event("edit_alias", %{"id" => _id}, socket) do
+    # For now, just show a flash message - could implement inline editing later
+    {:noreply, put_flash(socket, :info, "Edit functionality coming soon")}
+  end
+
+  @impl true
+  def handle_event("update_mailbox_forwarding", %{"mailbox" => mailbox_params}, socket) do
+    user = socket.assigns.current_user
+    mailbox = Email.get_user_mailbox(user.id)
+
+    case Email.update_mailbox_forwarding(mailbox, mailbox_params) do
+      {:ok, updated_mailbox} ->
+        mailbox_changeset = Email.change_mailbox_forwarding(updated_mailbox)
+
+        {:noreply,
+         socket
+         |> assign(:mailbox, updated_mailbox)
+         |> assign(:mailbox_form, to_form(mailbox_changeset))
+         |> put_flash(:info, "Mailbox forwarding updated successfully")}
+
+      {:error, changeset} ->
+        {:noreply,
+         socket
+         |> assign(:mailbox_form, to_form(changeset))
+         |> put_flash(:error, "Failed to update mailbox forwarding")}
+    end
+  end
   
   # Helper functions
   
@@ -411,6 +554,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       "paper_trail" -> "Paper Trail"
       "the_pile" -> "The Pile"
       "boomerang" -> "Boomerang"
+      "aliases" -> "Email Aliases"
       _ -> "Inbox"
     end
   end
@@ -441,6 +585,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       "paper_trail" -> "hero-document-text"
       "the_pile" -> "hero-archive-box"
       "boomerang" -> "hero-arrow-uturn-left"
+      "aliases" -> "hero-at-symbol"
       _ -> "hero-inbox"
     end
   end
@@ -452,6 +597,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       "paper_trail" -> "Receipts, confirmations, and important records"
       "the_pile" -> "Messages you've saved for later processing"
       "boomerang" -> "Messages that need replies by a certain time"
+      "aliases" -> "Manage your email aliases and forwarding rules"
       _ -> "Your main email inbox"
     end
   end
@@ -463,6 +609,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       "paper_trail" -> "No paper trail"
       "the_pile" -> "The pile is empty"
       "boomerang" -> "Nothing scheduled"
+      "aliases" -> "No email aliases"
       _ -> "Your inbox is empty"
     end
   end
@@ -474,6 +621,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       "paper_trail" -> "Receipts, confirmations, and important records will be organized here."
       "the_pile" -> "Messages you save for later processing will appear here."
       "boomerang" -> "Messages you've scheduled to reply to later will appear here."
+      "aliases" -> "Create email aliases to forward emails to different addresses."
       _ -> "No messages have arrived yet. When someone sends you an email, it will appear here."
     end
   end

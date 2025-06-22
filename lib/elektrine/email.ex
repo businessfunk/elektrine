@@ -12,6 +12,7 @@ defmodule Elektrine.Email do
   alias Elektrine.Email.Message
   alias Elektrine.Email.TemporaryMailbox
   alias Elektrine.Email.ApprovedSender
+  alias Elektrine.Email.Alias
 
   @doc """
   Gets a user's mailbox.
@@ -1229,4 +1230,110 @@ defmodule Elektrine.Email do
   # Helper function to conditionally put values in a map
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  ## Email Aliases
+
+  @doc """
+  Returns the list of email aliases for a user.
+  """
+  def list_aliases(user_id) do
+    Alias
+    |> where(user_id: ^user_id)
+    |> order_by([a], [desc: a.inserted_at])
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets a single alias by ID for a specific user.
+  """
+  def get_alias(id, user_id) do
+    Alias
+    |> where(id: ^id, user_id: ^user_id)
+    |> Repo.one()
+  end
+
+  @doc """
+  Gets an alias by alias email address.
+  """
+  def get_alias_by_email(alias_email) do
+    Alias
+    |> where(alias_email: ^alias_email, enabled: true)
+    |> Repo.one()
+  end
+
+  @doc """
+  Creates an email alias.
+  """
+  def create_alias(attrs \\ %{}) do
+    %Alias{}
+    |> Alias.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates an email alias.
+  """
+  def update_alias(%Alias{} = alias, attrs) do
+    alias
+    |> Alias.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes an email alias.
+  """
+  def delete_alias(%Alias{} = alias) do
+    Repo.delete(alias)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking alias changes.
+  """
+  def change_alias(%Alias{} = alias, attrs \\ %{}) do
+    Alias.changeset(alias, attrs)
+  end
+
+  @doc """
+  Checks if an email address is an alias and returns the target email.
+  Returns nil if not an alias or if alias has no forwarding target.
+  Returns :no_forward if alias exists but should deliver to main mailbox.
+  """
+  def resolve_alias(email) do
+    case get_alias_by_email(email) do
+      %Alias{target_email: target_email} when is_binary(target_email) and target_email != "" -> 
+        target_email
+      %Alias{target_email: target_email} when is_nil(target_email) or target_email == "" -> 
+        :no_forward
+      nil -> 
+        nil
+    end
+  end
+
+  ## Mailbox Forwarding
+
+  @doc """
+  Updates mailbox forwarding settings.
+  """
+  def update_mailbox_forwarding(%Mailbox{} = mailbox, attrs) do
+    mailbox
+    |> Mailbox.forwarding_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking mailbox forwarding changes.
+  """
+  def change_mailbox_forwarding(%Mailbox{} = mailbox, attrs \\ %{}) do
+    Mailbox.forwarding_changeset(mailbox, attrs)
+  end
+
+  @doc """
+  Checks if a mailbox has forwarding enabled and returns the target email.
+  Returns nil if forwarding is disabled or not configured.
+  """
+  def get_mailbox_forward_target(%Mailbox{forward_enabled: true, forward_to: target}) when is_binary(target) do
+    target
+  end
+
+  def get_mailbox_forward_target(_mailbox), do: nil
 end

@@ -28,6 +28,53 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
     end
   end
 
+  @doc """
+  Generate a clean preview from email content, handling HTML and base64 encoding
+  """
+  def email_preview(message, max_length \\ 150) do
+    cond do
+      # Try HTML body first if available
+      message.html_body && String.trim(message.html_body) != "" ->
+        message.html_body
+        |> ElektrineWeb.CoreComponents.process_email_html()
+        |> strip_html_tags()
+        |> clean_preview_text()
+        |> truncate(max_length)
+      
+      # Fall back to text body
+      message.text_body && String.trim(message.text_body) != "" ->
+        message.text_body
+        |> ElektrineWeb.CoreComponents.process_email_html()
+        |> clean_preview_text()
+        |> truncate(max_length)
+      
+      # Default fallback
+      true ->
+        "No preview available"
+    end
+  end
+  
+  defp strip_html_tags(html) when is_binary(html) do
+    html
+    |> String.replace(~r/<[^>]+>/, " ")
+    |> String.replace(~r/&\w+;/, " ")  # Remove HTML entities
+    |> String.replace(~r/\s+/, " ")    # Normalize whitespace
+    |> String.trim()
+  end
+  
+  defp strip_html_tags(content), do: content || ""
+  
+  defp clean_preview_text(text) when is_binary(text) do
+    text
+    |> String.replace(~r/\r?\n/, " ")          # Replace newlines with spaces
+    |> String.replace(~r/\t/, " ")             # Replace tabs with spaces
+    |> String.replace(~r/\s+/, " ")            # Normalize multiple spaces
+    |> String.replace(~r/[^\x20-\x7E]/, "")    # Remove non-printable characters
+    |> String.trim()
+  end
+  
+  defp clean_preview_text(content), do: content || ""
+
   def message_class(message) do
     if message.read do
       "bg-base-100 border-base-300"
