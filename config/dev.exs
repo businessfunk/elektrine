@@ -117,4 +117,5 @@ config :elektrine, :uploads,
 config :elektrine, :hcaptcha,
   site_key: "ca682ffa-45c4-4fa6-99c0-067c28267116",
   secret_key: System.get_env("HCAPTCHA_SECRET_KEY"),
-  verify_url: "https://hcaptcha.com/siteverify"
+  verify_url: "https://hcaptcha.com/siteverify",
+  skip_in_dev: true

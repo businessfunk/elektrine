@@ -21,16 +21,17 @@ defmodule Elektrine.HCaptcha do
     config = Application.get_env(:elektrine, :hcaptcha)
     secret_key = Keyword.get(config, :secret_key)
     verify_url = Keyword.get(config, :verify_url)
+    skip_in_dev = Keyword.get(config, :skip_in_dev, false)
 
-    case {secret_key, Mix.env()} do
-      {nil, :dev} ->
-        # In development, bypass verification if secret key is not set
+    cond do
+      # Allow skipping in development if configured
+      skip_in_dev and is_nil(secret_key) ->
         {:ok, :verified}
         
-      {nil, _} ->
+      is_nil(secret_key) ->
         {:error, :missing_secret_key}
 
-      {_, _} ->
+      true ->
         body = build_verification_body(secret_key, token, remote_ip)
         
         case HTTPoison.post(verify_url, body, [{"Content-Type", "application/x-www-form-urlencoded"}]) do
