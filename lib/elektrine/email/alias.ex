@@ -1,6 +1,7 @@
 defmodule Elektrine.Email.Alias do
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query, warn: false
 
   alias Elektrine.Accounts.User
 
@@ -23,6 +24,7 @@ defmodule Elektrine.Email.Alias do
     |> validate_alias_domain()
     |> validate_alias_not_mailbox()
     |> validate_optional_target_email()
+    |> validate_alias_limit()
     |> validate_length(:alias_email, max: 255)
     |> validate_length(:target_email, max: 255)
     |> validate_length(:description, max: 500)
@@ -61,13 +63,39 @@ defmodule Elektrine.Email.Alias do
       # Check if this email is already used as a mailbox
       case Elektrine.Repo.get_by(Elektrine.Email.Mailbox, email: alias_email) do
         nil ->
-          changeset
+          # Also check if this email would conflict with existing usernames
+          validate_alias_not_username(changeset, alias_email)
         
         _mailbox ->
           add_error(changeset, :alias_email, "this email address is already in use as a mailbox")
       end
     else
       changeset
+    end
+  end
+
+  defp validate_alias_not_username(changeset, alias_email) do
+    # Extract local part from email (before @)
+    case String.split(alias_email, "@") do
+      [local_part, domain] ->
+        allowed_domains = ["elektrine.com", "z.org"]
+        
+        # Only check for username conflicts on our domains
+        if String.downcase(domain) in allowed_domains do
+          # Check if local part matches any existing username
+          case Elektrine.Repo.get_by(Elektrine.Accounts.User, username: local_part) do
+            nil ->
+              changeset
+            
+            _user ->
+              add_error(changeset, :alias_email, "this alias conflicts with an existing username")
+          end
+        else
+          changeset
+        end
+      
+      _ ->
+        changeset
     end
   end
 
@@ -87,6 +115,37 @@ defmodule Elektrine.Email.Alias do
 
     if alias_email && target_email && String.trim(target_email) != "" && alias_email == target_email do
       add_error(changeset, :target_email, "cannot be the same as the alias email")
+    else
+      changeset
+    end
+  end
+
+  defp validate_alias_limit(changeset) do
+    user_id = get_field(changeset, :user_id)
+    
+    if user_id do
+      # Check if this is a new alias (no ID) or an existing one being updated
+      alias_id = get_field(changeset, :id)
+      
+      # Count existing aliases for this user, excluding the current one if updating
+      existing_count = 
+        if alias_id do
+          Elektrine.Repo.aggregate(
+            from(a in Elektrine.Email.Alias, where: a.user_id == ^user_id and a.id != ^alias_id),
+            :count
+          )
+        else
+          Elektrine.Repo.aggregate(
+            from(a in Elektrine.Email.Alias, where: a.user_id == ^user_id),
+            :count
+          )
+        end
+      
+      if existing_count >= 100 do
+        add_error(changeset, :alias_email, "you can only have up to 100 aliases per account")
+      else
+        changeset
+      end
     else
       changeset
     end

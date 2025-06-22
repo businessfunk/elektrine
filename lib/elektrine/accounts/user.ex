@@ -26,6 +26,7 @@ defmodule Elektrine.Accounts.User do
     |> validate_required([:username, :password, :password_confirmation])
     |> validate_length(:username, min: 1, max: 30)
     |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")
+    |> validate_username_not_alias()
     |> unique_constraint(:username)
     |> validate_length(:password, min: 8, max: 72)
     |> validate_confirmation(:password, message: "does not match password")
@@ -48,6 +49,7 @@ defmodule Elektrine.Accounts.User do
     |> validate_length(:username, min: 1, max: 30)
     |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")
     |> validate_username_change_frequency()
+    |> validate_username_not_alias()
     |> unique_constraint(:username)
     |> maybe_update_username_change_timestamp()
   end
@@ -86,6 +88,7 @@ defmodule Elektrine.Accounts.User do
     |> validate_required([:username])
     |> validate_length(:username, min: 1, max: 30)
     |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")
+    |> validate_username_not_alias()
     |> unique_constraint(:username)
   end
 
@@ -128,6 +131,32 @@ defmodule Elektrine.Accounts.User do
   end
 
   # Private helper functions
+
+  defp validate_username_not_alias(changeset) do
+    username = get_field(changeset, :username)
+    
+    if username do
+      # Check if this username would conflict with existing aliases on our domains
+      allowed_domains = ["elektrine.com", "z.org"]
+      
+      # Check each domain for conflicts
+      conflicts = Enum.any?(allowed_domains, fn domain ->
+        alias_email = "#{username}@#{domain}"
+        case Elektrine.Repo.get_by(Elektrine.Email.Alias, alias_email: alias_email, enabled: true) do
+          nil -> false
+          _alias -> true
+        end
+      end)
+      
+      if conflicts do
+        add_error(changeset, :username, "this username conflicts with an existing email alias")
+      else
+        changeset
+      end
+    else
+      changeset
+    end
+  end
 
   defp validate_username_change_frequency(changeset) do
     case get_field(changeset, :username) do
