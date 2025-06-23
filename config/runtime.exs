@@ -170,5 +170,9 @@ if config_env() == :prod do
       raise("""
       environment variable BACKBLAZE_ENDPOINT is missing.
       Example: s3.us-west-002.backblazeb2.com
-      """)
+      """),
+    # Upload security limits
+    max_file_size: 5 * 1024 * 1024,  # 5MB
+    max_image_width: 2048,
+    max_image_height: 2048
 end
