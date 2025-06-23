@@ -103,15 +103,15 @@ else
 end
 
 # Override uploads configuration to use local storage in development
-config :elektrine, :uploads,
-  adapter: :local,
-  uploads_dir: "priv/static/uploads"
-
-# If you want to test Backblaze in dev, uncomment and configure:
 # config :elektrine, :uploads,
-#   adapter: :s3,
-#   bucket: System.get_env("BACKBLAZE_BUCKET_NAME") || "elektrine-uploads-dev",
-#   endpoint: System.get_env("BACKBLAZE_ENDPOINT") || "s3.us-west-002.backblazeb2.com"
+#   adapter: :local,
+#   uploads_dir: "priv/static/uploads"
+
+# Testing Backblaze B2 in development:
+config :elektrine, :uploads,
+  adapter: :s3,
+  bucket: System.get_env("BACKBLAZE_BUCKET_NAME") || "elektrine-uploads-dev",
+  endpoint: System.get_env("BACKBLAZE_ENDPOINT") || "s3.us-west-002.backblazeb2.com"
 
 # hCaptcha configuration for development
 config :elektrine, :hcaptcha,
