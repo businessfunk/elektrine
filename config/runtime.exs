@@ -134,4 +134,41 @@ if config_env() == :prod do
   #     config :swoosh, :api_client, Swoosh.ApiClient.Hackney
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
+
+  # Backblaze B2 configuration for production
+  config :ex_aws,
+    access_key_id: System.get_env("BACKBLAZE_KEY_ID") ||
+      raise("""
+      environment variable BACKBLAZE_KEY_ID is missing.
+      Get your key ID from Backblaze B2 dashboard.
+      """),
+    secret_access_key: System.get_env("BACKBLAZE_APPLICATION_KEY") ||
+      raise("""
+      environment variable BACKBLAZE_APPLICATION_KEY is missing.
+      Get your application key from Backblaze B2 dashboard.
+      """),
+    region: "auto",
+    json_codec: Jason,
+    s3: [
+      scheme: "https://",
+      host: System.get_env("BACKBLAZE_ENDPOINT") ||
+        raise("""
+        environment variable BACKBLAZE_ENDPOINT is missing.
+        Example: s3.us-west-002.backblazeb2.com
+        """),
+      region: "auto"
+    ]
+
+  config :elektrine, :uploads,
+    adapter: :s3,
+    bucket: System.get_env("BACKBLAZE_BUCKET_NAME") ||
+      raise("""
+      environment variable BACKBLAZE_BUCKET_NAME is missing.
+      Set your Backblaze B2 bucket name.
+      """),
+    endpoint: System.get_env("BACKBLAZE_ENDPOINT") ||
+      raise("""
+      environment variable BACKBLAZE_ENDPOINT is missing.
+      Example: s3.us-west-002.backblazeb2.com
+      """)
 end
