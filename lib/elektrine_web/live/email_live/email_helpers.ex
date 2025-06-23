@@ -137,6 +137,12 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
               </.link>
             </li>
             <li>
+              <.link href={~p"/email/search"} class={if @current_page == "search", do: "active", else: "hover:bg-base-200"}>
+                <.icon name="hero-magnifying-glass" class="h-5 w-5" />
+                Search
+              </.link>
+            </li>
+            <li>
               <.link href={~p"/email/temp"} class={if @current_page == "temp", do: "active", else: "hover:bg-base-200"}>
                 <.icon name="hero-clock" class="h-5 w-5" />
                 Temp Mail
@@ -169,9 +175,77 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
               Compose
             </.link>
           </div>
+          
+          <!-- Keyboard Shortcuts Button -->
+          <div class="mt-2">
+            <button 
+              class="btn btn-ghost btn-sm w-full gap-2 flex items-center justify-center text-base-content/70 hover:text-base-content"
+              onclick="window.showKeyboardShortcuts()"
+              title="Keyboard shortcuts (Shift + /)"
+            >
+              <.icon name="hero-command-line" class="h-4 w-4" />
+              Shortcuts <kbd class="kbd kbd-xs ml-1">?</kbd>
+            </button>
+          </div>
         </div>
       </div>
     </div>
     """
   end
+
+  @doc """
+  Returns an appropriate icon name for a file type based on content type
+  """
+  def get_file_icon(content_type) when is_binary(content_type) do
+    case String.downcase(content_type) do
+      "image/" <> _ -> "hero-photo"
+      "video/" <> _ -> "hero-play"
+      "audio/" <> _ -> "hero-musical-note"
+      "text/" <> _ -> "hero-document-text"
+      "application/pdf" -> "hero-document"
+      "application/zip" <> _ -> "hero-archive-box"
+      "application/x-" <> _ -> "hero-archive-box"
+      _ -> "hero-document"
+    end
+  end
+  def get_file_icon(_), do: "hero-document"
+
+  @doc """
+  Formats file size in human readable format
+  """
+  def format_file_size(size) when is_integer(size) do
+    cond do
+      size >= 1024 * 1024 * 1024 -> "#{Float.round(size / (1024 * 1024 * 1024), 1)} GB"
+      size >= 1024 * 1024 -> "#{Float.round(size / (1024 * 1024), 1)} MB"
+      size >= 1024 -> "#{Float.round(size / 1024, 1)} KB"
+      true -> "#{size} B"
+    end
+  end
+  def format_file_size(_), do: "0 B"
+
+  @doc """
+  Extracts sender name from email address
+  """
+  def get_sender_name(from) when is_binary(from) do
+    case Regex.run(~r/^(.+?)\s*<(.+)>$/, from) do
+      [_, name, _email] -> String.trim(name, "\"")
+      _ -> from
+    end
+  end
+  def get_sender_name(_), do: "Unknown"
+
+  @doc """
+  Gets sender initials for avatar display
+  """
+  def get_sender_initials(from) when is_binary(from) do
+    name = get_sender_name(from)
+    
+    case String.split(name, " ") do
+      [first] -> String.slice(String.upcase(first), 0, 1)
+      [first, last | _] -> 
+        String.slice(String.upcase(first), 0, 1) <> String.slice(String.upcase(last), 0, 1)
+      _ -> "?"
+    end
+  end
+  def get_sender_initials(_), do: "?"
 end

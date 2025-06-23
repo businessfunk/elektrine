@@ -139,6 +139,8 @@ defmodule Elektrine.Email.Receiver do
       "archived" => false,
       "mailbox_id" => mailbox_id,
       "metadata" => extract_metadata(params),
+      "attachments" => process_attachments(params["attachments"]),
+      "has_attachments" => has_attachments?(params["attachments"]),
       # Hey.com features
       "screener_status" => if(sender_approved, do: "approved", else: "pending"),
       "sender_approved" => sender_approved
@@ -205,4 +207,39 @@ defmodule Elektrine.Email.Receiver do
         end
     end
   end
+
+  # Processes attachments from webhook payload
+  defp process_attachments(nil), do: %{}
+  defp process_attachments([]), do: %{}
+  defp process_attachments(attachments) when is_list(attachments) do
+    attachments
+    |> Enum.with_index()
+    |> Enum.reduce(%{}, fn {attachment, index}, acc ->
+      attachment_id = "attachment_#{index}"
+      
+      processed_attachment = %{
+        "filename" => attachment["name"] || attachment["filename"] || "attachment_#{index}",
+        "content_type" => attachment["content_type"] || attachment["mime_type"] || "application/octet-stream",
+        "size" => attachment["size"] || attachment["data"] && byte_size(attachment["data"]) || 0,
+        "content_id" => attachment["content_id"],
+        "disposition" => attachment["disposition"] || "attachment",
+        "data" => attachment["data"] || attachment["content"], # Base64 encoded data
+        "url" => attachment["url"], # If hosted externally
+        "hash" => attachment["hash"] || attachment["checksum"]
+      }
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+      |> Enum.into(%{})
+      
+      Map.put(acc, attachment_id, processed_attachment)
+    end)
+  end
+  defp process_attachments(attachments) when is_map(attachments), do: attachments
+  defp process_attachments(_), do: %{}
+
+  # Checks if message has attachments
+  defp has_attachments?(nil), do: false
+  defp has_attachments?([]), do: false
+  defp has_attachments?(attachments) when is_list(attachments), do: length(attachments) > 0
+  defp has_attachments?(attachments) when is_map(attachments), do: map_size(attachments) > 0
+  defp has_attachments?(_), do: false
 end

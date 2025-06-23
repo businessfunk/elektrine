@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" id="email-show-container" phx-hook="FileDownloader">
   <div class="flex flex-col lg:flex-row gap-6">
     <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="view" current_user={@current_user} />
 
@@ -69,6 +69,41 @@
               <% end %>
             </div>
           </div>
+          
+          <!-- Attachments -->
+          <%= if @message.has_attachments and map_size(@message.attachments || %{}) > 0 do %>
+            <div class="bg-base-200/30 rounded-lg p-4 mb-6 border border-base-300">
+              <div class="flex items-center space-x-2 mb-3">
+                <.icon name="hero-paper-clip" class="h-5 w-5 text-base-content/60" />
+                <span class="text-sm font-semibold">Attachments (<%= map_size(@message.attachments) %>)</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <%= for {attachment_id, attachment} <- @message.attachments do %>
+                  <div class="bg-base-100 rounded-lg p-3 border border-base-300 hover:bg-base-200/50 transition-colors">
+                    <div class="flex items-start space-x-3">
+                      <div class="flex-shrink-0">
+                        <.icon name={get_file_icon(attachment["content_type"])} class="h-6 w-6 text-primary" />
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium truncate"><%= attachment["filename"] %></p>
+                        <p class="text-xs text-base-content/60">
+                          <%= format_file_size(attachment["size"] || 0) %> • <%= attachment["content_type"] %>
+                        </p>
+                        <%= if attachment["data"] do %>
+                          <button phx-click="download_attachment" 
+                                  phx-value-attachment-id={attachment_id}
+                                  class="text-xs text-primary hover:text-primary-focus mt-1 inline-flex items-center">
+                            <.icon name="hero-arrow-down-tray" class="h-3 w-3 mr-1" />
+                            Download
+                          </button>
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
           
           <!-- Message content -->
           <div class="bg-base-50 rounded-lg p-6 border border-base-300 min-h-[20rem] overflow-auto">

@@ -37,10 +37,11 @@ defmodule Elektrine.Email.TemporaryMailbox do
   
   @doc """
   Generates a random email address for a temporary mailbox.
+  Optionally accepts a domain override.
   """
-  def generate_email do
+  def generate_email(domain \\ nil) do
     username = generate_random_username()
-    domain = Application.get_env(:elektrine, :email)[:domain] || "elektrine.com"
+    domain = domain || Application.get_env(:elektrine, :email)[:domain] || "elektrine.com"
     "#{username}@#{domain}"
   end
   

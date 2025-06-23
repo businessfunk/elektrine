@@ -42,6 +42,36 @@ defmodule ElektrineWeb.EmailLive.Sent do
   end
   
   @impl true
+  def handle_event("quick_action", %{"action" => action, "message_id" => message_id}, socket) do
+    message = Email.get_message(message_id)
+    
+    if message && message.mailbox_id == socket.assigns.mailbox.id do
+      case action do
+        "forward" ->
+          {:noreply, push_navigate(socket, to: ~p"/email/compose?forward=#{message.id}")}
+          
+        "archive" ->
+          {:ok, _} = Email.archive_message(message)
+          
+          # Get updated pagination
+          page = socket.assigns.pagination.page
+          pagination = Email.list_sent_messages_paginated(socket.assigns.mailbox.id, page, 20)
+          
+          {:noreply,
+           socket
+           |> assign(:messages, pagination.messages)
+           |> assign(:pagination, pagination)
+           |> put_flash(:info, "Message archived")}
+           
+        _ ->
+          {:noreply, socket}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Message not found")}
+    end
+  end
+
+  @impl true
   def handle_event("delete", %{"id" => id}, socket) do
     message = Email.get_message(id)
     

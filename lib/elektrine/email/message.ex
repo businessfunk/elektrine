@@ -33,6 +33,10 @@ defmodule Elektrine.Email.Message do
     field :first_opened_at, :utc_datetime
     field :open_count, :integer, default: 0
     
+    # Attachments
+    field :attachments, :map, default: %{}
+    field :has_attachments, :boolean, default: false
+    
     belongs_to :mailbox, Elektrine.Email.Mailbox
 
     timestamps(type: :utc_datetime)
@@ -43,10 +47,21 @@ defmodule Elektrine.Email.Message do
   """
   def changeset(message, attrs) do
     message
-    |> cast(attrs, [:message_id, :from, :to, :cc, :bcc, :subject, :text_body, :html_body, :status, :read, :spam, :archived, :metadata, :mailbox_id, :mailbox_type, :screener_status, :sender_approved, :category, :set_aside_at, :set_aside_reason, :reply_later_at, :reply_later_reminder, :is_receipt, :is_notification, :is_newsletter, :opened_at, :first_opened_at, :open_count])
+    |> cast(attrs, [:message_id, :from, :to, :cc, :bcc, :subject, :text_body, :html_body, :status, :read, :spam, :archived, :metadata, :mailbox_id, :mailbox_type, :screener_status, :sender_approved, :category, :set_aside_at, :set_aside_reason, :reply_later_at, :reply_later_reminder, :is_receipt, :is_notification, :is_newsletter, :opened_at, :first_opened_at, :open_count, :attachments, :has_attachments])
     |> validate_required([:message_id, :from, :to, :mailbox_id])
+    |> set_has_attachments()
     |> unique_constraint([:message_id, :mailbox_id])
     # No foreign key constraint anymore - we manually handle the association
+  end
+
+  # Automatically set has_attachments based on attachments field
+  defp set_has_attachments(changeset) do
+    case get_field(changeset, :attachments) do
+      attachments when is_map(attachments) and map_size(attachments) > 0 ->
+        put_change(changeset, :has_attachments, true)
+      _ ->
+        put_change(changeset, :has_attachments, false)
+    end
   end
   
   @doc """

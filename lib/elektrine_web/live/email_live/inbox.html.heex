@@ -22,6 +22,17 @@
                 <.icon name="hero-arrow-path" class="h-4 w-4" />
                 Refresh
               </button>
+              <%= if @current_filter != "aliases" do %>
+                <button class="btn btn-ghost btn-sm" phx-click="toggle_bulk_mode">
+                  <%= if @bulk_mode do %>
+                    <.icon name="hero-x-mark" class="h-4 w-4" />
+                    Exit Bulk
+                  <% else %>
+                    <.icon name="hero-check-circle" class="h-4 w-4" />
+                    Select
+                  <% end %>
+                </button>
+              <% end %>
             </div>
           </div>
           
@@ -89,6 +100,61 @@
               Aliases
             </.link>
           </div>
+          
+          <!-- Bulk Actions Bar -->
+          <%= if @bulk_mode && @current_filter != "aliases" do %>
+            <div class="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-6">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                  <div class="text-sm font-medium">
+                    <%= MapSet.size(@selected_messages) %> selected
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <button phx-click="select_all_messages" class="btn btn-xs btn-ghost">
+                      Select All
+                    </button>
+                    <button phx-click="deselect_all_messages" class="btn btn-xs btn-ghost">
+                      Deselect All
+                    </button>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button phx-click="bulk_action" phx-value-action="archive" class="btn btn-sm btn-primary" disabled={MapSet.size(@selected_messages) == 0}>
+                    <.icon name="hero-archive-box" class="h-4 w-4" />
+                    Archive
+                  </button>
+                  <button phx-click="bulk_action" phx-value-action="mark_read" class="btn btn-sm btn-success" disabled={MapSet.size(@selected_messages) == 0}>
+                    <.icon name="hero-envelope-open" class="h-4 w-4" />
+                    Mark Read
+                  </button>
+                  <button phx-click="bulk_action" phx-value-action="mark_unread" class="btn btn-sm btn-warning" disabled={MapSet.size(@selected_messages) == 0}>
+                    <.icon name="hero-envelope" class="h-4 w-4" />
+                    Mark Unread
+                  </button>
+                  <div class="dropdown dropdown-end">
+                    <label tabindex="0" class="btn btn-sm btn-error" disabled={MapSet.size(@selected_messages) == 0}>
+                      <.icon name="hero-ellipsis-horizontal" class="h-4 w-4" />
+                      More
+                    </label>
+                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-48">
+                      <li>
+                        <button phx-click="bulk_action" phx-value-action="mark_spam">
+                          <.icon name="hero-exclamation-triangle" class="h-4 w-4" />
+                          Mark as Spam
+                        </button>
+                      </li>
+                      <li>
+                        <button phx-click="bulk_action" phx-value-action="delete" data-confirm="Are you sure you want to delete the selected messages?">
+                          <.icon name="hero-trash" class="h-4 w-4" />
+                          Delete
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
           
           <%= if @current_filter == "aliases" do %>
             <!-- Email Forwarding & Aliases Management -->
@@ -373,11 +439,23 @@
             <% else %>
               <!-- Messages List -->
               <div class="space-y-2">
-                <div id="messages-list" phx-update="stream" class="space-y-2">
+                <div id="messages-list" phx-update="stream" class="space-y-2" phx-hook="KeyboardShortcuts">
                   <%= for {id, message} <- @streams.messages do %>
                     <div class={"card transition-all duration-200 #{get_message_card_class(message, @current_filter)} hover:shadow-xl hover:scale-[1.02] hover:border-primary/30 hover:bg-primary/5 border border-base-300 cursor-pointer"} id={id}>
                       <div class="card-body p-4">
                         <div class="flex items-start justify-between">
+                          <!-- Checkbox for bulk selection -->
+                          <%= if @bulk_mode do %>
+                            <div class="flex-shrink-0 mr-3 mt-1">
+                              <input 
+                                type="checkbox" 
+                                class="checkbox checkbox-primary" 
+                                checked={MapSet.member?(@selected_messages, message.id)}
+                                phx-click="toggle_message_selection"
+                                phx-value-message_id={message.id}
+                              />
+                            </div>
+                          <% end %>
                           <.link navigate={~p"/email/view/#{message.id}"} class="flex-1 min-w-0 overflow-hidden cursor-pointer">
                             <div class="flex items-center space-x-3 mb-2">
                               <div class="avatar placeholder">
@@ -423,14 +501,58 @@
                                 </button>
                               </div>
                             <% else %>
-                              <!-- Standard dropdown menu -->
-                              <div class="dropdown dropdown-end dropdown-top">
-                                <div tabindex="0" role="button" class="btn btn-ghost btn-xs opacity-60 hover:opacity-100">
-                                  <.icon name="hero-ellipsis-horizontal" class="h-4 w-4" />
+                              <!-- Quick Action Buttons -->
+                              <div class="flex items-center space-x-1">
+                                <div class="tooltip" data-tip="Archive">
+                                  <button 
+                                    phx-click="quick_action" 
+                                    phx-value-action="archive" 
+                                    phx-value-message_id={message.id}
+                                    class="btn btn-ghost btn-xs opacity-60 hover:opacity-100 hover:btn-primary"
+                                  >
+                                    <.icon name="hero-archive-box" class="h-4 w-4" />
+                                  </button>
                                 </div>
-                                <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-48 z-[9999]">
-                                  <%= render_action_menu(message, @current_filter) %>
-                                </ul>
+                                <div class="tooltip" data-tip="Reply">
+                                  <button 
+                                    phx-click="quick_action" 
+                                    phx-value-action="reply" 
+                                    phx-value-message_id={message.id}
+                                    class="btn btn-ghost btn-xs opacity-60 hover:opacity-100 hover:btn-success"
+                                  >
+                                    <.icon name="hero-arrow-uturn-left" class="h-4 w-4" />
+                                  </button>
+                                </div>
+                                <div class="tooltip" data-tip="Forward">
+                                  <button 
+                                    phx-click="quick_action" 
+                                    phx-value-action="forward" 
+                                    phx-value-message_id={message.id}
+                                    class="btn btn-ghost btn-xs opacity-60 hover:opacity-100 hover:btn-info"
+                                  >
+                                    <.icon name="hero-arrow-uturn-right" class="h-4 w-4" />
+                                  </button>
+                                </div>
+                                <!-- Overflow menu for additional actions -->
+                                <div class="dropdown dropdown-end dropdown-top">
+                                  <div tabindex="0" role="button" class="btn btn-ghost btn-xs opacity-60 hover:opacity-100">
+                                    <.icon name="hero-ellipsis-horizontal" class="h-4 w-4" />
+                                  </div>
+                                  <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-48 z-[9999]">
+                                    <li>
+                                      <button phx-click="quick_action" phx-value-action="mark_spam" phx-value-message_id={message.id}>
+                                        <.icon name="hero-exclamation-triangle" class="h-4 w-4" />
+                                        Mark as Spam
+                                      </button>
+                                    </li>
+                                    <li>
+                                      <button phx-click="delete" phx-value-id={message.id} data-confirm="Are you sure?">
+                                        <.icon name="hero-trash" class="h-4 w-4" />
+                                        Delete
+                                      </button>
+                                    </li>
+                                  </ul>
+                                </div>
                               </div>
                             <% end %>
                           </div>

@@ -9,10 +9,19 @@
             Refresh
           </button>
           <%= if @is_owner do %>
-            <button phx-click="extend_mailbox" class="btn btn-sm btn-secondary">
-              <.icon name="hero-clock" class="h-5 w-5 mr-1" />
-              Extend Time
-            </button>
+            <div class="dropdown dropdown-end">
+              <label tabindex="0" class="btn btn-sm btn-secondary">
+                <.icon name="hero-clock" class="h-5 w-5 mr-1" />
+                Extend Time
+                <.icon name="hero-chevron-down" class="h-4 w-4 ml-1" />
+              </label>
+              <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                <li><a phx-click="extend_mailbox" phx-value-hours="24">24 hours</a></li>
+                <li><a phx-click="extend_mailbox" phx-value-hours="168">1 week</a></li>
+                <li><a phx-click="extend_mailbox" phx-value-hours="336">2 weeks</a></li>
+                <li><a phx-click="extend_mailbox" phx-value-hours="720">30 days</a></li>
+              </ul>
+            </div>
             <button phx-click="create_new_mailbox" class="btn btn-sm btn-accent">
               <.icon name="hero-plus" class="h-5 w-5 mr-1" />
               New Mailbox
@@ -91,8 +100,9 @@
       <div class="prose max-w-none">
         <p>This is a temporary email address that you can use to receive messages without signing up.</p>
         <ul>
-          <li>Your temporary email will be active for 24 hours.</li>
-          <li>Click <strong>Extend Time</strong> to add another 24 hours to your mailbox.</li>
+          <li>Your temporary email starts with 24 hours of activity.</li>
+          <li>Use <strong>Extend Time</strong> to add more time - from 24 hours up to 30 days total.</li>
+          <li>Maximum lifetime is 30 days from creation.</li>
           <li>New messages will appear automatically in real-time.</li>
           <li>All messages and the mailbox will be automatically deleted when it expires.</li>
           <li>Creating a <strong>New Mailbox</strong> will abandon the current one.</li>

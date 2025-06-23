@@ -81,12 +81,13 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Show do
   end
   
   @impl true
-  def handle_event("extend_mailbox", _params, socket) do
+  def handle_event("extend_mailbox", %{"hours" => hours_str}, socket) do
     # Verify ownership
     if socket.assigns.is_owner do
       mailbox = socket.assigns.mailbox
+      hours = String.to_integer(hours_str)
       
-      case Email.extend_temporary_mailbox(mailbox.id) do
+      case Email.extend_temporary_mailbox(mailbox.id, hours) do
         {:ok, updated_mailbox} ->
           # Update socket with new expiration time
           {:noreply, 
@@ -94,7 +95,7 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Show do
            |> assign(:mailbox, updated_mailbox)
            |> assign(:expires_at, updated_mailbox.expires_at)
            |> assign(:remaining_time, calculate_remaining_time(updated_mailbox.expires_at))
-           |> Phoenix.LiveView.put_flash(:info, "Mailbox extended for another 24 hours.")}
+           |> Phoenix.LiveView.put_flash(:info, "Mailbox extended successfully.")}
           
         {:error, _} ->
           {:noreply, 
@@ -107,11 +108,18 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Show do
        |> Phoenix.LiveView.put_flash(:error, "You don't have permission to extend this mailbox.")}
     end
   end
+
+  @impl true
+  def handle_event("extend_mailbox", _params, socket) do
+    # Default to 24 hours if no hours specified
+    handle_event("extend_mailbox", %{"hours" => "24"}, socket)
+  end
   
   @impl true
   def handle_event("create_new_mailbox", _params, socket) do
-    # Create a new temporary mailbox
-    {:ok, mailbox} = Email.create_temporary_mailbox()
+    # Create a new temporary mailbox with domain awareness
+    domain = get_request_domain_from_socket(socket)
+    {:ok, mailbox} = Email.create_temporary_mailbox(24, domain)
     
     # We can't directly modify the session from LiveView
     # So we'll redirect through a controller action that can set the session
@@ -178,19 +186,39 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Show do
     
     case DateTime.compare(expires_at, now) do
       :gt ->
-        # Calculate difference in minutes
+        # Calculate difference
         diff_seconds = DateTime.diff(expires_at, now, :second)
-        hours = div(diff_seconds, 3600)
+        days = div(diff_seconds, 86400)
+        hours = div(rem(diff_seconds, 86400), 3600)
         minutes = div(rem(diff_seconds, 3600), 60)
         
-        if hours > 0 do
-          "#{hours} hours and #{minutes} minutes"
-        else
-          "#{minutes} minutes"
+        cond do
+          days > 0 -> "#{days} days and #{hours} hours"
+          hours > 0 -> "#{hours} hours and #{minutes} minutes"
+          true -> "#{minutes} minutes"
         end
         
       _ ->
         "Expired"
+    end
+  end
+
+  # Helper to extract domain from LiveView socket
+  defp get_request_domain_from_socket(socket) do
+    host = case get_connect_info(socket, :host) do
+      host when is_binary(host) -> String.split(host, ":") |> hd()  # Remove port if present
+      _ -> nil
+    end
+    
+    # Map known hosts to appropriate email domains
+    case host do
+      "z.org" -> "z.org"
+      "www.z.org" -> "z.org"
+      "elektrine.com" -> "elektrine.com"
+      "www.elektrine.com" -> "elektrine.com"
+      _ -> 
+        # Default to elektrine.com for unknown hosts
+        "elektrine.com"
     end
   end
 end

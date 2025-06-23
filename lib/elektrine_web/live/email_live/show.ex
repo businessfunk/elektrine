@@ -120,6 +120,27 @@ defmodule ElektrineWeb.EmailLive.Show do
   end
 
   @impl true
+  def handle_event("download_attachment", %{"attachment-id" => attachment_id}, socket) do
+    message = socket.assigns.message
+    attachment = get_in(message.attachments, [attachment_id])
+    
+    if attachment && attachment["data"] do
+      # Decode base64 data and send as download
+      {:noreply, 
+       socket
+       |> push_event("download_file", %{
+         filename: attachment["filename"],
+         data: attachment["data"],
+         content_type: attachment["content_type"]
+       })}
+    else
+      {:noreply,
+       socket
+       |> put_flash(:error, "Attachment not found or no data available")}
+    end
+  end
+
+  @impl true
   def handle_info({:unread_count_updated, new_count}, socket) do
     {:noreply, assign(socket, :unread_count, new_count)}
   end

@@ -8,9 +8,24 @@ defmodule ElektrineWeb.API.TemporaryMailboxController do
   Creates a new temporary mailbox and returns its details.
   This is the entry point for Flutter app users.
   """
-  def create(conn, _params) do
-    # Create a new temporary mailbox with default 24 hour expiration
-    case Email.create_temporary_mailbox() do
+  def create(conn, params) do
+    # Extract domain from request or use provided domain parameter
+    domain = Map.get(params, "domain") || get_request_domain(conn)
+    
+    # Get expiration duration from params (in hours, default 24, max 720 for 30 days)
+    hours = case Map.get(params, "expires_in_hours") do
+      nil -> 24
+      hours_str when is_binary(hours_str) -> 
+        case Integer.parse(hours_str) do
+          {hours, _} -> min(hours, 720)
+          :error -> 24
+        end
+      hours when is_integer(hours) -> min(hours, 720)
+      _ -> 24
+    end
+    
+    # Create a new temporary mailbox with specified expiration
+    case Email.create_temporary_mailbox(hours, domain) do
       {:ok, mailbox} ->
         render(conn, :show, mailbox: mailbox)
         
@@ -18,6 +33,25 @@ defmodule ElektrineWeb.API.TemporaryMailboxController do
         conn
         |> put_status(:unprocessable_entity)
         |> json(%{error: "Failed to create temporary mailbox"})
+    end
+  end
+
+  # Helper to extract domain from request
+  defp get_request_domain(conn) do
+    host = case get_req_header(conn, "host") do
+      [host] -> String.split(host, ":") |> hd()  # Remove port if present
+      _ -> nil
+    end
+    
+    # Map known hosts to appropriate email domains
+    case host do
+      "z.org" -> "z.org"
+      "www.z.org" -> "z.org"
+      "elektrine.com" -> "elektrine.com"
+      "www.elektrine.com" -> "elektrine.com"
+      _ -> 
+        # Default to elektrine.com for unknown hosts
+        "elektrine.com"
     end
   end
   

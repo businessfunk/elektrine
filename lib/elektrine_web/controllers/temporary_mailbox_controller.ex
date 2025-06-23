@@ -10,8 +10,9 @@ defmodule ElektrineWeb.TemporaryMailboxController do
     # Check if user already has a temporary mailbox in the session
     case get_session(conn, :temporary_mailbox_token) do
       nil ->
-        # No temporary mailbox yet, create one
-        {:ok, mailbox} = Email.create_temporary_mailbox()
+        # No temporary mailbox yet, create one with the current domain
+        domain = get_request_domain(conn)
+        {:ok, mailbox} = Email.create_temporary_mailbox(24, domain)
         
         # Store token in session
         conn = put_session(conn, :temporary_mailbox_token, mailbox.token)
@@ -135,8 +136,9 @@ defmodule ElektrineWeb.TemporaryMailboxController do
   Creates a new temporary mailbox and abandons the old one.
   """
   def new(conn, _params) do
-    # Create a new temporary mailbox
-    {:ok, mailbox} = Email.create_temporary_mailbox()
+    # Create a new temporary mailbox with the current domain
+    domain = get_request_domain(conn)
+    {:ok, mailbox} = Email.create_temporary_mailbox(24, domain)
     
     # Update session
     conn = put_session(conn, :temporary_mailbox_token, mailbox.token)
@@ -183,6 +185,25 @@ defmodule ElektrineWeb.TemporaryMailboxController do
     end
   end
   
+  # Helper to extract domain from request
+  defp get_request_domain(conn) do
+    host = case get_req_header(conn, "host") do
+      [host] -> String.split(host, ":") |> hd()  # Remove port if present
+      _ -> nil
+    end
+    
+    # Map known hosts to appropriate email domains
+    case host do
+      "z.org" -> "z.org"
+      "www.z.org" -> "z.org"
+      "elektrine.com" -> "elektrine.com"
+      "www.elektrine.com" -> "elektrine.com"
+      _ -> 
+        # Default to elektrine.com for unknown hosts
+        "elektrine.com"
+    end
+  end
+
   # Helper to calculate remaining time until expiration
   defp calculate_remaining_time(expires_at) do
     now = DateTime.utc_now()

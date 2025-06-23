@@ -11,8 +11,9 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Index do
     # Check if user has a temporary mailbox token in session
     case Map.get(session, "temporary_mailbox_token") do
       nil -> 
-        # No temporary mailbox, create one
-        {:ok, mailbox} = Email.create_temporary_mailbox()
+        # No temporary mailbox, create one with domain awareness
+        domain = get_request_domain_from_socket(socket)
+        {:ok, mailbox} = Email.create_temporary_mailbox(24, domain)
         
         # Redirect to the controller that will set the session
         socket = 
@@ -28,6 +29,25 @@ defmodule ElektrineWeb.TemporaryMailboxLive.Index do
           |> Phoenix.LiveView.redirect(to: ~p"/temp-mail/#{token}")
         
         {:ok, socket}
+    end
+  end
+
+  # Helper to extract domain from LiveView socket
+  defp get_request_domain_from_socket(socket) do
+    host = case get_connect_info(socket, :host) do
+      host when is_binary(host) -> String.split(host, ":") |> hd()  # Remove port if present
+      _ -> nil
+    end
+    
+    # Map known hosts to appropriate email domains
+    case host do
+      "z.org" -> "z.org"
+      "www.z.org" -> "z.org"
+      "elektrine.com" -> "elektrine.com"
+      "www.elektrine.com" -> "elektrine.com"
+      _ -> 
+        # Default to elektrine.com for unknown hosts
+        "elektrine.com"
     end
   end
 end

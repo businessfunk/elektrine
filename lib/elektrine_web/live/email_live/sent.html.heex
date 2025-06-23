@@ -38,9 +38,9 @@
             </div>
           <% else %>
             <!-- Messages List -->
-            <div class="space-y-2">
+            <div id="sent-messages-list" class="space-y-2" phx-hook="KeyboardShortcuts">
               <%= for message <- @messages do %>
-                <div class="card transition-all duration-200 hover:bg-base-200 hover:shadow-md border border-base-300">
+                <div id={"message-#{message.id}"} class="card transition-all duration-200 hover:bg-base-200 hover:shadow-md border border-base-300">
                   <div class="card-body p-4">
                     <div class="flex items-start justify-between">
                       <.link navigate={~p"/email/view/#{message.id}"} class="flex-1 min-w-0 cursor-pointer">
@@ -63,9 +63,39 @@
                       
                       <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
                         <div class="badge badge-sm badge-success badge-outline">Sent</div>
-                        <button phx-click="delete" phx-value-id={message.id} class="btn btn-ghost btn-xs opacity-60 hover:opacity-100 hover:btn-error" data-confirm="Are you sure you want to delete this message?">
-                          <.icon name="hero-trash" class="h-4 w-4" />
-                        </button>
+                        <!-- Quick Action Buttons -->
+                        <div class="flex items-center space-x-1">
+                          <div class="tooltip" data-tip="Forward">
+                            <button 
+                              phx-click="quick_action" 
+                              phx-value-action="forward" 
+                              phx-value-message_id={message.id}
+                              class="btn btn-ghost btn-xs opacity-60 hover:opacity-100 hover:btn-info"
+                            >
+                              <.icon name="hero-arrow-uturn-right" class="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div class="tooltip" data-tip="Archive">
+                            <button 
+                              phx-click="quick_action" 
+                              phx-value-action="archive" 
+                              phx-value-message_id={message.id}
+                              class="btn btn-ghost btn-xs opacity-60 hover:opacity-100 hover:btn-primary"
+                            >
+                              <.icon name="hero-archive-box" class="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div class="tooltip" data-tip="Delete">
+                            <button 
+                              phx-click="delete" 
+                              phx-value-id={message.id} 
+                              class="btn btn-ghost btn-xs opacity-60 hover:opacity-100 hover:btn-error" 
+                              data-confirm="Are you sure you want to delete this message?"
+                            >
+                              <.icon name="hero-trash" class="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -68,6 +68,7 @@ defmodule ElektrineWeb.Router do
       live "/email/archive", EmailLive.Archive, :archive
       live "/email/compose", EmailLive.Compose, :new
       live "/email/view/:id", EmailLive.Show, :show
+      live "/email/search", EmailLive.Search, :search
       live "/email/contacts", EmailLive.Contacts, :contacts
       live "/email/temp", EmailLive.TempMail, :index
       live "/email/temp/:token", EmailLive.TempMail, :show

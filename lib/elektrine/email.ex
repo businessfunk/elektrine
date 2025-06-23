@@ -572,14 +572,18 @@ defmodule Elektrine.Email do
   
   @doc """
   Creates a new temporary mailbox with a random email address.
-  The mailbox will expire after the specified duration (default: 24 hours).
+  The mailbox will expire after the specified duration (default: 24 hours, max: 30 days).
+  Optionally accepts a domain override for multi-domain support.
   """
-  def create_temporary_mailbox(expires_in_hours \\ 24) do
+  def create_temporary_mailbox(expires_in_hours \\ 24, domain \\ nil) do
+    # Enforce maximum duration of 30 days (720 hours)
+    capped_hours = min(expires_in_hours, 720)
+    
     # Set expiration time
-    expires_at = DateTime.utc_now() |> DateTime.add(expires_in_hours * 60 * 60, :second)
+    expires_at = DateTime.utc_now() |> DateTime.add(capped_hours * 60 * 60, :second)
     
     # Generate a random email and token
-    email = TemporaryMailbox.generate_email()
+    email = TemporaryMailbox.generate_email(domain)
     token = TemporaryMailbox.generate_token()
     
     # Create the temporary mailbox
@@ -590,6 +594,16 @@ defmodule Elektrine.Email do
       expires_at: expires_at
     })
     |> Repo.insert()
+  end
+  
+  @doc """
+  Creates a new temporary mailbox with duration specified in days.
+  Maximum duration is 30 days.
+  """
+  def create_temporary_mailbox_days(expires_in_days \\ 1, domain \\ nil) do
+    # Convert days to hours and cap at 30 days
+    hours = min(expires_in_days * 24, 720)
+    create_temporary_mailbox(hours, domain)
   end
   
   @doc """
@@ -639,13 +653,24 @@ defmodule Elektrine.Email do
   
   @doc """
   Extends the expiration time of a temporary mailbox.
+  Maximum total lifetime is 30 days from creation.
   """
   def extend_temporary_mailbox(mailbox_id, additional_hours \\ 24) do
     mailbox = Repo.get(TemporaryMailbox, mailbox_id)
     
     if mailbox do
-      # Calculate new expiration time
-      new_expires_at = DateTime.utc_now() |> DateTime.add(additional_hours * 60 * 60, :second)
+      # Calculate proposed new expiration time
+      proposed_expires_at = DateTime.utc_now() |> DateTime.add(additional_hours * 60 * 60, :second)
+      
+      # Calculate maximum allowed expiration (30 days from creation)
+      max_expires_at = mailbox.inserted_at |> DateTime.add(720 * 60 * 60, :second)
+      
+      # Use the earlier of the two dates to respect the 30-day maximum
+      new_expires_at = 
+        case DateTime.compare(proposed_expires_at, max_expires_at) do
+          :gt -> max_expires_at
+          _ -> proposed_expires_at
+        end
       
       # Update the mailbox
       mailbox
@@ -899,6 +924,67 @@ defmodule Elektrine.Email do
     
     %{
       messages: messages,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: has_next,
+      has_prev: has_prev
+    }
+  end
+  
+  @doc """
+  Searches messages in a mailbox.
+  Supports searching in from, to, cc, subject, and body content.
+  Returns paginated results with metadata.
+  """
+  def search_messages(mailbox_id, query, page \\ 1, per_page \\ 20) do
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+    
+    # Split query into terms for better matching
+    search_terms = String.split(String.trim(query), " ")
+    
+    # Build search query
+    base_query = 
+      Message
+      |> where(mailbox_id: ^mailbox_id)
+      |> where([m], not m.spam and not m.archived)
+    
+    # Apply search filters - search across multiple fields
+    search_query = 
+      Enum.reduce(search_terms, base_query, fn term, acc_query ->
+        search_term = "%#{String.downcase(term)}%"
+        
+        where(acc_query, [m], 
+          ilike(fragment("LOWER(?)", m.from), ^search_term) or
+          ilike(fragment("LOWER(?)", m.to), ^search_term) or
+          ilike(fragment("LOWER(?)", m.cc), ^search_term) or
+          ilike(fragment("LOWER(?)", m.subject), ^search_term) or
+          ilike(fragment("LOWER(?)", m.text_body), ^search_term) or
+          ilike(fragment("LOWER(?)", m.html_body), ^search_term)
+        )
+      end)
+    
+    # Get total count
+    total_count = search_query |> Repo.aggregate(:count)
+    
+    # Get messages for current page
+    messages = 
+      search_query
+      |> order_by(desc: :inserted_at)
+      |> limit(^per_page)
+      |> offset(^offset)
+      |> Repo.all()
+    
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / per_page)
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    %{
+      messages: messages,
+      query: query,
       page: page,
       per_page: per_page,
       total_count: total_count,

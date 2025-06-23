@@ -23,6 +23,100 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import { initGenerativeArt, initDigitalEffects } from "./generative_art"
 
+// Global function to show keyboard shortcuts (called from buttons)
+window.showKeyboardShortcuts = function() {
+  const modal = document.createElement('div')
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+  modal.innerHTML = `
+    <div class="bg-base-100 rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Keyboard Shortcuts</h2>
+        <button class="btn btn-ghost btn-sm" onclick="this.closest('.fixed').remove()">✕</button>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-3">Navigation</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">c</kbd>
+              <span>Compose</span>
+            </div>
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">g</kbd>
+              <span>Go to menu</span>
+            </div>
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">/</kbd>
+              <span>Search</span>
+            </div>
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">j</kbd>
+              <span>Next message</span>
+            </div>
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">k</kbd>
+              <span>Previous message</span>
+            </div>
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">Enter</kbd>
+              <span>Open message</span>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <h3 class="font-semibold mb-3">Actions</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">e</kbd>
+              <span>Archive</span>
+            </div>
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">r</kbd>
+              <span>Reply</span>
+            </div>
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">f</kbd>
+              <span>Forward</span>
+            </div>
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">#</kbd>
+              <span>Delete</span>
+            </div>
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">!</kbd>
+              <span>Mark as spam</span>
+            </div>
+            <div class="flex justify-between">
+              <kbd class="kbd kbd-sm">Shift + /</kbd>
+              <span>Show this help (?)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6 p-4 bg-base-200 rounded-lg">
+        <h4 class="font-semibold mb-2">Go to shortcuts (press 'g' then):</h4>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div><kbd class="kbd kbd-xs">i</kbd> Inbox</div>
+          <div><kbd class="kbd kbd-xs">s</kbd> Sent</div>
+          <div><kbd class="kbd kbd-xs">t</kbd> Search</div>
+          <div><kbd class="kbd kbd-xs">a</kbd> Archive</div>
+          <div><kbd class="kbd kbd-xs">p</kbd> Spam</div>
+        </div>
+      </div>
+    </div>
+  `
+  
+  // Close modal when clicking outside the content area
+  modal.addEventListener('click', () => {
+    modal.remove()
+  })
+  
+  document.body.appendChild(modal)
+}
+
 // Define hooks for custom JavaScript behaviors
 const Hooks = {
   FlashMessage: {
@@ -520,6 +614,487 @@ const Hooks = {
         .replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-primary pl-4 italic">$1</blockquote>')
         // Line breaks
         .replace(/\n/g, '<br>')
+    }
+  },
+  FileDownloader: {
+    mounted() {
+      this.handleEvent("download_file", ({filename, data, content_type}) => {
+        try {
+          // Decode base64 data
+          const binaryString = atob(data)
+          const bytes = new Uint8Array(binaryString.length)
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i)
+          }
+          
+          // Create blob and download
+          const blob = new Blob([bytes], { type: content_type })
+          const url = URL.createObjectURL(blob)
+          
+          const link = document.createElement('a')
+          link.href = url
+          link.download = filename
+          link.style.display = 'none'
+          
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          
+          // Clean up
+          URL.revokeObjectURL(url)
+        } catch (error) {
+          console.error('Failed to download file:', error)
+          // Show error to user via flash message
+          this.pushEvent("download_error", {message: "Failed to download attachment"})
+        }
+      })
+    }
+  },
+  KeyboardShortcuts: {
+    mounted() {
+      console.log("Keyboard shortcuts enabled")
+      this.setupKeyboardShortcuts()
+      this.showShortcutsOnPageLoad()
+    },
+    
+    setupKeyboardShortcuts() {
+      // Track selected message for keyboard navigation
+      this.selectedMessageIndex = -1
+      this.messages = []
+      
+      // Update message list when DOM changes
+      this.updateMessageList()
+      
+      document.addEventListener('keydown', (e) => {
+        // Don't interfere when typing in inputs, textareas, or contenteditable elements
+        if (e.target.tagName === 'INPUT' || 
+            e.target.tagName === 'TEXTAREA' || 
+            e.target.contentEditable === 'true' ||
+            e.target.closest('.dropdown.dropdown-open')) {
+          return
+        }
+        
+        // Handle shortcuts
+        this.handleKeyboardShortcut(e)
+      })
+      
+      // Update message list when new messages are added
+      const observer = new MutationObserver(() => {
+        this.updateMessageList()
+      })
+      
+      observer.observe(this.el, {
+        childList: true,
+        subtree: true
+      })
+      
+      this.observer = observer
+    },
+    
+    destroyed() {
+      if (this.observer) {
+        this.observer.disconnect()
+      }
+    },
+    
+    updateMessageList() {
+      this.messages = Array.from(this.el.querySelectorAll('[id^="message-"]'))
+      if (this.selectedMessageIndex >= this.messages.length) {
+        this.selectedMessageIndex = this.messages.length - 1
+      }
+    },
+    
+    handleKeyboardShortcut(e) {
+      const key = e.key.toLowerCase()
+      const ctrl = e.ctrlKey || e.metaKey
+      
+      // Gmail-style shortcuts
+      switch (key) {
+        case 'c':
+          if (!ctrl) {
+            e.preventDefault()
+            this.navigateToCompose()
+          }
+          break
+          
+        case 'g':
+          if (!ctrl) {
+            e.preventDefault()
+            this.showGotoMenu()
+          }
+          break
+          
+        case '/':
+          e.preventDefault()
+          this.focusSearch()
+          break
+          
+        case '?':
+          e.preventDefault()
+          this.showShortcutsHelp()
+          break
+          
+        case 'j':
+          if (!ctrl) {
+            e.preventDefault()
+            this.selectNextMessage()
+          }
+          break
+          
+        case 'k':
+          if (!ctrl) {
+            e.preventDefault()
+            this.selectPrevMessage()
+          }
+          break
+          
+        case 'enter':
+          if (this.selectedMessageIndex >= 0) {
+            e.preventDefault()
+            this.openSelectedMessage()
+          }
+          break
+          
+        case 'e':
+          if (!ctrl && this.selectedMessageIndex >= 0) {
+            e.preventDefault()
+            this.archiveSelectedMessage()
+          }
+          break
+          
+        case 'r':
+          if (!ctrl && this.selectedMessageIndex >= 0) {
+            e.preventDefault()
+            this.replyToSelectedMessage()
+          }
+          break
+          
+        case 'f':
+          if (!ctrl && this.selectedMessageIndex >= 0) {
+            e.preventDefault()
+            this.forwardSelectedMessage()
+          }
+          break
+          
+        case '#':
+          if (this.selectedMessageIndex >= 0) {
+            e.preventDefault()
+            this.deleteSelectedMessage()
+          }
+          break
+          
+        case '!':
+          if (this.selectedMessageIndex >= 0) {
+            e.preventDefault()
+            this.markSpamSelectedMessage()
+          }
+          break
+          
+      }
+    },
+    
+    showGotoMenu() {
+      // Show a temporary goto menu
+      const menu = document.createElement('div')
+      menu.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-base-100 border border-base-300 rounded-lg shadow-xl p-6 z-50'
+      menu.innerHTML = `
+        <h3 class="text-lg font-bold mb-4">Go to...</h3>
+        <div class="space-y-2">
+          <button class="btn btn-ghost btn-sm w-full justify-start" data-goto="inbox">
+            <span class="font-mono mr-2">gi</span> Inbox
+          </button>
+          <button class="btn btn-ghost btn-sm w-full justify-start" data-goto="sent">
+            <span class="font-mono mr-2">gs</span> Sent
+          </button>
+          <button class="btn btn-ghost btn-sm w-full justify-start" data-goto="search">
+            <span class="font-mono mr-2">gt</span> Search
+          </button>
+          <button class="btn btn-ghost btn-sm w-full justify-start" data-goto="archive">
+            <span class="font-mono mr-2">ga</span> Archive
+          </button>
+          <button class="btn btn-ghost btn-sm w-full justify-start" data-goto="spam">
+            <span class="font-mono mr-2">gp</span> Spam
+          </button>
+        </div>
+        <div class="text-xs text-base-content/60 mt-4">Press Escape to close</div>
+      `
+      
+      document.body.appendChild(menu)
+      
+      // Handle goto navigation
+      menu.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-goto]')
+        if (button) {
+          const destination = button.dataset.goto
+          this.navigateTo(destination)
+          document.body.removeChild(menu)
+        }
+      })
+      
+      // Handle keyboard navigation in goto menu
+      const handleGotoKey = (e) => {
+        if (e.key === 'Escape') {
+          document.body.removeChild(menu)
+          document.removeEventListener('keydown', handleGotoKey)
+        } else if (e.key === 'i') {
+          this.navigateTo('inbox')
+          document.body.removeChild(menu)
+          document.removeEventListener('keydown', handleGotoKey)
+        } else if (e.key === 's') {
+          this.navigateTo('sent')
+          document.body.removeChild(menu)
+          document.removeEventListener('keydown', handleGotoKey)
+        } else if (e.key === 't') {
+          this.navigateTo('search')
+          document.body.removeChild(menu)
+          document.removeEventListener('keydown', handleGotoKey)
+        } else if (e.key === 'a') {
+          this.navigateTo('archive')
+          document.body.removeChild(menu)
+          document.removeEventListener('keydown', handleGotoKey)
+        } else if (e.key === 'p') {
+          this.navigateTo('spam')
+          document.body.removeChild(menu)
+          document.removeEventListener('keydown', handleGotoKey)
+        }
+      }
+      
+      document.addEventListener('keydown', handleGotoKey)
+      
+      // Auto-close after 5 seconds
+      setTimeout(() => {
+        if (menu.parentNode) {
+          document.body.removeChild(menu)
+          document.removeEventListener('keydown', handleGotoKey)
+        }
+      }, 5000)
+    },
+    
+    navigateTo(destination) {
+      const routes = {
+        inbox: '/email/inbox',
+        sent: '/email/sent',
+        search: '/email/search',
+        archive: '/email/archive',
+        spam: '/email/spam'
+      }
+      
+      if (routes[destination]) {
+        window.location.href = routes[destination]
+      }
+    },
+    
+    navigateToCompose() {
+      window.location.href = '/email/compose'
+    },
+    
+    focusSearch() {
+      // Try to focus search input if on search page
+      const searchInput = document.querySelector('input[name="search[query]"]')
+      if (searchInput) {
+        searchInput.focus()
+      } else {
+        // Navigate to search page
+        window.location.href = '/email/search'
+      }
+    },
+    
+    selectNextMessage() {
+      if (this.messages.length === 0) return
+      
+      // Clear previous selection
+      this.clearMessageSelection()
+      
+      this.selectedMessageIndex = Math.min(this.selectedMessageIndex + 1, this.messages.length - 1)
+      this.highlightSelectedMessage()
+    },
+    
+    selectPrevMessage() {
+      if (this.messages.length === 0) return
+      
+      // Clear previous selection
+      this.clearMessageSelection()
+      
+      this.selectedMessageIndex = Math.max(this.selectedMessageIndex - 1, 0)
+      this.highlightSelectedMessage()
+    },
+    
+    clearMessageSelection() {
+      this.messages.forEach(msg => {
+        msg.classList.remove('ring-2', 'ring-primary', 'ring-offset-2')
+      })
+    },
+    
+    highlightSelectedMessage() {
+      if (this.selectedMessageIndex >= 0 && this.selectedMessageIndex < this.messages.length) {
+        const selectedMsg = this.messages[this.selectedMessageIndex]
+        selectedMsg.classList.add('ring-2', 'ring-primary', 'ring-offset-2')
+        selectedMsg.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    },
+    
+    openSelectedMessage() {
+      if (this.selectedMessageIndex >= 0 && this.selectedMessageIndex < this.messages.length) {
+        const selectedMsg = this.messages[this.selectedMessageIndex]
+        const link = selectedMsg.querySelector('a[href*="/email/view/"]')
+        if (link) {
+          link.click()
+        }
+      }
+    },
+    
+    archiveSelectedMessage() {
+      this.performActionOnSelected('archive')
+    },
+    
+    replyToSelectedMessage() {
+      this.performActionOnSelected('reply')
+    },
+    
+    forwardSelectedMessage() {
+      this.performActionOnSelected('forward')
+    },
+    
+    deleteSelectedMessage() {
+      this.performActionOnSelected('delete')
+    },
+    
+    markSpamSelectedMessage() {
+      this.performActionOnSelected('mark_spam')
+    },
+    
+    performActionOnSelected(action) {
+      if (this.selectedMessageIndex >= 0 && this.selectedMessageIndex < this.messages.length) {
+        const selectedMsg = this.messages[this.selectedMessageIndex]
+        const messageId = selectedMsg.id.replace('message-', '')
+        
+        if (action === 'delete') {
+          // Find delete button
+          const deleteBtn = selectedMsg.querySelector('[phx-click="delete"]')
+          if (deleteBtn && confirm('Are you sure you want to delete this message?')) {
+            deleteBtn.click()
+          }
+        } else {
+          // Find quick action button
+          const actionBtn = selectedMsg.querySelector(`[phx-value-action="${action}"]`)
+          if (actionBtn) {
+            actionBtn.click()
+          }
+        }
+      }
+    },
+    
+    showShortcutsOnPageLoad() {
+      // Show a brief shortcuts hint when page loads
+      const hint = document.createElement('div')
+      hint.className = 'fixed bottom-4 right-4 bg-primary text-primary-content px-4 py-2 rounded-lg shadow-lg z-50 text-sm'
+      hint.innerHTML = 'Press <kbd class="kbd kbd-xs">?</kbd> for keyboard shortcuts'
+      document.body.appendChild(hint)
+      
+      setTimeout(() => {
+        if (hint.parentNode) {
+          hint.style.opacity = '0'
+          hint.style.transition = 'opacity 0.3s'
+          setTimeout(() => {
+            if (hint.parentNode) {
+              document.body.removeChild(hint)
+            }
+          }, 300)
+        }
+      }, 3000)
+    },
+    
+    showShortcutsHelp() {
+      const modal = document.createElement('div')
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+      modal.innerHTML = `
+        <div class="bg-base-100 rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto" onclick="event.stopPropagation()">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Keyboard Shortcuts</h2>
+            <button class="btn btn-ghost btn-sm" onclick="this.closest('.fixed').remove()">✕</button>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="font-semibold mb-3">Navigation</h3>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">c</kbd>
+                  <span>Compose</span>
+                </div>
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">g</kbd>
+                  <span>Go to menu</span>
+                </div>
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">/</kbd>
+                  <span>Search</span>
+                </div>
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">j</kbd>
+                  <span>Next message</span>
+                </div>
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">k</kbd>
+                  <span>Previous message</span>
+                </div>
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">Enter</kbd>
+                  <span>Open message</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold mb-3">Actions</h3>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">e</kbd>
+                  <span>Archive</span>
+                </div>
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">r</kbd>
+                  <span>Reply</span>
+                </div>
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">f</kbd>
+                  <span>Forward</span>
+                </div>
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">#</kbd>
+                  <span>Delete</span>
+                </div>
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">!</kbd>
+                  <span>Mark as spam</span>
+                </div>
+                <div class="flex justify-between">
+                  <kbd class="kbd kbd-sm">Shift + /</kbd>
+                  <span>Show this help (?)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6 p-4 bg-base-200 rounded-lg">
+            <h4 class="font-semibold mb-2">Go to shortcuts (press 'g' then):</h4>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div><kbd class="kbd kbd-xs">i</kbd> Inbox</div>
+              <div><kbd class="kbd kbd-xs">s</kbd> Sent</div>
+              <div><kbd class="kbd kbd-xs">t</kbd> Search</div>
+              <div><kbd class="kbd kbd-xs">a</kbd> Archive</div>
+              <div><kbd class="kbd kbd-xs">p</kbd> Spam</div>
+            </div>
+          </div>
+        </div>
+      `
+      
+      // Close modal when clicking outside the content area
+      modal.addEventListener('click', () => {
+        modal.remove()
+      })
+      
+      document.body.appendChild(modal)
     }
   }
 }

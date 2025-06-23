@@ -7,6 +7,7 @@ defmodule Elektrine.Accounts.User do
     field :password_hash, :string
     field :password, :string, virtual: true
     field :password_confirmation, :string, virtual: true
+    field :current_password, :string, virtual: true
     field :avatar, :string
     field :last_username_change_at, :utc_datetime
     field :is_admin, :boolean, default: false
@@ -59,10 +60,11 @@ defmodule Elektrine.Accounts.User do
   """
   def password_changeset(user, attrs) do
     user
-    |> cast(attrs, [:password, :password_confirmation])
-    |> validate_required([:password, :password_confirmation])
+    |> cast(attrs, [:password, :password_confirmation, :current_password])
+    |> validate_required([:password, :password_confirmation, :current_password])
     |> validate_length(:password, min: 8, max: 72)
     |> validate_confirmation(:password, message: "does not match password")
+    |> validate_current_password()
     |> hash_password()
   end
 
@@ -199,4 +201,32 @@ defmodule Elektrine.Accounts.User do
         end
     end
   end
+
+  defp validate_current_password(changeset) do
+    current_password = get_change(changeset, :current_password)
+    
+    if current_password do
+      user = changeset.data
+      
+      # Verify the current password
+      if verify_password(current_password, user.password_hash) do
+        changeset
+      else
+        add_error(changeset, :current_password, "is incorrect")
+      end
+    else
+      changeset
+    end
+  end
+
+  # Helper function to verify password against hash
+  defp verify_password(password, hash) when is_binary(password) and is_binary(hash) do
+    cond do
+      String.starts_with?(hash, ["$2", "$2a$", "$2b$", "$2y$"]) -> 
+        Bcrypt.verify_pass(password, hash)
+      true -> 
+        Argon2.verify_pass(password, hash)
+    end
+  end
+  defp verify_password(_, _), do: false
 end
