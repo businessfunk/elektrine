@@ -81,11 +81,12 @@ config :elektrine, Elektrine.Scheduler,
 config :ex_aws,
   access_key_id: System.get_env("BACKBLAZE_KEY_ID"),
   secret_access_key: System.get_env("BACKBLAZE_APPLICATION_KEY"),
-  region: System.get_env("BACKBLAZE_REGION") || "us-west-002",
+  region: "auto",
+  json_codec: Jason,
   s3: [
     scheme: "https://",
     host: System.get_env("BACKBLAZE_ENDPOINT") || "s3.us-west-002.backblazeb2.com",
-    region: System.get_env("BACKBLAZE_REGION") || "us-west-002"
+    region: "auto"
   ]
 
 config :elektrine, :uploads,
