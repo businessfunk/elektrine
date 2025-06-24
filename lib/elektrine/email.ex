@@ -582,18 +582,42 @@ defmodule Elektrine.Email do
     # Set expiration time
     expires_at = DateTime.utc_now() |> DateTime.add(capped_hours * 60 * 60, :second)
     
+    # Retry creation with unique email/token if there are conflicts
+    create_temporary_mailbox_with_retry(expires_at, domain, 0)
+  end
+
+  defp create_temporary_mailbox_with_retry(expires_at, domain, attempts) when attempts < 10 do
     # Generate a random email and token
     email = TemporaryMailbox.generate_email(domain)
     token = TemporaryMailbox.generate_token()
     
     # Create the temporary mailbox
-    %TemporaryMailbox{}
+    case %TemporaryMailbox{}
     |> TemporaryMailbox.changeset(%{
       email: email,
       token: token,
       expires_at: expires_at
     })
-    |> Repo.insert()
+    |> Repo.insert() do
+      {:ok, mailbox} -> {:ok, mailbox}
+      {:error, %Ecto.Changeset{errors: errors}} ->
+        # Check if error is due to unique constraint violation
+        has_unique_error = Enum.any?(errors, fn {field, {_, opts}} ->
+          field in [:email, :token] and opts[:constraint] == :unique
+        end)
+        
+        if has_unique_error do
+          # Retry with new email/token
+          create_temporary_mailbox_with_retry(expires_at, domain, attempts + 1)
+        else
+          # Other error, return it
+          {:error, %Ecto.Changeset{errors: errors}}
+        end
+    end
+  end
+
+  defp create_temporary_mailbox_with_retry(_expires_at, _domain, _attempts) do
+    {:error, "Failed to create unique temporary mailbox after 10 attempts"}
   end
   
   @doc """

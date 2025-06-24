@@ -8,7 +8,8 @@ defmodule ElektrineWeb.UserSettingsController do
   def edit(conn, _params) do
     user = conn.assigns.current_user
     changeset = Accounts.change_user(user)
-    render(conn, :edit, changeset: changeset)
+    pending_deletion = Accounts.get_pending_deletion_request(user)
+    render(conn, :edit, changeset: changeset, pending_deletion: pending_deletion)
   end
 
   def update(conn, %{"user" => user_params}) do
@@ -52,6 +53,47 @@ defmodule ElektrineWeb.UserSettingsController do
       {:error, changeset} ->
         render(conn, :edit_password, changeset: changeset)
     end
+  end
+
+  def delete(conn, _params) do
+    render(conn, :delete)
+  end
+
+  def confirm_delete(conn, %{"confirmation" => confirmation, "reason" => reason}) do
+    user = conn.assigns.current_user
+    
+    if confirmation == user.username do
+      # Check if user already has a pending deletion request
+      case Accounts.get_pending_deletion_request(user) do
+        nil ->
+          # Create new deletion request
+          case Accounts.create_deletion_request(user, %{reason: reason}) do
+            {:ok, _request} ->
+              conn
+              |> put_flash(:info, "Your account deletion request has been submitted and is pending admin approval.")
+              |> redirect(to: ~p"/account")
+            
+            {:error, _changeset} ->
+              conn
+              |> put_flash(:error, "There was an error submitting your deletion request. Please try again.")
+              |> redirect(to: ~p"/account/delete")
+          end
+        
+        _existing_request ->
+          conn
+          |> put_flash(:error, "You already have a pending account deletion request.")
+          |> redirect(to: ~p"/account")
+      end
+    else
+      conn
+      |> put_flash(:error, "Username confirmation does not match. Request not submitted.")
+      |> redirect(to: ~p"/account/delete")
+    end
+  end
+  
+  def confirm_delete(conn, %{"confirmation" => confirmation}) do
+    # Handle case where reason is not provided
+    confirm_delete(conn, %{"confirmation" => confirmation, "reason" => ""})
   end
 
   defp assign_user(conn, _opts) do

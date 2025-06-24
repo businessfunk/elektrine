@@ -58,6 +58,8 @@ defmodule ElektrineWeb.Router do
     put "/account", UserSettingsController, :update
     get "/account/password", UserSettingsController, :edit_password
     put "/account/password", UserSettingsController, :update_password
+    get "/account/delete", UserSettingsController, :delete
+    delete "/account", UserSettingsController, :confirm_delete
 
     # Email LiveView routes - each is a separate LiveView with individual templates
     live_session :authenticated, on_mount: {ElektrineWeb.Live.AuthHooks, :require_authenticated_user} do
@@ -102,6 +104,10 @@ defmodule ElektrineWeb.Router do
     delete "/users/:id", AdminController, :delete
     get "/mailboxes", AdminController, :mailboxes
     get "/messages", AdminController, :messages
+    get "/deletion-requests", AdminController, :deletion_requests
+    get "/deletion-requests/:id", AdminController, :show_deletion_request
+    post "/deletion-requests/:id/approve", AdminController, :approve_deletion_request
+    post "/deletion-requests/:id/deny", AdminController, :deny_deletion_request
   end
 
   # Routes for all users (authenticated or not)

@@ -49,15 +49,15 @@
             <button class={"tab tab-bordered #{if @active_tab == "plain", do: "tab-active"}"} phx-click="switch_tab" phx-value-tab="plain">Plain Text</button>
           </div>
           
-          <div id="html-content" class={"border p-4 rounded-lg bg-white #{if @active_tab != "html", do: "hidden"}"}>
-            <iframe id="message-frame" sandbox="allow-same-origin" class="w-full min-h-[500px]" srcdoc={Phoenix.HTML.raw(HtmlSanitizeEx.basic_html(process_email_html(@message.html_body) || ""))}></iframe>
+          <div id="html-content" class={"border p-4 rounded-lg bg-white overflow-auto #{if @active_tab != "html", do: "hidden"}"}>
+            <iframe id="message-frame" sandbox="allow-same-origin" class="w-full min-h-[500px] max-w-full" srcdoc={Phoenix.HTML.raw(HtmlSanitizeEx.basic_html(process_email_html(@message.html_body) || ""))}></iframe>
           </div>
           
-          <div id="plain-content" class={"border p-4 rounded-lg whitespace-pre-wrap font-mono text-sm #{if @active_tab != "plain", do: "hidden"}"}>
+          <div id="plain-content" class={"border p-4 rounded-lg whitespace-pre-wrap font-mono text-sm overflow-auto break-words #{if @active_tab != "plain", do: "hidden"}"}>
             <%= @message.text_body || "No plain text content available." %>
           </div>
         <% else %>
-          <div class="border p-4 rounded-lg whitespace-pre-wrap font-mono text-sm">
+          <div class="border p-4 rounded-lg whitespace-pre-wrap font-mono text-sm overflow-auto break-words">
             <%= @message.text_body || "No content available." %>
           </div>
         <% end %>

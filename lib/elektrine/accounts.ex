@@ -8,6 +8,7 @@ defmodule Elektrine.Accounts do
   alias Elektrine.Repo
 
   alias Elektrine.Accounts.User
+  alias Elektrine.Accounts.AccountDeletionRequest
 
   @doc """
   Returns the list of users.
@@ -320,8 +321,16 @@ defmodule Elektrine.Accounts do
       from(mb in Elektrine.Email.Mailbox, where: mb.user_id == ^user.id)
       |> Repo.delete_all()
 
-      # Delete user's approved senders
-      from(as in Elektrine.Email.ApprovedSender, where: as.user_id == ^user.id)
+      # Delete user's email aliases  
+      from(a in Elektrine.Email.Alias, where: a.user_id == ^user.id)
+      |> Repo.delete_all()
+
+      # Delete user's approved senders (through mailboxes)
+      from(as in Elektrine.Email.ApprovedSender,
+        join: mb in Elektrine.Email.Mailbox,
+        on: as.mailbox_id == mb.id,
+        where: mb.user_id == ^user.id
+      )
       |> Repo.delete_all()
 
       # Finally delete the user
@@ -343,5 +352,130 @@ defmodule Elektrine.Accounts do
   """
   def change_user_admin(%User{} = user, attrs \\ %{}) do
     User.admin_changeset(user, attrs)
+  end
+
+  # Account Deletion Request functions
+
+  @doc """
+  Creates an account deletion request.
+
+  ## Examples
+
+      iex> create_deletion_request(user, %{reason: "No longer needed"})
+      {:ok, %AccountDeletionRequest{}}
+
+      iex> create_deletion_request(user, %{})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_deletion_request(%User{} = user, attrs \\ %{}) do
+    attrs = Map.put(attrs, :user_id, user.id)
+    attrs = Map.put(attrs, :requested_at, DateTime.utc_now() |> DateTime.truncate(:second))
+    
+    %AccountDeletionRequest{}
+    |> AccountDeletionRequest.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Gets a user's pending deletion request.
+
+  ## Examples
+
+      iex> get_pending_deletion_request(user)
+      %AccountDeletionRequest{}
+
+      iex> get_pending_deletion_request(user)
+      nil
+
+  """
+  def get_pending_deletion_request(%User{} = user) do
+    Repo.get_by(AccountDeletionRequest, user_id: user.id, status: "pending")
+  end
+
+  @doc """
+  Lists all account deletion requests.
+
+  ## Examples
+
+      iex> list_deletion_requests()
+      [%AccountDeletionRequest{}, ...]
+
+  """
+  def list_deletion_requests do
+    from(r in AccountDeletionRequest,
+      join: u in User,
+      on: r.user_id == u.id,
+      left_join: admin in User,
+      on: r.reviewed_by_id == admin.id,
+      select: %{r | user: u, reviewed_by: admin},
+      order_by: [desc: r.requested_at]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets a single deletion request.
+
+  ## Examples
+
+      iex> get_deletion_request!(123)
+      %AccountDeletionRequest{}
+
+      iex> get_deletion_request!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_deletion_request!(id) do
+    from(r in AccountDeletionRequest,
+      join: u in User,
+      on: r.user_id == u.id,
+      left_join: admin in User,
+      on: r.reviewed_by_id == admin.id,
+      where: r.id == ^id,
+      select: %{r | user: u, reviewed_by: admin}
+    )
+    |> Repo.one!()
+  end
+
+  @doc """
+  Reviews an account deletion request (approve or deny).
+
+  ## Examples
+
+      iex> review_deletion_request(request, admin, "approved", %{admin_notes: "Approved"})
+      {:ok, %AccountDeletionRequest{}}
+
+      iex> review_deletion_request(request, admin, "denied", %{admin_notes: "Invalid reason"})
+      {:ok, %AccountDeletionRequest{}}
+
+  """
+  def review_deletion_request(%AccountDeletionRequest{} = request, %User{} = admin, status, attrs \\ %{}) do
+    review_attrs = %{
+      status: status,
+      reviewed_at: DateTime.utc_now() |> DateTime.truncate(:second),
+      reviewed_by_id: admin.id,
+      admin_notes: Map.get(attrs, :admin_notes)
+    }
+
+    result = request
+    |> AccountDeletionRequest.review_changeset(review_attrs)
+    |> Repo.update()
+
+    case result do
+      {:ok, updated_request} when status == "approved" ->
+        # If approved, delete the user account
+        user = get_user!(request.user_id)
+        case admin_delete_user(user) do
+          {:ok, _user} -> {:ok, updated_request}
+          {:error, _changeset} -> {:error, "Failed to delete user account"}
+        end
+      
+      {:ok, updated_request} ->
+        {:ok, updated_request}
+      
+      {:error, changeset} ->
+        {:error, changeset}
+    end
   end
 end

@@ -1,6 +1,7 @@
 defmodule Elektrine.Email.TemporaryMailbox do
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query
 
   schema "temporary_mailboxes" do
     field :email, :string
@@ -27,22 +28,69 @@ defmodule Elektrine.Email.TemporaryMailbox do
 
   @doc """
   Generates a random token for a temporary mailbox.
+  Ensures the token is unique.
   """
   def generate_token do
-    :crypto.strong_rand_bytes(32)
+    generate_unique_token(0)
+  end
+
+  defp generate_unique_token(attempts) when attempts < 100 do
+    token = :crypto.strong_rand_bytes(32)
     |> Base.url_encode64()
     |> String.replace(~r/[^a-zA-Z0-9]/, "")
     |> String.slice(0, 32)
+    
+    # Check if this token has ever been used
+    token_exists = Elektrine.Repo.exists?(
+      from(t in __MODULE__, where: t.token == ^token)
+    )
+    
+    if token_exists do
+      # Token already used, try again
+      generate_unique_token(attempts + 1)
+    else
+      token
+    end
+  end
+
+  defp generate_unique_token(_attempts) do
+    raise "Failed to generate unique temporary mailbox token after 100 attempts"
   end
   
   @doc """
   Generates a random email address for a temporary mailbox.
   Optionally accepts a domain override.
+  Ensures the email is unique and not reused.
   """
   def generate_email(domain \\ nil) do
-    username = generate_random_username()
     domain = domain || Application.get_env(:elektrine, :email)[:domain] || "elektrine.com"
-    "#{username}@#{domain}"
+    generate_unique_email(domain)
+  end
+
+  defp generate_unique_email(domain, attempts \\ 0) do
+    # Prevent infinite loops
+    if attempts > 100 do
+      raise "Failed to generate unique temporary email after 100 attempts"
+    end
+
+    username = generate_random_username()
+    email = "#{username}@#{domain}"
+    
+    # Check if this email has ever been used (in both temporary_mailboxes and mailboxes tables)
+    temp_exists = Elektrine.Repo.exists?(
+      from(t in __MODULE__, where: t.email == ^email)
+    )
+    
+    mailbox_exists = Elektrine.Repo.exists?(
+      from(m in Elektrine.Email.Mailbox, where: m.email == ^email)
+    )
+    
+    if temp_exists or mailbox_exists do
+      # Email already used, try again
+      generate_unique_email(domain, attempts + 1)
+    else
+      email
+    end
   end
   
   @doc """

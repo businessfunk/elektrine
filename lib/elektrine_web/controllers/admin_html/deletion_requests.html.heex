@@ -1,0 +1,95 @@
+<div class="container mx-auto p-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Account Deletion Requests</h1>
+  </div>
+
+  <%= if Enum.empty?(@requests) do %>
+    <div class="alert alert-info">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span>No account deletion requests found.</span>
+    </div>
+  <% else %>
+    <div class="overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Requested At</th>
+            <th>Reviewed By</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for request <- @requests do %>
+            <tr>
+              <td>
+                <div class="font-semibold"><%= request.user.username %></div>
+                <div class="text-sm opacity-70">ID: <%= request.user.id %></div>
+              </td>
+              <td>
+                <%= if request.reason && String.trim(request.reason) != "" do %>
+                  <div class="max-w-xs truncate" title={request.reason}>
+                    <%= request.reason %>
+                  </div>
+                <% else %>
+                  <span class="text-gray-500">No reason provided</span>
+                <% end %>
+              </td>
+              <td>
+                <span class={[
+                  "badge",
+                  case request.status do
+                    "pending" -> "badge-warning"
+                    "approved" -> "badge-success"
+                    "denied" -> "badge-error"
+                    _ -> "badge-neutral"
+                  end
+                ]}>
+                  <%= String.capitalize(request.status) %>
+                </span>
+              </td>
+              <td>
+                <div class="text-sm">
+                  <%= Calendar.strftime(request.requested_at, "%Y-%m-%d") %>
+                </div>
+                <div class="text-xs opacity-70">
+                  <%= Calendar.strftime(request.requested_at, "%H:%M UTC") %>
+                </div>
+              </td>
+              <td>
+                <%= if request.reviewed_by do %>
+                  <div class="text-sm">
+                    <%= request.reviewed_by.username %>
+                  </div>
+                  <%= if request.reviewed_at do %>
+                    <div class="text-xs opacity-70">
+                      <%= Calendar.strftime(request.reviewed_at, "%Y-%m-%d %H:%M") %>
+                    </div>
+                  <% end %>
+                <% else %>
+                  <span class="text-gray-500">-</span>
+                <% end %>
+              </td>
+              <td>
+                <div class="flex gap-2">
+                  <.link href={~p"/admin/deletion-requests/#{request.id}"} class="btn btn-sm btn-outline">
+                    View
+                  </.link>
+                  <%= if request.status == "pending" do %>
+                    <.link href={~p"/admin/deletion-requests/#{request.id}"} class="btn btn-sm btn-primary">
+                      Review
+                    </.link>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

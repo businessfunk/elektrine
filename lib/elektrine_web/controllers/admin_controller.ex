@@ -12,7 +12,8 @@ defmodule ElektrineWeb.AdminController do
       total_mailboxes: get_mailbox_count(),
       total_messages: get_message_count(),
       temp_mailboxes: get_temp_mailbox_count(),
-      recent_users: get_recent_users()
+      recent_users: get_recent_users(),
+      pending_deletions: get_pending_deletion_count()
     }
 
     render(conn, :dashboard, stats: stats)
@@ -211,6 +212,63 @@ defmodule ElektrineWeb.AdminController do
     |> Repo.all()
   end
 
+  def deletion_requests(conn, _params) do
+    requests = Accounts.list_deletion_requests()
+    render(conn, :deletion_requests, requests: requests)
+  end
+
+  def show_deletion_request(conn, %{"id" => id}) do
+    request = Accounts.get_deletion_request!(id)
+    render(conn, :show_deletion_request, request: request)
+  end
+
+  def approve_deletion_request(conn, %{"id" => id, "admin_notes" => admin_notes}) do
+    request = Accounts.get_deletion_request!(id)
+    admin = conn.assigns.current_user
+
+    case Accounts.review_deletion_request(request, admin, "approved", %{admin_notes: admin_notes}) do
+      {:ok, _updated_request} ->
+        conn
+        |> put_flash(:info, "Account deletion request approved and user account deleted.")
+        |> redirect(to: ~p"/admin/deletion-requests")
+
+      {:error, error} when is_binary(error) ->
+        conn
+        |> put_flash(:error, error)
+        |> redirect(to: ~p"/admin/deletion-requests/#{id}")
+
+      {:error, _changeset} ->
+        conn
+        |> put_flash(:error, "Failed to approve deletion request.")
+        |> redirect(to: ~p"/admin/deletion-requests/#{id}")
+    end
+  end
+
+  def approve_deletion_request(conn, %{"id" => id}) do
+    approve_deletion_request(conn, %{"id" => id, "admin_notes" => ""})
+  end
+
+  def deny_deletion_request(conn, %{"id" => id, "admin_notes" => admin_notes}) do
+    request = Accounts.get_deletion_request!(id)
+    admin = conn.assigns.current_user
+
+    case Accounts.review_deletion_request(request, admin, "denied", %{admin_notes: admin_notes}) do
+      {:ok, _updated_request} ->
+        conn
+        |> put_flash(:info, "Account deletion request denied.")
+        |> redirect(to: ~p"/admin/deletion-requests")
+
+      {:error, _changeset} ->
+        conn
+        |> put_flash(:error, "Failed to deny deletion request.")
+        |> redirect(to: ~p"/admin/deletion-requests/#{id}")
+    end
+  end
+
+  def deny_deletion_request(conn, %{"id" => id}) do
+    deny_deletion_request(conn, %{"id" => id, "admin_notes" => ""})
+  end
+
   defp search_users(search_query) do
     search_term = "%#{search_query}%"
     
@@ -260,5 +318,12 @@ defmodule ElektrineWeb.AdminController do
       }
     )
     |> Repo.all()
+  end
+
+  defp get_pending_deletion_count do
+    from(r in Elektrine.Accounts.AccountDeletionRequest,
+      where: r.status == "pending"
+    )
+    |> Repo.aggregate(:count)
   end
 end

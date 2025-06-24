@@ -654,7 +654,6 @@ const Hooks = {
     mounted() {
       console.log("Keyboard shortcuts enabled")
       this.setupKeyboardShortcuts()
-      this.showShortcutsOnPageLoad()
     },
     
     setupKeyboardShortcuts() {
@@ -984,25 +983,6 @@ const Hooks = {
       }
     },
     
-    showShortcutsOnPageLoad() {
-      // Show a brief shortcuts hint when page loads
-      const hint = document.createElement('div')
-      hint.className = 'fixed bottom-4 right-4 bg-primary text-primary-content px-4 py-2 rounded-lg shadow-lg z-50 text-sm'
-      hint.innerHTML = 'Press <kbd class="kbd kbd-xs">?</kbd> for keyboard shortcuts'
-      document.body.appendChild(hint)
-      
-      setTimeout(() => {
-        if (hint.parentNode) {
-          hint.style.opacity = '0'
-          hint.style.transition = 'opacity 0.3s'
-          setTimeout(() => {
-            if (hint.parentNode) {
-              document.body.removeChild(hint)
-            }
-          }, 300)
-        }
-      }, 3000)
-    },
     
     showShortcutsHelp() {
       const modal = document.createElement('div')

@@ -49,7 +49,7 @@
                   <div class="p-2 bg-info/10 rounded-lg">
                     <.icon name="hero-envelope" class="h-6 w-6 text-info" />
                   </div>
-                  <div>
+                  <div class="min-w-0 flex-1">
                     <h2 class="text-2xl font-bold">Temporary Mailbox</h2>
                     <p class="text-sm text-base-content/70 font-mono break-all"><%= @current_temp_mailbox.email %></p>
                   </div>
@@ -90,10 +90,10 @@
                               </div>
                               <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between">
-                                  <p class="font-semibold text-sm truncate"><%= message.from %></p>
-                                  <span class="text-xs text-base-content/60 font-mono ml-2"><%= format_date(message.inserted_at) %></span>
+                                  <p class="font-semibold text-sm truncate" title={message.from}><%= message.from %></p>
+                                  <span class="text-xs text-base-content/60 font-mono ml-2 flex-shrink-0"><%= format_date(message.inserted_at) %></span>
                                 </div>
-                                <h3 class="font-bold text-base truncate mt-1"><%= decode_email_subject(message.subject) %></h3>
+                                <h3 class="font-bold text-base truncate mt-1" title={decode_email_subject(message.subject)}><%= decode_email_subject(message.subject) %></h3>
                               </div>
                             </div>
                             <p class="text-sm text-base-content/70 line-clamp-2"><%= truncate(message.text_body, 150) %></p>
@@ -132,27 +132,33 @@
               <!-- Message Details -->
               <div class="bg-base-200 rounded-lg p-4 mb-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span class="font-semibold">From:</span> <%= @current_message.from %>
+                  <div class="min-w-0">
+                    <span class="font-semibold">From:</span> 
+                    <span class="break-all"><%= @current_message.from %></span>
                   </div>
-                  <div>
-                    <span class="font-semibold">To:</span> <%= @current_message.to %>
+                  <div class="min-w-0">
+                    <span class="font-semibold">To:</span> 
+                    <span class="break-all"><%= @current_message.to %></span>
                   </div>
-                  <div>
-                    <span class="font-semibold">Date:</span> <%= format_date(@current_message.inserted_at) %>
+                  <div class="min-w-0">
+                    <span class="font-semibold">Date:</span> 
+                    <span class="break-all"><%= format_date(@current_message.inserted_at) %></span>
                   </div>
-                  <div>
-                    <span class="font-semibold">Subject:</span> <%= decode_email_subject(@current_message.subject) %>
+                  <div class="min-w-0">
+                    <span class="font-semibold">Subject:</span> 
+                    <span class="break-all"><%= decode_email_subject(@current_message.subject) %></span>
                   </div>
                 </div>
               </div>
               
               <!-- Message Content -->
-              <div class="prose prose-sm max-w-none bg-white p-6 rounded-lg border">
+              <div class="prose prose-sm max-w-none bg-white p-6 rounded-lg border overflow-auto">
                 <%= if @current_message.html_body do %>
-                  <%= Phoenix.HTML.raw(HtmlSanitizeEx.basic_html(process_email_html(@current_message.html_body))) %>
+                  <div class="overflow-auto break-words">
+                    <%= Phoenix.HTML.raw(HtmlSanitizeEx.basic_html(process_email_html(@current_message.html_body))) %>
+                  </div>
                 <% else %>
-                  <pre class="whitespace-pre-wrap font-sans"><%= @current_message.text_body %></pre>
+                  <pre class="whitespace-pre-wrap font-sans overflow-auto break-words"><%= @current_message.text_body %></pre>
                 <% end %>
               </div>
           <% end %>

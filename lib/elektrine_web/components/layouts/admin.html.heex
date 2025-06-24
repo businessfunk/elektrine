@@ -21,6 +21,10 @@
           <.icon name="hero-chat-bubble-left-ellipsis" class="w-4 h-4" />
           Messages
         </.link></li>
+        <li><.link href={~p"/admin/deletion-requests"} class={if assigns[:conn] && String.starts_with?(@conn.request_path, "/admin/deletion-requests"), do: "active", else: ""}>
+          <.icon name="hero-trash" class="w-4 h-4" />
+          Deletion Requests
+        </.link></li>
         <li><.link href={~p"/admin/dashboard"}>
           <.icon name="hero-computer-desktop" class="w-4 h-4" />
           System Dashboard
@@ -40,6 +44,7 @@
       <li><.link href={~p"/admin/users"} class={if assigns[:conn] && @conn.request_path == "/admin/users", do: "active", else: ""}>Users</.link></li>
       <li><.link href={~p"/admin/mailboxes"} class={if assigns[:conn] && @conn.request_path == "/admin/mailboxes", do: "active", else: ""}>Mailboxes</.link></li>
       <li><.link href={~p"/admin/messages"} class={if assigns[:conn] && @conn.request_path == "/admin/messages", do: "active", else: ""}>Messages</.link></li>
+      <li><.link href={~p"/admin/deletion-requests"} class={if assigns[:conn] && String.starts_with?(@conn.request_path, "/admin/deletion-requests"), do: "active", else: ""}>Deletion Requests</.link></li>
       <li>
         <details>
           <summary class="btn btn-ghost">
