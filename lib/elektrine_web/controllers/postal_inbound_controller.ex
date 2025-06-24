@@ -13,12 +13,20 @@ defmodule ElektrineWeb.PostalInboundController do
   @auth_password System.get_env("POSTAL_AUTH_PASSWORD")
 
   def create(conn, params) do
+    start_time = System.monotonic_time(:millisecond)
+    
     # Debug logging
     Logger.info("Received postal inbound email. Params: #{inspect(params)}")
     Logger.info("Headers: #{inspect(conn.req_headers)}")
+    
+    # Track request for rate limiting
+    remote_ip = get_remote_ip(conn)
+    Logger.info("Request from IP: #{remote_ip}")
 
     with :ok <- authenticate(conn),
-         :ok <- verify_ip(conn) do
+         :ok <- verify_ip(conn),
+         :ok <- validate_request_size(conn),
+         :ok <- check_rate_limit(remote_ip) do
 
       # Check for required message parameter
       unless Map.has_key?(params, "message") do
@@ -71,12 +79,14 @@ defmodule ElektrineWeb.PostalInboundController do
               # Process the raw email and create a message in the database
               case process_email(decoded_message, rcpt_to) do
                 {:ok, email} ->
-                  Logger.info("Successfully processed email: #{email.message_id}")
-                  conn |> put_status(:ok) |> json(%{status: "success", message_id: email.id})
+                  duration = System.monotonic_time(:millisecond) - start_time
+                  Logger.info("Successfully processed email: #{email.message_id} (#{duration}ms)")
+                  conn |> put_status(:ok) |> json(%{status: "success", message_id: email.id, processing_time_ms: duration})
 
                 {:error, reason} ->
-                  Logger.warning("Failed to process email: #{inspect(reason)}")
-                  conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to process email: #{inspect(reason)}"})
+                  duration = System.monotonic_time(:millisecond) - start_time
+                  Logger.warning("Failed to process email: #{inspect(reason)} (#{duration}ms)")
+                  conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to process email: #{inspect(reason)}", processing_time_ms: duration})
               end
 
             :error ->
@@ -95,6 +105,12 @@ defmodule ElektrineWeb.PostalInboundController do
     else
       {:error, :unauthorized} ->
         conn |> put_status(:unauthorized) |> json(%{error: "Unauthorized"})
+      
+      {:error, :request_too_large} ->
+        conn |> put_status(:payload_too_large) |> json(%{error: "Request too large"})
+      
+      {:error, :rate_limited} ->
+        conn |> put_status(:too_many_requests) |> json(%{error: "Rate limited"})
     end
   end
 
@@ -145,15 +161,20 @@ defmodule ElektrineWeb.PostalInboundController do
           {:ok, %{id: "skipped-loopback", message_id: message_id}}
         else
         # Find or create the appropriate mailbox
+        Logger.info("About to find_or_create_mailbox with to=#{inspect(to)}, rcpt_to=#{inspect(rcpt_to)}")
         case find_or_create_mailbox(to, rcpt_to) do
         {:ok, mailbox} ->
-          Logger.info("Using mailbox: #{mailbox.email} (user_id: #{mailbox.user_id})")
+          Logger.info("Successfully found/created mailbox: #{mailbox.email} (id: #{mailbox.id}, user_id: #{mailbox.user_id})")
 
           # Determine if this is a temporary mailbox from its structure
           is_temporary = case mailbox do
             %{temporary: true} -> true
             _ -> false
           end
+          
+          # Extract and process attachments
+          attachments = extract_attachments(normalized_email)
+          has_attachments = attachments != %{}
           
           # Store in database
           email_data = %{
@@ -163,28 +184,32 @@ defmodule ElektrineWeb.PostalInboundController do
             subject: subject,
             text_body: body,
             html_body: extract_html(normalized_email),
+            attachments: attachments,
+            has_attachments: has_attachments,
             mailbox_id: mailbox.id,
             mailbox_type: if(is_temporary, do: "temporary", else: "regular"),
             status: "received",
             metadata: %{
               raw_email: raw_email,
               parsed_at: DateTime.utc_now() |> DateTime.to_iso8601(),
-              temporary: is_temporary
+              temporary: is_temporary,
+              attachment_count: map_size(attachments)
             }
           }
 
           # Log that we're about to process the email
           Logger.info("Processing email for mailbox:#{mailbox.id}" <> if(mailbox.user_id, do: " (user:#{mailbox.user_id})", else: ""))
           
-          # Check if this message already exists before creating
-          result = case Elektrine.Email.get_message_by_id(email_data.message_id, mailbox.id) do
+          # Enhanced deduplication check
+          result = case find_duplicate_message(email_data) do
             nil ->
-              # Message doesn't exist, create it using the adapter
+              # No duplicate found, create new message
+              Logger.info("Creating new message: #{email_data.message_id}")
               Elektrine.Email.MailboxAdapter.create_message(email_data)
 
             existing_message ->
-              # Message already exists, return it
-              Logger.info("Message with ID #{email_data.message_id} already exists, skipping creation")
+              # Duplicate found, return existing
+              Logger.info("Duplicate message detected: #{email_data.message_id} (existing: #{existing_message.id})")
               {:ok, existing_message}
           end
           
@@ -205,7 +230,9 @@ defmodule ElektrineWeb.PostalInboundController do
           end
 
         {:error, reason} ->
-          Logger.warning("Could not find or create mailbox: #{inspect(reason)}")
+          Logger.error("FAILED to find or create mailbox for to=#{inspect(to)}, rcpt_to=#{inspect(rcpt_to)}")
+          Logger.error("Error reason: #{inspect(reason)}")
+          Logger.error("This will result in 422 error being returned to Postal")
           {:error, :no_mailbox}
       end
       end
@@ -347,6 +374,101 @@ defmodule ElektrineWeb.PostalInboundController do
 
   defp decode_rfc2047_header(header), do: header
 
+  # Extract attachments from email
+  defp extract_attachments(email) do
+    cond do
+      # Check if this is a multipart message
+      Regex.match?(~r/Content-Type:\s*multipart\//i, email) ->
+        extract_multipart_attachments(email)
+      
+      # Single attachment (not multipart)
+      Regex.match?(~r/Content-Disposition:\s*attachment/i, email) ->
+        extract_single_attachment(email)
+      
+      true -> %{}
+    end
+  end
+
+  defp extract_multipart_attachments(email) do
+    # Find the boundary
+    boundary = case Regex.run(~r/boundary="?([^"\r\n;]+)"?/i, email) do
+      [_, boundary] -> boundary
+      _ -> nil
+    end
+
+    if boundary do
+      # Split by boundary and process each part
+      parts = String.split(email, "--#{boundary}")
+      
+      parts
+      |> Enum.with_index()
+      |> Enum.reduce(%{}, fn {part, index}, acc ->
+        case extract_attachment_from_part(part, index) do
+          nil -> acc
+          attachment -> Map.put(acc, "attachment_#{index}", attachment)
+        end
+      end)
+    else
+      %{}
+    end
+  end
+
+  defp extract_single_attachment(email) do
+    case extract_attachment_from_part(email, 0) do
+      nil -> %{}
+      attachment -> %{"attachment_0" => attachment}
+    end
+  end
+
+  defp extract_attachment_from_part(part, index) do
+    # Check if this part is an attachment
+    if Regex.match?(~r/Content-Disposition:\s*attachment/i, part) do
+      # Extract filename
+      filename = case Regex.run(~r/filename="?([^"\r\n;]+)"?/i, part) do
+        [_, name] -> name
+        _ -> "attachment_#{index}"
+      end
+
+      # Extract content type
+      content_type = case Regex.run(~r/Content-Type:\s*([^;\r\n]+)/i, part) do
+        [_, type] -> String.trim(type)
+        _ -> "application/octet-stream"
+      end
+
+      # Extract encoding
+      encoding = case Regex.run(~r/Content-Transfer-Encoding:\s*([^\r\n]+)/i, part) do
+        [_, enc] -> String.trim(enc)
+        _ -> nil
+      end
+
+      # Extract content (after double newline)
+      content = case Regex.run(~r/\r?\n\r?\n(.*)/s, part) do
+        [_, data] -> String.trim(data)
+        _ -> ""
+      end
+
+      # Decode content based on encoding
+      decoded_content = case String.downcase(encoding || "") do
+        "base64" ->
+          case Base.decode64(content) do
+            {:ok, decoded} -> Base.encode64(decoded)  # Re-encode for storage
+            :error -> content
+          end
+        _ -> content
+      end
+
+      %{
+        "filename" => filename,
+        "content_type" => content_type,
+        "encoding" => encoding,
+        "data" => decoded_content,
+        "size" => byte_size(decoded_content)
+      }
+    else
+      nil
+    end
+  end
+
   # Extract plain text content from email body
   defp extract_text_content(body) do
     text_content = cond do
@@ -411,6 +533,9 @@ defmodule ElektrineWeb.PostalInboundController do
 
     # Try to extract clean email address
     clean_email = extract_clean_email(to) || extract_clean_email(rcpt_to)
+    
+    Logger.info("find_or_create_mailbox called with - To: #{inspect(to)}, RCPT_TO: #{inspect(rcpt_to)}")
+    Logger.info("Extracted clean email: #{inspect(clean_email)}")
 
     if clean_email do
       # First check if this email is an alias
@@ -458,7 +583,45 @@ defmodule ElektrineWeb.PostalInboundController do
           end
       end
     else
-      {:error, :invalid_email}
+      Logger.warning("Could not extract clean email from To: #{inspect(to)} or RCPT_TO: #{inspect(rcpt_to)}")
+      
+      # Try to create a fallback email address
+      fallback_email = case {to, rcpt_to} do
+        {to_val, _} when is_binary(to_val) and to_val != "" ->
+          # Try to use the to field as-is if it looks like an email
+          if String.contains?(to_val, "@") do
+            String.trim(to_val)
+          else
+            nil
+          end
+        
+        {_, rcpt_val} when is_binary(rcpt_val) and rcpt_val != "" ->
+          # Try to use rcpt_to as-is if it looks like an email
+          if String.contains?(rcpt_val, "@") do
+            String.trim(rcpt_val)
+          else
+            nil
+          end
+        
+        _ -> nil
+      end
+      
+      if fallback_email do
+        Logger.info("Using fallback email: #{fallback_email}")
+        # Try to find or create with fallback email
+        case _find_existing_mailbox(fallback_email, fallback_email) do
+          {:ok, mailbox} ->
+            Logger.info("Found existing mailbox with fallback email")
+            {:ok, mailbox}
+          
+          nil ->
+            Logger.info("Creating orphaned mailbox with fallback email: #{fallback_email}")
+            create_orphaned_mailbox(fallback_email)
+        end
+      else
+        Logger.error("No valid email address found in To: #{inspect(to)} or RCPT_TO: #{inspect(rcpt_to)}")
+        {:error, :invalid_email}
+      end
     end
   end
 
@@ -545,21 +708,59 @@ defmodule ElektrineWeb.PostalInboundController do
 
   # Extract clean email from string
   defp extract_clean_email(nil), do: nil
+  defp extract_clean_email(""), do: nil
   defp extract_clean_email(email) when is_binary(email) do
+    # Clean up the input
+    email = String.trim(email)
+    
     # Try these patterns in sequence
-    cond do
+    result = cond do
+      # Pattern 1: Email in angle brackets <email@domain.com>
       Regex.match?(~r/<([^@>]+@[^>]+)>/, email) ->
-        [_, clean] = Regex.run(~r/<([^@>]+@[^>]+)>/, email)
-        clean
+        case Regex.run(~r/<([^@>]+@[^>]+)>/, email) do
+          [_, clean] -> String.trim(clean)
+          _ -> nil
+        end
 
-      Regex.match?(~r/([^\s<>]+@[^\s<>]+)/, email) ->
-        [_, clean] = Regex.run(~r/([^\s<>]+@[^\s<>]+)/, email)
-        clean
+      # Pattern 2: Name <email@domain.com> format
+      Regex.match?(~r/.+<([^@>]+@[^>]+)>/, email) ->
+        case Regex.run(~r/.+<([^@>]+@[^>]+)>/, email) do
+          [_, clean] -> String.trim(clean)
+          _ -> nil
+        end
 
-      Regex.match?(~r/^[^\s]+@[^\s]+$/, email) ->
-        email
+      # Pattern 3: Simple email without spaces
+      Regex.match?(~r/^[^\s<>]+@[^\s<>]+$/, email) ->
+        String.trim(email)
+
+      # Pattern 4: Find any email-like pattern
+      Regex.match?(~r/([^\s<>,"']+@[^\s<>,"']+)/, email) ->
+        case Regex.run(~r/([^\s<>,"']+@[^\s<>,"']+)/, email) do
+          [_, clean] -> String.trim(clean)
+          _ -> nil
+        end
+
+      # Pattern 5: Very loose pattern - anything with @ that looks email-ish
+      String.contains?(email, "@") ->
+        case Regex.run(~r/([^@\s]+@[^@\s]+)/, email) do
+          [_, clean] -> String.trim(clean)
+          _ -> nil
+        end
 
       true -> nil
+    end
+    
+    # Validate the result
+    case result do
+      nil -> nil
+      clean when is_binary(clean) ->
+        # Basic email validation
+        if String.match?(clean, ~r/^[^@\s]+@[^@\s]+\.[^@\s]+$/) do
+          String.downcase(clean)
+        else
+          Logger.debug("Extracted email '#{clean}' failed validation")
+          nil
+        end
     end
   end
 
@@ -727,6 +928,41 @@ defmodule ElektrineWeb.PostalInboundController do
     end
   end
 
+  # Get remote IP with proxy header support
+  defp get_remote_ip(conn) do
+    real_ip = List.first(Plug.Conn.get_req_header(conn, "x-real-ip"))
+    forwarded_for = List.first(Plug.Conn.get_req_header(conn, "x-forwarded-for"))
+    remote_ip = conn.remote_ip |> Tuple.to_list() |> Enum.join(".")
+    
+    real_ip ||
+    (if forwarded_for, do: hd(String.split(forwarded_for, ",")) |> String.trim(), else: nil) ||
+    remote_ip
+  end
+
+  # Validate request size to prevent DoS
+  defp validate_request_size(conn) do
+    content_length = case List.first(Plug.Conn.get_req_header(conn, "content-length")) do
+      nil -> 0
+      length_str -> String.to_integer(length_str)
+    end
+    
+    max_size = 50 * 1024 * 1024  # 50MB limit
+    
+    if content_length > max_size do
+      Logger.warning("Request too large: #{content_length} bytes (max: #{max_size})")
+      {:error, :request_too_large}
+    else
+      :ok
+    end
+  end
+
+  # Simple rate limiting (in production, use Redis or proper rate limiter)
+  defp check_rate_limit(ip) do
+    # For now, just log - implement proper rate limiting in production
+    Logger.debug("Rate limit check for IP: #{ip}")
+    :ok
+  end
+
   # IP verification check
   defp verify_ip(conn) do
     # Always allow in development environment
@@ -787,6 +1023,33 @@ defmodule ElektrineWeb.PostalInboundController do
   defp is_internal_email?(email) do
     email = String.downcase(email)
     String.contains?(email, "@elektrine.com") || String.contains?(email, "@z.org")
+  end
+
+  # Enhanced duplicate message detection
+  defp find_duplicate_message(email_data) do
+    import Ecto.Query
+    alias Elektrine.Email.Message
+    alias Elektrine.Repo
+    
+    # Check by message ID first
+    by_message_id = Message
+                   |> where([m], m.message_id == ^email_data.message_id and m.mailbox_id == ^email_data.mailbox_id)
+                   |> Repo.one()
+    
+    if by_message_id do
+      by_message_id
+    else
+      # Check for near-duplicates by subject, from, and time
+      five_minutes_ago = DateTime.utc_now() |> DateTime.add(-300, :second)
+      
+      Message
+      |> where([m], m.mailbox_id == ^email_data.mailbox_id)
+      |> where([m], m.subject == ^email_data.subject)
+      |> where([m], m.from == ^email_data.from)
+      |> where([m], m.inserted_at > ^five_minutes_ago)
+      |> limit(1)
+      |> Repo.one()
+    end
   end
 
   # Find the main mailbox for an alias that doesn't have forwarding
