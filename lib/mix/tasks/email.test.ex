@@ -10,14 +10,16 @@ defmodule Mix.Tasks.Email.Test do
     Mix.Task.run("app.start")
 
     # Get a user to test with
-    user = case Elektrine.Accounts.list_users() do
-      [user | _] -> user
-      [] -> create_test_user()
-    end
+    user =
+      case Elektrine.Accounts.list_users() do
+        [user | _] -> user
+        [] -> create_test_user()
+      end
 
     # Ensure the user has a mailbox
-    mailbox = Elektrine.Email.get_user_mailbox(user.id) ||
-              create_test_mailbox(user)
+    mailbox =
+      Elektrine.Email.get_user_mailbox(user.id) ||
+        create_test_mailbox(user)
 
     Mix.shell().info("Using mailbox: #{mailbox.email}")
 
@@ -33,11 +35,12 @@ defmodule Mix.Tasks.Email.Test do
   defp create_test_user do
     Mix.shell().info("Creating a test user...")
 
-    {:ok, user} = Elektrine.Accounts.create_user(%{
-      username: "testuser",
-      password: "password123",
-      password_confirmation: "password123"
-    })
+    {:ok, user} =
+      Elektrine.Accounts.create_user(%{
+        username: "testuser",
+        password: "password123",
+        password_confirmation: "password123"
+      })
 
     user
   end
@@ -58,7 +61,8 @@ defmodule Mix.Tasks.Email.Test do
       to: mailbox.email,
       subject: "Test Email #{DateTime.utc_now()}",
       text_body: "This is a test email sent from the Elektrine email system.",
-      html_body: "<p>This is a <strong>test email</strong> sent from the Elektrine email system.</p>"
+      html_body:
+        "<p>This is a <strong>test email</strong> sent from the Elektrine email system.</p>"
     }
 
     case Elektrine.Email.Postal.send_email(params) do
@@ -85,7 +89,7 @@ defmodule Mix.Tasks.Email.Test do
     }
 
     # Process the webhook
-    case Elektrine.Email.Postal.process_webhook(webhook_payload) do
+    case ElektrineWeb.PostalInboundController.process_email(webhook_payload["text_part"], webhook_payload["to"]) do
       {:ok, message} ->
         Mix.shell().info("Test email received successfully! Message ID: #{message.id}")
 

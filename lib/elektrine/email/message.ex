@@ -11,13 +11,14 @@ defmodule Elektrine.Email.Message do
     field :subject, :string
     field :text_body, :string
     field :html_body, :string
-    field :status, :string, default: "received" # received, sent, draft
+    # received, sent, draft
+    field :status, :string, default: "received"
     field :read, :boolean, default: false
     field :spam, :boolean, default: false
     field :archived, :boolean, default: false
     field :metadata, :map, default: %{}
     field :mailbox_type, :string, default: "regular"
-    
+
     # Hey.com features
     field :screener_status, :string, default: "pending"
     field :sender_approved, :boolean, default: false
@@ -32,11 +33,11 @@ defmodule Elektrine.Email.Message do
     field :opened_at, :utc_datetime
     field :first_opened_at, :utc_datetime
     field :open_count, :integer, default: 0
-    
+
     # Attachments
     field :attachments, :map, default: %{}
     field :has_attachments, :boolean, default: false
-    
+
     belongs_to :mailbox, Elektrine.Email.Mailbox
 
     timestamps(type: :utc_datetime)
@@ -47,10 +48,42 @@ defmodule Elektrine.Email.Message do
   """
   def changeset(message, attrs) do
     message
-    |> cast(attrs, [:message_id, :from, :to, :cc, :bcc, :subject, :text_body, :html_body, :status, :read, :spam, :archived, :metadata, :mailbox_id, :mailbox_type, :screener_status, :sender_approved, :category, :set_aside_at, :set_aside_reason, :reply_later_at, :reply_later_reminder, :is_receipt, :is_notification, :is_newsletter, :opened_at, :first_opened_at, :open_count, :attachments, :has_attachments])
+    |> cast(attrs, [
+      :message_id,
+      :from,
+      :to,
+      :cc,
+      :bcc,
+      :subject,
+      :text_body,
+      :html_body,
+      :status,
+      :read,
+      :spam,
+      :archived,
+      :metadata,
+      :mailbox_id,
+      :mailbox_type,
+      :screener_status,
+      :sender_approved,
+      :category,
+      :set_aside_at,
+      :set_aside_reason,
+      :reply_later_at,
+      :reply_later_reminder,
+      :is_receipt,
+      :is_notification,
+      :is_newsletter,
+      :opened_at,
+      :first_opened_at,
+      :open_count,
+      :attachments,
+      :has_attachments
+    ])
     |> validate_required([:message_id, :from, :to, :mailbox_id])
     |> set_has_attachments()
     |> unique_constraint([:message_id, :mailbox_id])
+
     # No foreign key constraint anymore - we manually handle the association
   end
 
@@ -59,11 +92,12 @@ defmodule Elektrine.Email.Message do
     case get_field(changeset, :attachments) do
       attachments when is_map(attachments) and map_size(attachments) > 0 ->
         put_change(changeset, :has_attachments, true)
+
       _ ->
         put_change(changeset, :has_attachments, false)
     end
   end
-  
+
   @doc """
   Mark a message as read.
   """
@@ -72,7 +106,7 @@ defmodule Elektrine.Email.Message do
     |> cast(attrs, [])
     |> put_change(:read, true)
   end
-  
+
   @doc """
   Mark a message as unread.
   """
@@ -81,7 +115,7 @@ defmodule Elektrine.Email.Message do
     |> cast(attrs, [])
     |> put_change(:read, false)
   end
-  
+
   @doc """
   Mark a message as spam.
   """
@@ -90,7 +124,7 @@ defmodule Elektrine.Email.Message do
     |> cast(attrs, [])
     |> put_change(:spam, true)
   end
-  
+
   @doc """
   Mark a message as not spam.
   """
@@ -99,7 +133,7 @@ defmodule Elektrine.Email.Message do
     |> cast(attrs, [])
     |> put_change(:spam, false)
   end
-  
+
   @doc """
   Archive a message.
   """
@@ -108,7 +142,7 @@ defmodule Elektrine.Email.Message do
     |> cast(attrs, [])
     |> put_change(:archived, true)
   end
-  
+
   @doc """
   Unarchive a message.
   """
@@ -117,7 +151,7 @@ defmodule Elektrine.Email.Message do
     |> cast(attrs, [])
     |> put_change(:archived, false)
   end
-  
+
   @doc """
   Approve a sender for The Screener.
   """
@@ -127,7 +161,7 @@ defmodule Elektrine.Email.Message do
     |> put_change(:screener_status, "approved")
     |> put_change(:sender_approved, true)
   end
-  
+
   @doc """
   Reject a sender for The Screener.
   """
@@ -136,7 +170,7 @@ defmodule Elektrine.Email.Message do
     |> cast(attrs, [])
     |> put_change(:screener_status, "rejected")
   end
-  
+
   @doc """
   Set aside a message for later.
   """
@@ -146,7 +180,7 @@ defmodule Elektrine.Email.Message do
     |> put_change(:category, "set_aside")
     |> put_change(:set_aside_at, DateTime.utc_now() |> DateTime.truncate(:second))
   end
-  
+
   @doc """
   Move message back from set aside.
   """
@@ -157,7 +191,7 @@ defmodule Elektrine.Email.Message do
     |> put_change(:set_aside_at, nil)
     |> put_change(:set_aside_reason, nil)
   end
-  
+
   @doc """
   Set a message for reply later.
   """
@@ -166,7 +200,7 @@ defmodule Elektrine.Email.Message do
     |> cast(attrs, [:reply_later_at, :reply_later_reminder])
     |> validate_required([:reply_later_at])
   end
-  
+
   @doc """
   Clear reply later for a message.
   """
@@ -176,17 +210,19 @@ defmodule Elektrine.Email.Message do
     |> put_change(:reply_later_at, nil)
     |> put_change(:reply_later_reminder, false)
   end
-  
+
   @doc """
   Track when a message is opened.
   """
   def track_open_changeset(message, attrs \\ %{}) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
-    changeset = message
-    |> cast(attrs, [])
-    |> put_change(:opened_at, now)
-    |> put_change(:open_count, (message.open_count || 0) + 1)
-    
+
+    changeset =
+      message
+      |> cast(attrs, [])
+      |> put_change(:opened_at, now)
+      |> put_change(:open_count, (message.open_count || 0) + 1)
+
     if is_nil(message.first_opened_at) do
       changeset |> put_change(:first_opened_at, now)
     else

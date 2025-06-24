@@ -3,7 +3,7 @@ defmodule ElektrineWeb.EjabberdAuthController do
   alias Elektrine.Accounts
 
   def auth(conn, %{"user" => username, "server" => _server, "password" => password}) do
-    result = 
+    result =
       case Accounts.authenticate_user(username, password) do
         {:ok, _user} -> true
         {:error, _reason} -> false
@@ -13,7 +13,7 @@ defmodule ElektrineWeb.EjabberdAuthController do
   end
 
   def isuser(conn, %{"user" => username, "server" => _server}) do
-    result = 
+    result =
       case Accounts.get_user_by_username(username) do
         nil -> false
         _user -> true
@@ -25,9 +25,14 @@ defmodule ElektrineWeb.EjabberdAuthController do
   def setpass(conn, %{"user" => username, "server" => _server, "password" => password}) do
     result =
       case Accounts.get_user_by_username(username) do
-        nil -> false
+        nil ->
+          false
+
         user ->
-          case Accounts.update_user_password(user, %{password: password, password_confirmation: password}) do
+          case Accounts.update_user_password(user, %{
+                 password: password,
+                 password_confirmation: password
+               }) do
             {:ok, _updated_user} -> true
             {:error, _changeset} -> false
           end
@@ -65,17 +70,19 @@ defmodule ElektrineWeb.EjabberdAuthController do
         json(conn, %{result: false})
 
       user ->
-        avatar_url = if user.avatar && user.avatar != "" do
-          Elektrine.Uploads.avatar_url(user.avatar)
-        else
-          nil
-        end
+        avatar_url =
+          if user.avatar && user.avatar != "" do
+            Elektrine.Uploads.avatar_url(user.avatar)
+          else
+            nil
+          end
 
         json(conn, %{
           result: true,
           email: user.email,
           avatar_url: avatar_url,
-          display_name: user.email # or add a separate name field if you have one
+          # or add a separate name field if you have one
+          display_name: user.email
         })
     end
   end

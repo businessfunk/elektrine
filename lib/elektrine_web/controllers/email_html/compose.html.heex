@@ -4,30 +4,63 @@
     <div class="w-full md:w-64">
       <div class="bg-white rounded-lg shadow p-4 mb-4">
         <h2 class="font-semibold text-lg mb-4">Your Mailbox</h2>
-        <p class="text-sm font-medium mb-2"><%= @mailbox.email %></p>
+        <p class="text-sm font-medium mb-2">{@mailbox.email}</p>
       </div>
       <div class="bg-white rounded-lg shadow p-4">
         <ul class="space-y-2">
           <li>
             <.link href={~p"/email/inbox"} class="block py-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 inline-block mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                />
               </svg>
               Inbox
             </.link>
           </li>
           <li>
             <.link href={~p"/email/sent"} class="block py-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 inline-block mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
               Sent
             </.link>
           </li>
           <li class="font-bold">
             <.link href={~p"/email/compose"} class="block py-1 text-blue-600 font-semibold">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 inline-block mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
               </svg>
               Compose
             </.link>
@@ -35,51 +68,84 @@
         </ul>
       </div>
     </div>
-
-    <!-- Main content -->
+    
+<!-- Main content -->
     <div class="flex-1">
       <div class="bg-white rounded-lg shadow">
         <div class="p-4 border-b border-gray-200">
           <h1 class="text-xl font-semibold">Compose Message</h1>
         </div>
         <div class="p-4">
-          <.form :let={f} for={%{}} action={~p"/email/compose"} method="post">
+          <.form :let={_f} for={%{}} action={~p"/email/compose"} method="post">
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700">From</label>
                 <div class="mt-1 py-2 px-3 bg-gray-100 rounded-md text-gray-800">
-                  <%= @mailbox.email %>
+                  {@mailbox.email}
                 </div>
                 <input type="hidden" name="email[from]" value={@mailbox.email} />
               </div>
-              
+
               <div>
                 <label for="to" class="block text-sm font-medium text-gray-700">To</label>
-                <input type="email" name="email[to]" id="to" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+                <input
+                  type="email"
+                  name="email[to]"
+                  id="to"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required
+                />
               </div>
-              
+
               <div>
                 <label for="cc" class="block text-sm font-medium text-gray-700">CC</label>
-                <input type="text" name="email[cc]" id="cc" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <input
+                  type="text"
+                  name="email[cc]"
+                  id="cc"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
               </div>
-              
+
               <div>
                 <label for="bcc" class="block text-sm font-medium text-gray-700">BCC</label>
-                <input type="text" name="email[bcc]" id="bcc" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <input
+                  type="text"
+                  name="email[bcc]"
+                  id="bcc"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
               </div>
-              
+
               <div>
-                <label for="subject" class="block text-sm font-medium text-gray-700">Subject</label>
-                <input type="text" name="email[subject]" id="subject" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+                <label for="subject" class="block text-sm font-medium text-gray-700">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  name="email[subject]"
+                  id="subject"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required
+                />
               </div>
-              
+
               <div>
                 <label for="body" class="block text-sm font-medium text-gray-700">Message</label>
-                <textarea name="email[body]" id="body" rows="10" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required></textarea>
+                <textarea
+                  name="email[body]"
+                  id="body"
+                  rows="10"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required
+                ></textarea>
               </div>
-              
+
               <div class="flex justify-end">
-                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button
+                  type="submit"
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
                   Send Message
                 </button>
               </div>

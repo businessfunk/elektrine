@@ -11,12 +11,12 @@
         <div class="avatar placeholder">
           <div class="bg-neutral text-neutral-content rounded-full w-12 h-12">
             <span class="text-lg font-medium">
-              <%= String.first(@user.username) |> String.upcase() %>
+              {String.first(@user.username) |> String.upcase()}
             </span>
           </div>
         </div>
         <div>
-          <div class="font-bold text-lg"><%= @user.username %></div>
+          <div class="font-bold text-lg">{@user.username}</div>
           <div class="text-sm opacity-70">
             <%= if @user.is_admin do %>
               <div class="badge badge-secondary badge-sm">Admin</div>
@@ -31,23 +31,27 @@
         <.icon name="hero-exclamation-triangle" class="stroke-current shrink-0 w-6 h-6" />
         <div>
           <h3 class="font-bold">Warning!</h3>
-          <div class="text-xs">Banning this user will immediately restrict their access to the platform. They will be logged out and unable to log back in.</div>
+          <div class="text-xs">
+            Banning this user will immediately restrict their access to the platform. They will be logged out and unable to log back in.
+          </div>
         </div>
       </div>
 
-      <.form :let={f} for={%{}} action={~p"/admin/users/#{@user.id}/ban"} method="post">
+      <.form :let={_f} for={%{}} action={~p"/admin/users/#{@user.id}/ban"} method="post">
         <div class="form-control">
           <label class="label">
             <span class="label-text">Reason for ban</span>
             <span class="label-text-alt opacity-50">Optional</span>
           </label>
-          <textarea 
-            name="ban[banned_reason]" 
-            class="textarea textarea-bordered h-24" 
+          <textarea
+            name="ban[banned_reason]"
+            class="textarea textarea-bordered h-24"
             placeholder="Enter the reason for banning this user..."
           ></textarea>
           <div class="label">
-            <span class="label-text-alt opacity-50">This reason will be stored for administrative records.</span>
+            <span class="label-text-alt opacity-50">
+              This reason will be stored for administrative records.
+            </span>
           </div>
         </div>
 
@@ -55,10 +59,13 @@
           <.link href={~p"/admin/users"} class="btn btn-ghost">
             Cancel
           </.link>
-          
-          <button type="submit" class="btn btn-error" data-confirm={"Are you sure you want to ban #{@user.username}? This action will immediately restrict their access."}>
-            <.icon name="hero-no-symbol" class="w-4 h-4 mr-2" />
-            Ban User
+
+          <button
+            type="submit"
+            class="btn btn-error"
+            data-confirm={"Are you sure you want to ban #{@user.username}? This action will immediately restrict their access."}
+          >
+            <.icon name="hero-no-symbol" class="w-4 h-4 mr-2" /> Ban User
           </button>
         </div>
       </.form>

@@ -70,16 +70,19 @@ defmodule Elektrine.Accounts do
 
   """
   def create_user(attrs \\ %{}) do
-    result = %User{}
-             |> User.registration_changeset(attrs)
-             |> Repo.insert()
+    result =
+      %User{}
+      |> User.registration_changeset(attrs)
+      |> Repo.insert()
 
     case result do
       {:ok, user} ->
         # Create a mailbox for the user
         Elektrine.Email.create_mailbox(user)
         {:ok, user}
-      error -> error
+
+      error ->
+        error
     end
   end
 
@@ -223,6 +226,7 @@ defmodule Elektrine.Accounts do
   defp is_bcrypt_hash?(hash) when is_binary(hash) do
     String.starts_with?(hash, ["$2", "$2a$", "$2b$", "$2y$"])
   end
+
   defp is_bcrypt_hash?(_), do: false
 
   @doc """
@@ -371,7 +375,7 @@ defmodule Elektrine.Accounts do
   def create_deletion_request(%User{} = user, attrs \\ %{}) do
     attrs = Map.put(attrs, :user_id, user.id)
     attrs = Map.put(attrs, :requested_at, DateTime.utc_now() |> DateTime.truncate(:second))
-    
+
     %AccountDeletionRequest{}
     |> AccountDeletionRequest.changeset(attrs)
     |> Repo.insert()
@@ -450,7 +454,12 @@ defmodule Elektrine.Accounts do
       {:ok, %AccountDeletionRequest{}}
 
   """
-  def review_deletion_request(%AccountDeletionRequest{} = request, %User{} = admin, status, attrs \\ %{}) do
+  def review_deletion_request(
+        %AccountDeletionRequest{} = request,
+        %User{} = admin,
+        status,
+        attrs \\ %{}
+      ) do
     review_attrs = %{
       status: status,
       reviewed_at: DateTime.utc_now() |> DateTime.truncate(:second),
@@ -458,22 +467,24 @@ defmodule Elektrine.Accounts do
       admin_notes: Map.get(attrs, :admin_notes)
     }
 
-    result = request
-    |> AccountDeletionRequest.review_changeset(review_attrs)
-    |> Repo.update()
+    result =
+      request
+      |> AccountDeletionRequest.review_changeset(review_attrs)
+      |> Repo.update()
 
     case result do
       {:ok, updated_request} when status == "approved" ->
         # If approved, delete the user account
         user = get_user!(request.user_id)
+
         case admin_delete_user(user) do
           {:ok, _user} -> {:ok, updated_request}
           {:error, _changeset} -> {:error, "Failed to delete user account"}
         end
-      
+
       {:ok, updated_request} ->
         {:ok, updated_request}
-      
+
       {:error, changeset} ->
         {:error, changeset}
     end

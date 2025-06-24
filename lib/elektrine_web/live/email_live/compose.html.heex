@@ -1,8 +1,13 @@
 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
   <div class="flex flex-col lg:flex-row gap-6">
-    <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="compose" current_user={@current_user} />
-
-    <!-- Main content -->
+    <.sidebar
+      mailbox={@mailbox}
+      unread_count={@unread_count}
+      current_page="compose"
+      current_user={@current_user}
+    />
+    
+<!-- Main content -->
     <div class="flex-1 min-w-0 overflow-hidden">
       <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
         <div class="card-body p-6">
@@ -12,17 +17,20 @@
               <.icon name="hero-pencil-square" class="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h2 class="text-2xl font-bold"><%= @page_title %></h2>
+              <h2 class="text-2xl font-bold">{@page_title}</h2>
               <p class="text-sm text-base-content/70">
                 <%= case @mode do %>
-                  <% "reply" -> %>Reply to this message
-                  <% "forward" -> %>Forward this message to someone
-                  <% _ -> %>Send an email to someone
+                  <% "reply" -> %>
+                    Reply to this message
+                  <% "forward" -> %>
+                    Forward this message to someone
+                  <% _ -> %>
+                    Send an email to someone
                 <% end %>
               </p>
             </div>
           </div>
-          
+
           <.form for={@form} phx-submit="save" class="space-y-6">
             <!-- From Field -->
             <div class="form-control">
@@ -31,80 +39,119 @@
               </label>
               <div class="relative">
                 <div class="input input-bordered bg-base-200/50 flex items-center px-4 py-3 font-mono text-sm overflow-hidden">
-                  <.icon name="hero-at-symbol" class="h-5 w-5 mr-3 text-base-content/60 flex-shrink-0" />
-                  <span class="truncate"><%= @mailbox.email %></span>
+                  <.icon
+                    name="hero-at-symbol"
+                    class="h-5 w-5 mr-3 text-base-content/60 flex-shrink-0"
+                  />
+                  <span class="truncate">{@mailbox.email}</span>
                 </div>
               </div>
             </div>
             
-            <!-- To Field -->
+<!-- To Field -->
             <div class="form-control">
               <label class="label">
                 <span class="label-text font-semibold">To <span class="text-error">*</span></span>
               </label>
               <div class="relative">
-                <input type="email" name="email[to]" value={@form[:to].value} 
-                       class="input input-bordered w-full pl-12" 
-                       placeholder="recipient@example.com" required />
-                <.icon name="hero-at-symbol" class="h-5 w-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-base-content/60" />
+                <input
+                  type="email"
+                  name="email[to]"
+                  value={@form[:to].value}
+                  class="input input-bordered w-full pl-12"
+                  placeholder="recipient@example.com"
+                  required
+                />
+                <.icon
+                  name="hero-at-symbol"
+                  class="h-5 w-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-base-content/60"
+                />
               </div>
             </div>
             
-            <!-- CC and BCC in a grid -->
+<!-- CC and BCC in a grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="form-control">
                 <label class="label">
                   <span class="label-text font-semibold">CC</span>
                   <span class="label-text-alt text-xs">Carbon copy</span>
                 </label>
-                <input type="text" name="email[cc]" value={@form[:cc].value} 
-                       class="input input-bordered" 
-                       placeholder="Optional" />
+                <input
+                  type="text"
+                  name="email[cc]"
+                  value={@form[:cc].value}
+                  class="input input-bordered"
+                  placeholder="Optional"
+                />
               </div>
-              
+
               <div class="form-control">
                 <label class="label">
                   <span class="label-text font-semibold">BCC</span>
                   <span class="label-text-alt text-xs">Blind carbon copy</span>
                 </label>
-                <input type="text" name="email[bcc]" value={@form[:bcc].value} 
-                       class="input input-bordered" 
-                       placeholder="Optional" />
+                <input
+                  type="text"
+                  name="email[bcc]"
+                  value={@form[:bcc].value}
+                  class="input input-bordered"
+                  placeholder="Optional"
+                />
               </div>
             </div>
             
-            <!-- Subject Field -->
+<!-- Subject Field -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text font-semibold">Subject <span class="text-error">*</span></span>
+                <span class="label-text font-semibold">
+                  Subject <span class="text-error">*</span>
+                </span>
               </label>
               <div class="relative">
-                <input type="text" name="email[subject]" value={@form[:subject].value} 
-                       class="input input-bordered w-full pl-12" 
-                       placeholder="Enter email subject" required />
-                <.icon name="hero-chat-bubble-left-right" class="h-5 w-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-base-content/60" />
+                <input
+                  type="text"
+                  name="email[subject]"
+                  value={@form[:subject].value}
+                  class="input input-bordered w-full pl-12"
+                  placeholder="Enter email subject"
+                  required
+                />
+                <.icon
+                  name="hero-chat-bubble-left-right"
+                  class="h-5 w-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-base-content/60"
+                />
               </div>
             </div>
             
-            <!-- Message Body -->
+<!-- Message Body -->
             <div class="form-control">
               <div class="flex items-center justify-between mb-2">
                 <label class="label p-0">
-                  <span class="label-text font-semibold">Message <span class="text-error">*</span></span>
+                  <span class="label-text font-semibold">
+                    Message <span class="text-error">*</span>
+                  </span>
                 </label>
                 <div class="flex items-center gap-2">
                   <div class="form-control">
                     <label class="label cursor-pointer gap-3">
-                      <span class={"label-text text-xs #{if assigns[:html_mode], do: "text-base-content/60", else: "text-primary font-semibold"}"}>Plain Text</span>
-                      <button type="button" class={"custom-toggle #{if assigns[:html_mode], do: "active", else: ""}"} phx-click="toggle_html_mode">
+                      <span class={"label-text text-xs #{if assigns[:html_mode], do: "text-base-content/60", else: "text-primary font-semibold"}"}>
+                        Plain Text
+                      </span>
+                      <button
+                        type="button"
+                        class={"custom-toggle #{if assigns[:html_mode], do: "active", else: ""}"}
+                        phx-click="toggle_html_mode"
+                      >
                         <span class="toggle-slider"></span>
                       </button>
-                      <span class={"label-text text-xs #{if assigns[:html_mode], do: "text-primary font-semibold", else: "text-base-content/60"}"}>HTML</span>
+                      <span class={"label-text text-xs #{if assigns[:html_mode], do: "text-primary font-semibold", else: "text-base-content/60"}"}>
+                        HTML
+                      </span>
                     </label>
                   </div>
                 </div>
               </div>
-              
+
               <%= if @mode in ["reply", "forward"] do %>
                 <!-- Enhanced UI for Reply/Forward mode -->
                 <div class="space-y-3">
@@ -112,91 +159,152 @@
                   <div class="relative pt-6">
                     <div class="absolute top-0 left-0 text-sm font-medium text-primary flex items-center gap-2">
                       <.icon name="hero-pencil" class="h-4 w-4" />
-                      <%= if @mode == "reply", do: "Your reply:", else: "Your message:" %>
+                      {if @mode == "reply", do: "Your reply:", else: "Your message:"}
                     </div>
-                    
+
                     <%= if assigns[:html_mode] do %>
                       <!-- HTML Editor for Reply/Forward -->
                       <div class="space-y-2">
                         <!-- Formatting Toolbar for Reply/Forward -->
                         <div class="flex flex-wrap gap-1 p-2 bg-base-200 rounded border border-base-300">
-                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('bold', document.getElementById('new-message-area'))" title="Bold">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-ghost"
+                            onclick="insertMarkdownFormat('bold', document.getElementById('new-message-area'))"
+                            title="Bold"
+                          >
                             <strong>B</strong>
                           </button>
-                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('italic', document.getElementById('new-message-area'))" title="Italic">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-ghost"
+                            onclick="insertMarkdownFormat('italic', document.getElementById('new-message-area'))"
+                            title="Italic"
+                          >
                             <em>I</em>
                           </button>
-                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('underline', document.getElementById('new-message-area'))" title="Underline">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-ghost"
+                            onclick="insertMarkdownFormat('underline', document.getElementById('new-message-area'))"
+                            title="Underline"
+                          >
                             <u>U</u>
                           </button>
                           <div class="divider divider-horizontal mx-1"></div>
-                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('heading', document.getElementById('new-message-area'))" title="Heading">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-ghost"
+                            onclick="insertMarkdownFormat('heading', document.getElementById('new-message-area'))"
+                            title="Heading"
+                          >
                             H1
                           </button>
-                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('link', document.getElementById('new-message-area'))" title="Link">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-ghost"
+                            onclick="insertMarkdownFormat('link', document.getElementById('new-message-area'))"
+                            title="Link"
+                          >
                             🔗
                           </button>
-                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('list', document.getElementById('new-message-area'))" title="List">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-ghost"
+                            onclick="insertMarkdownFormat('list', document.getElementById('new-message-area'))"
+                            title="List"
+                          >
                             •
                           </button>
-                          <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('quote', document.getElementById('new-message-area'))" title="Quote">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-ghost"
+                            onclick="insertMarkdownFormat('quote', document.getElementById('new-message-area'))"
+                            title="Quote"
+                          >
                             "
                           </button>
                           <div class="divider divider-horizontal mx-1"></div>
-                          <button type="button" class="btn btn-xs btn-ghost" onclick="toggleMarkdownPreview(document.getElementById('new-message-area'), 'new-message-area')" title="Preview">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-ghost"
+                            onclick="toggleMarkdownPreview(document.getElementById('new-message-area'), 'new-message-area')"
+                            title="Preview"
+                          >
                             👁️
                           </button>
                         </div>
                         
-                        <!-- Editor with Preview -->
+<!-- Editor with Preview -->
                         <div class="relative">
-                          <textarea id="new-message-area" name="email[new_message]" rows="6" 
-                                    class="textarea textarea-bordered border-primary/50 focus:border-primary bg-primary/5 ring-2 ring-primary/20 w-full min-h-32 font-mono text-sm" 
-                                    placeholder="Type your new message here using Markdown syntax..." 
-                                    phx-hook="ReplyMarkdownEditor"></textarea>
+                          <textarea
+                            id="new-message-area"
+                            name="email[new_message]"
+                            rows="6"
+                            class="textarea textarea-bordered border-primary/50 focus:border-primary bg-primary/5 ring-2 ring-primary/20 w-full min-h-32 font-mono text-sm"
+                            placeholder="Type your new message here using Markdown syntax..."
+                            phx-hook="ReplyMarkdownEditor"
+                          ></textarea>
                           
-                          <!-- Preview Panel for Reply -->
-                          <div id="reply-preview-panel" class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-auto">
-                            <div class="prose prose-sm max-w-full overflow-x-auto" id="reply-preview-content">
+<!-- Preview Panel for Reply -->
+                          <div
+                            id="reply-preview-panel"
+                            class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-auto"
+                          >
+                            <div
+                              class="prose prose-sm max-w-full overflow-x-auto"
+                              id="reply-preview-content"
+                            >
                               <!-- Preview content will be inserted here -->
                             </div>
                           </div>
                         </div>
                         
-                        <!-- Markdown Help for Reply -->
+<!-- Markdown Help for Reply -->
                         <div class="text-xs text-base-content/60 bg-base-200/50 p-2 rounded">
-                          <strong>Quick formatting:</strong> 
+                          <strong>Quick formatting:</strong>
                           **bold** • *italic* • [link](url) • # Heading • - List item • > Quote
                         </div>
                       </div>
                     <% else %>
                       <!-- Plain Text Reply -->
-                      <textarea id="new-message-area" name="email[new_message]" rows="6" 
-                                class="textarea textarea-bordered border-primary/50 focus:border-primary bg-primary/5 ring-2 ring-primary/20 w-full min-h-32" 
-                                placeholder="Type your new message here..." 
-                                phx-hook="FocusOnMount"></textarea>
+                      <textarea
+                        id="new-message-area"
+                        name="email[new_message]"
+                        rows="6"
+                        class="textarea textarea-bordered border-primary/50 focus:border-primary bg-primary/5 ring-2 ring-primary/20 w-full min-h-32"
+                        placeholder="Type your new message here..."
+                        phx-hook="FocusOnMount"
+                      ></textarea>
                     <% end %>
                   </div>
                   
-                  <!-- Divider -->
+<!-- Divider -->
                   <div class="divider text-xs text-base-content/60">
-                    <%= if @mode == "reply", do: "Original message below", else: "Forwarded message below" %>
+                    {if @mode == "reply",
+                      do: "Original message below",
+                      else: "Forwarded message below"}
                   </div>
                   
-                  <!-- Original message (read-only preview) -->
+<!-- Original message (read-only preview) -->
                   <div class="relative pt-6">
                     <div class="absolute top-0 left-0 text-sm font-medium text-base-content/60 flex items-center gap-2">
                       <.icon name="hero-document-text" class="h-4 w-4" />
-                      <%= if @mode == "reply", do: "Original message:", else: "Forwarded message:" %>
+                      {if @mode == "reply", do: "Original message:", else: "Forwarded message:"}
                     </div>
                     <!-- Always show plain text preview since body field contains plain text -->
                     <div class="textarea textarea-bordered bg-base-200/50 h-32 overflow-auto text-sm text-base-content/70 resize-none break-words">
-                      <%= @form[:body].value %>
+                      {@form[:body].value}
                     </div>
                   </div>
                   
-                  <!-- Hidden field with full message body -->
-                  <input type="hidden" name="email[body]" id="full-message-body" value={@form[:body].value} />
+<!-- Hidden field with full message body -->
+                  <input
+                    type="hidden"
+                    name="email[body]"
+                    id="full-message-body"
+                    value={@form[:body].value}
+                  />
                 </div>
               <% else %>
                 <!-- Regular compose mode -->
@@ -205,77 +313,129 @@
                   <div class="space-y-3">
                     <!-- Formatting Toolbar -->
                     <div class="flex flex-wrap gap-1 p-2 bg-base-200 rounded border border-base-300">
-                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('bold', document.getElementById('html-editor'))" title="Bold">
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-ghost"
+                        onclick="insertMarkdownFormat('bold', document.getElementById('html-editor'))"
+                        title="Bold"
+                      >
                         <strong>B</strong>
                       </button>
-                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('italic', document.getElementById('html-editor'))" title="Italic">
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-ghost"
+                        onclick="insertMarkdownFormat('italic', document.getElementById('html-editor'))"
+                        title="Italic"
+                      >
                         <em>I</em>
                       </button>
-                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('underline', document.getElementById('html-editor'))" title="Underline">
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-ghost"
+                        onclick="insertMarkdownFormat('underline', document.getElementById('html-editor'))"
+                        title="Underline"
+                      >
                         <u>U</u>
                       </button>
                       <div class="divider divider-horizontal mx-1"></div>
-                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('heading', document.getElementById('html-editor'))" title="Heading">
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-ghost"
+                        onclick="insertMarkdownFormat('heading', document.getElementById('html-editor'))"
+                        title="Heading"
+                      >
                         H1
                       </button>
-                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('link', document.getElementById('html-editor'))" title="Link">
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-ghost"
+                        onclick="insertMarkdownFormat('link', document.getElementById('html-editor'))"
+                        title="Link"
+                      >
                         🔗
                       </button>
-                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('list', document.getElementById('html-editor'))" title="List">
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-ghost"
+                        onclick="insertMarkdownFormat('list', document.getElementById('html-editor'))"
+                        title="List"
+                      >
                         •
                       </button>
-                      <button type="button" class="btn btn-xs btn-ghost" onclick="insertMarkdownFormat('quote', document.getElementById('html-editor'))" title="Quote">
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-ghost"
+                        onclick="insertMarkdownFormat('quote', document.getElementById('html-editor'))"
+                        title="Quote"
+                      >
                         "
                       </button>
                       <div class="divider divider-horizontal mx-1"></div>
-                      <button type="button" class="btn btn-xs btn-ghost" onclick="toggleMarkdownPreview(document.getElementById('html-editor'), 'html-editor')" title="Preview">
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-ghost"
+                        onclick="toggleMarkdownPreview(document.getElementById('html-editor'), 'html-editor')"
+                        title="Preview"
+                      >
                         👁️
                       </button>
                     </div>
                     
-                    <!-- Editor and Preview -->
+<!-- Editor and Preview -->
                     <div class="relative">
-                      <textarea id="html-editor" name="email[body]" rows="12" 
-                                class="textarea textarea-bordered resize-none w-full font-mono text-sm" 
-                                placeholder="Type your message here using Markdown syntax..." 
-                                phx-hook="MarkdownEditor" required><%= @form[:body].value %></textarea>
+                      <textarea
+                        id="html-editor"
+                        name="email[body]"
+                        rows="12"
+                        class="textarea textarea-bordered resize-none w-full font-mono text-sm"
+                        placeholder="Type your message here using Markdown syntax..."
+                        phx-hook="MarkdownEditor"
+                        required
+                      ><%= @form[:body].value %></textarea>
                       
-                      <!-- Preview Panel (hidden by default) -->
-                      <div id="preview-panel" class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-auto">
-                        <div class="prose prose-sm max-w-full overflow-x-auto" id="preview-content">
+<!-- Preview Panel (hidden by default) -->
+                      <div
+                        id="preview-panel"
+                        class="hidden absolute inset-0 bg-base-100 border border-base-300 rounded p-4 overflow-auto"
+                      >
+                        <div
+                          class="prose prose-sm max-w-full overflow-x-auto"
+                          id="preview-content"
+                        >
                           <!-- Preview content will be inserted here -->
                         </div>
                       </div>
                     </div>
                     
-                    <!-- Markdown Help -->
+<!-- Markdown Help -->
                     <div class="text-xs text-base-content/60 bg-base-200/50 p-2 rounded">
-                      <strong>Quick formatting:</strong> 
+                      <strong>Quick formatting:</strong>
                       **bold** • *italic* • [link](url) • # Heading • - List item • > Quote
                     </div>
                   </div>
                 <% else %>
                   <!-- Plain Text Mode -->
-                  <textarea name="email[body]" rows="12" 
-                            class="textarea textarea-bordered resize-none" 
-                            placeholder="Type your message here..." required><%= @form[:body].value %></textarea>
+                  <textarea
+                    name="email[body]"
+                    rows="12"
+                    class="textarea textarea-bordered resize-none"
+                    placeholder="Type your message here..."
+                    required
+                  ><%= @form[:body].value %></textarea>
                 <% end %>
               <% end %>
             </div>
             
-            <!-- Action Buttons -->
+<!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row gap-3 pt-4">
               <button type="submit" class="btn btn-primary">
-                <.icon name="hero-paper-airplane" class="h-5 w-5 mr-2" />
-                Send Message
+                <.icon name="hero-paper-airplane" class="h-5 w-5 mr-2" /> Send Message
               </button>
               <button type="button" class="btn btn-ghost" phx-click="clear_form">
-                <.icon name="hero-trash" class="h-5 w-5 mr-2" />
-                Clear
+                <.icon name="hero-trash" class="h-5 w-5 mr-2" /> Clear
               </button>
               <.link href={~p"/email/inbox"} class="btn btn-outline">
-                <.icon name="hero-arrow-left" class="h-5 w-5 mr-2" />
-                Back to Inbox
+                <.icon name="hero-arrow-left" class="h-5 w-5 mr-2" /> Back to Inbox
               </.link>
             </div>
           </.form>

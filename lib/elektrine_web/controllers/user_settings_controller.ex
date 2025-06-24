@@ -14,7 +14,7 @@ defmodule ElektrineWeb.UserSettingsController do
 
   def update(conn, %{"user" => user_params}) do
     user = conn.assigns.current_user
-    
+
     # Handle avatar upload if present
     {user_params, upload_error} = handle_avatar_upload(user_params, user)
 
@@ -61,7 +61,7 @@ defmodule ElektrineWeb.UserSettingsController do
 
   def confirm_delete(conn, %{"confirmation" => confirmation, "reason" => reason}) do
     user = conn.assigns.current_user
-    
+
     if confirmation == user.username do
       # Check if user already has a pending deletion request
       case Accounts.get_pending_deletion_request(user) do
@@ -70,15 +70,21 @@ defmodule ElektrineWeb.UserSettingsController do
           case Accounts.create_deletion_request(user, %{reason: reason}) do
             {:ok, _request} ->
               conn
-              |> put_flash(:info, "Your account deletion request has been submitted and is pending admin approval.")
+              |> put_flash(
+                :info,
+                "Your account deletion request has been submitted and is pending admin approval."
+              )
               |> redirect(to: ~p"/account")
-            
+
             {:error, _changeset} ->
               conn
-              |> put_flash(:error, "There was an error submitting your deletion request. Please try again.")
+              |> put_flash(
+                :error,
+                "There was an error submitting your deletion request. Please try again."
+              )
               |> redirect(to: ~p"/account/delete")
           end
-        
+
         _existing_request ->
           conn
           |> put_flash(:error, "You already have a pending account deletion request.")
@@ -90,7 +96,7 @@ defmodule ElektrineWeb.UserSettingsController do
       |> redirect(to: ~p"/account/delete")
     end
   end
-  
+
   def confirm_delete(conn, %{"confirmation" => confirmation}) do
     # Handle case where reason is not provided
     confirm_delete(conn, %{"confirmation" => confirmation, "reason" => ""})
@@ -102,18 +108,18 @@ defmodule ElektrineWeb.UserSettingsController do
 
   defp handle_avatar_upload(%{"avatar" => %Plug.Upload{} = upload} = user_params, user) do
     case Elektrine.Uploads.upload_avatar(upload, user.id) do
-      {:ok, url} -> 
+      {:ok, url} ->
         {Map.put(user_params, "avatar", url), nil}
-      
-      {:error, {error_type, message}} -> 
+
+      {:error, {error_type, message}} ->
         error_message = format_upload_error(error_type, message)
         {Map.delete(user_params, "avatar"), error_message}
-      
-      {:error, reason} -> 
+
+      {:error, reason} ->
         {Map.delete(user_params, "avatar"), "Failed to upload avatar: #{inspect(reason)}"}
     end
   end
-  
+
   defp handle_avatar_upload(user_params, _user), do: {user_params, nil}
 
   defp format_upload_error(error_type, message) do

@@ -50,10 +50,10 @@ defmodule ElektrineWeb.EmailLive.Show do
   def handle_event("delete", %{"id" => id}, socket) do
     message = Email.get_message(id)
     mailbox = socket.assigns.mailbox
-    
+
     if message && message.mailbox_id == mailbox.id do
       {:ok, _} = Email.delete_message(message)
-      
+
       {:noreply,
        socket
        |> put_flash(:info, "Message deleted successfully")
@@ -66,35 +66,32 @@ defmodule ElektrineWeb.EmailLive.Show do
     end
   end
 
-  @impl true
   def handle_event("reply", _params, socket) do
     message = socket.assigns.message
-    
+
     # Redirect to compose in reply mode
     {:noreply,
      socket
      |> redirect(to: ~p"/email/compose?mode=reply&message_id=#{message.id}")}
   end
 
-  @impl true
   def handle_event("forward", _params, socket) do
     message = socket.assigns.message
-    
+
     # Redirect to compose in forward mode
     {:noreply,
      socket
      |> redirect(to: ~p"/email/compose?mode=forward&message_id=#{message.id}")}
   end
 
-  @impl true
   def handle_event("mark_unread", _params, socket) do
     message = socket.assigns.message
     mailbox = socket.assigns.mailbox
-    
+
     if message.mailbox_id == mailbox.id do
       {:ok, updated_message} = Email.mark_as_unread(message)
       unread_count = Email.unread_count(mailbox.id)
-      
+
       {:noreply,
        socket
        |> assign(:message, updated_message)
@@ -106,27 +103,14 @@ defmodule ElektrineWeb.EmailLive.Show do
        |> put_flash(:error, "Unable to mark message as unread")}
     end
   end
-  
-  @impl true
-  def handle_info({:new_email, _message}, socket) do
-    mailbox = socket.assigns.mailbox
 
-    # Update unread count in real-time
-    unread_count = Email.unread_count(mailbox.id)
-
-    {:noreply,
-     socket
-     |> assign(:unread_count, unread_count)}
-  end
-
-  @impl true
   def handle_event("download_attachment", %{"attachment-id" => attachment_id}, socket) do
     message = socket.assigns.message
     attachment = get_in(message.attachments, [attachment_id])
-    
+
     if attachment && attachment["data"] do
       # Decode base64 data and send as download
-      {:noreply, 
+      {:noreply,
        socket
        |> push_event("download_file", %{
          filename: attachment["filename"],
@@ -141,16 +125,29 @@ defmodule ElektrineWeb.EmailLive.Show do
   end
 
   @impl true
+  def handle_info({:new_email, _message}, socket) do
+    mailbox = socket.assigns.mailbox
+
+    # Update unread count in real-time
+    unread_count = Email.unread_count(mailbox.id)
+
+    {:noreply,
+     socket
+     |> assign(:unread_count, unread_count)}
+  end
+
   def handle_info({:unread_count_updated, new_count}, socket) do
     {:noreply, assign(socket, :unread_count, new_count)}
   end
-  
+
   defp get_or_create_mailbox(user) do
     case Email.get_user_mailbox(user.id) do
-      nil -> 
+      nil ->
         {:ok, mailbox} = Email.ensure_user_has_mailbox(user)
         mailbox
-      mailbox -> mailbox
+
+      mailbox ->
+        mailbox
     end
   end
 end

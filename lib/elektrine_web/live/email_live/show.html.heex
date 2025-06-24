@@ -1,8 +1,17 @@
-<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" id="email-show-container" phx-hook="FileDownloader">
+<div
+  class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
+  id="email-show-container"
+  phx-hook="FileDownloader"
+>
   <div class="flex flex-col lg:flex-row gap-6">
-    <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="view" current_user={@current_user} />
-
-    <!-- Main content -->
+    <.sidebar
+      mailbox={@mailbox}
+      unread_count={@unread_count}
+      current_page="view"
+      current_user={@current_user}
+    />
+    
+<!-- Main content -->
     <div class="flex-1 min-w-0 overflow-hidden">
       <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
         <div class="card-body p-6">
@@ -14,32 +23,38 @@
                   <.icon name="hero-envelope-open" class="h-6 w-6 text-primary" />
                 </div>
                 <div class="flex-1">
-                  <h2 class="text-2xl font-bold break-words"><%= decode_email_subject(@message.subject) %></h2>
-                  <p class="text-sm text-base-content/70 font-mono"><%= format_date(@message.inserted_at) %></p>
+                  <h2 class="text-2xl font-bold break-words">
+                    {decode_email_subject(@message.subject)}
+                  </h2>
+                  <p class="text-sm text-base-content/70 font-mono">
+                    {format_date(@message.inserted_at)}
+                  </p>
                 </div>
               </div>
             </div>
             
-            <!-- Action buttons -->
+<!-- Action buttons -->
             <div class="flex flex-wrap gap-2">
               <.link href={~p"/email/inbox"} class="btn btn-ghost btn-sm">
-                <.icon name="hero-arrow-left" class="h-4 w-4 mr-1" />
-                Back
+                <.icon name="hero-arrow-left" class="h-4 w-4 mr-1" /> Back
               </.link>
-              
+
               <button phx-click="reply" class="btn btn-sm btn-primary">
-                <.icon name="hero-arrow-uturn-left" class="h-4 w-4 mr-1" />
-                Reply
+                <.icon name="hero-arrow-uturn-left" class="h-4 w-4 mr-1" /> Reply
               </button>
-              
-              <button phx-click="delete" phx-value-id={@message.id} class="btn btn-sm btn-outline btn-error" data-confirm="Are you sure you want to delete this message?">
-                <.icon name="hero-trash" class="h-4 w-4 mr-1" />
-                Delete
+
+              <button
+                phx-click="delete"
+                phx-value-id={@message.id}
+                class="btn btn-sm btn-outline btn-error"
+                data-confirm="Are you sure you want to delete this message?"
+              >
+                <.icon name="hero-trash" class="h-4 w-4 mr-1" /> Delete
               </button>
             </div>
           </div>
           
-          <!-- Email metadata -->
+<!-- Email metadata -->
           <div class="bg-base-200/50 rounded-lg p-4 mb-6 border border-base-300">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="space-y-2">
@@ -47,54 +62,68 @@
                   <.icon name="hero-user" class="h-4 w-4 text-base-content/60" />
                   <span class="text-sm font-semibold">From:</span>
                 </div>
-                <p class="text-sm font-mono bg-base-100 p-2 rounded border break-all"><%= @message.from %></p>
+                <p class="text-sm font-mono bg-base-100 p-2 rounded border break-all">
+                  {@message.from}
+                </p>
               </div>
-              
+
               <div class="space-y-2">
                 <div class="flex items-center space-x-2">
                   <.icon name="hero-at-symbol" class="h-4 w-4 text-base-content/60" />
                   <span class="text-sm font-semibold">To:</span>
                 </div>
-                <p class="text-sm font-mono bg-base-100 p-2 rounded border break-all"><%= @message.to %></p>
+                <p class="text-sm font-mono bg-base-100 p-2 rounded border break-all">
+                  {@message.to}
+                </p>
               </div>
-              
+
               <%= if @message.cc && String.trim(@message.cc) != "" do %>
                 <div class="space-y-2 md:col-span-2">
                   <div class="flex items-center space-x-2">
                     <.icon name="hero-users" class="h-4 w-4 text-base-content/60" />
                     <span class="text-sm font-semibold">CC:</span>
                   </div>
-                  <p class="text-sm font-mono bg-base-100 p-2 rounded border break-all"><%= @message.cc %></p>
+                  <p class="text-sm font-mono bg-base-100 p-2 rounded border break-all">
+                    {@message.cc}
+                  </p>
                 </div>
               <% end %>
             </div>
           </div>
           
-          <!-- Attachments -->
+<!-- Attachments -->
           <%= if @message.has_attachments and map_size(@message.attachments || %{}) > 0 do %>
             <div class="bg-base-200/30 rounded-lg p-4 mb-6 border border-base-300">
               <div class="flex items-center space-x-2 mb-3">
                 <.icon name="hero-paper-clip" class="h-5 w-5 text-base-content/60" />
-                <span class="text-sm font-semibold">Attachments (<%= map_size(@message.attachments) %>)</span>
+                <span class="text-sm font-semibold">
+                  Attachments ({map_size(@message.attachments)})
+                </span>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <%= for {attachment_id, attachment} <- @message.attachments do %>
                   <div class="bg-base-100 rounded-lg p-3 border border-base-300 hover:bg-base-200/50 transition-colors">
                     <div class="flex items-start space-x-3">
                       <div class="flex-shrink-0">
-                        <.icon name={get_file_icon(attachment["content_type"])} class="h-6 w-6 text-primary" />
+                        <.icon
+                          name={get_file_icon(attachment["content_type"])}
+                          class="h-6 w-6 text-primary"
+                        />
                       </div>
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium truncate"><%= attachment["filename"] %></p>
+                        <p class="text-sm font-medium truncate">{attachment["filename"]}</p>
                         <p class="text-xs text-base-content/60">
-                          <%= format_file_size(attachment["size"] || 0) %> • <%= attachment["content_type"] %>
+                          {format_file_size(attachment["size"] || 0)} • {attachment[
+                            "content_type"
+                          ]}
                         </p>
                         <%= if attachment["data"] do %>
-                          <button phx-click="download_attachment" 
-                                  phx-value-attachment-id={attachment_id}
-                                  class="text-xs text-primary hover:text-primary-focus mt-1 inline-flex items-center">
-                            <.icon name="hero-arrow-down-tray" class="h-3 w-3 mr-1" />
-                            Download
+                          <button
+                            phx-click="download_attachment"
+                            phx-value-attachment-id={attachment_id}
+                            class="text-xs text-primary hover:text-primary-focus mt-1 inline-flex items-center"
+                          >
+                            <.icon name="hero-arrow-down-tray" class="h-3 w-3 mr-1" /> Download
                           </button>
                         <% end %>
                       </div>
@@ -105,34 +134,33 @@
             </div>
           <% end %>
           
-          <!-- Message content -->
+<!-- Message content -->
           <div class="bg-base-50 rounded-lg p-6 border border-base-300 min-h-[20rem] overflow-auto">
             <%= if @message.html_body do %>
               <div class="prose prose-sm max-w-none break-words email-content-container">
-                <%= Phoenix.HTML.raw(HtmlSanitizeEx.basic_html(process_email_html(@message.html_body))) %>
+                {Phoenix.HTML.raw(
+                  HtmlSanitizeEx.basic_html(process_email_html(@message.html_body))
+                )}
               </div>
             <% else %>
               <div class="whitespace-pre-wrap text-sm leading-relaxed break-words overflow-x-auto">
-                <%= @message.text_body %>
+                {@message.text_body}
               </div>
             <% end %>
           </div>
           
-          <!-- Footer actions -->
+<!-- Footer actions -->
           <div class="flex flex-wrap gap-2 pt-6 border-t border-base-300 mt-6">
             <button phx-click="reply" class="btn btn-primary">
-              <.icon name="hero-arrow-uturn-left" class="h-4 w-4 mr-2" />
-              Reply
+              <.icon name="hero-arrow-uturn-left" class="h-4 w-4 mr-2" /> Reply
             </button>
-            
+
             <button phx-click="forward" class="btn btn-ghost">
-              <.icon name="hero-arrow-right" class="h-4 w-4 mr-2" />
-              Forward
+              <.icon name="hero-arrow-right" class="h-4 w-4 mr-2" /> Forward
             </button>
-            
+
             <button phx-click="mark_unread" class="btn btn-ghost">
-              <.icon name="hero-eye-slash" class="h-4 w-4 mr-2" />
-              Mark as Unread
+              <.icon name="hero-eye-slash" class="h-4 w-4 mr-2" /> Mark as Unread
             </button>
           </div>
         </div>

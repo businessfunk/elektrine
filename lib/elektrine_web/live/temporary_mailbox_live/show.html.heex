@@ -5,17 +5,18 @@
         <h1 class="text-2xl font-bold">Temporary Email</h1>
         <div class="flex space-x-2 mt-4 md:mt-0">
           <button phx-click="refresh" class="btn btn-sm btn-primary">
-            <.icon name="hero-arrow-path" class="h-5 w-5 mr-1" />
-            Refresh
+            <.icon name="hero-arrow-path" class="h-5 w-5 mr-1" /> Refresh
           </button>
           <%= if @is_owner do %>
             <div class="dropdown dropdown-end">
               <label tabindex="0" class="btn btn-sm btn-secondary">
-                <.icon name="hero-clock" class="h-5 w-5 mr-1" />
-                Extend Time
+                <.icon name="hero-clock" class="h-5 w-5 mr-1" /> Extend Time
                 <.icon name="hero-chevron-down" class="h-4 w-4 ml-1" />
               </label>
-              <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+              <ul
+                tabindex="0"
+                class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+              >
                 <li><a phx-click="extend_mailbox" phx-value-hours="24">24 hours</a></li>
                 <li><a phx-click="extend_mailbox" phx-value-hours="168">1 week</a></li>
                 <li><a phx-click="extend_mailbox" phx-value-hours="336">2 weeks</a></li>
@@ -23,27 +24,41 @@
               </ul>
             </div>
             <button phx-click="create_new_mailbox" class="btn btn-sm btn-accent">
-              <.icon name="hero-plus" class="h-5 w-5 mr-1" />
-              New Mailbox
+              <.icon name="hero-plus" class="h-5 w-5 mr-1" /> New Mailbox
             </button>
           <% end %>
         </div>
       </div>
-      
+
       <div class="bg-base-200 p-4 rounded-lg mb-4">
         <div class="flex flex-col md:flex-row justify-between items-center">
           <div class="flex-1 min-w-0">
             <p class="text-lg font-semibold">Your temporary email address:</p>
             <div class="flex items-center mt-1">
-              <p id="email-address" class="text-xl font-mono bg-base-300 px-3 py-2 rounded break-all"><%= @mailbox.email %></p>
-              <button id="copy-button" class="btn btn-sm btn-ghost ml-2 flex-shrink-0" phx-click="copy_email" phx-hook="CopyToClipboard">
+              <p
+                id="email-address"
+                class="text-xl font-mono bg-base-300 px-3 py-2 rounded break-all"
+              >
+                {@mailbox.email}
+              </p>
+              <button
+                id="copy-button"
+                class="btn btn-sm btn-ghost ml-2 flex-shrink-0"
+                phx-click="copy_email"
+                phx-hook="CopyToClipboard"
+              >
                 <.icon name="hero-clipboard-document" class="h-5 w-5" />
               </button>
             </div>
           </div>
           <div class="mt-4 md:mt-0">
-            <p class="text-sm">Expires in: <span class="font-semibold"><%= @remaining_time %></span></p>
-            <p class="text-sm">Expiration: <span class="font-mono"><%= Calendar.strftime(@expires_at, "%b %d, %Y %H:%M") %></span></p>
+            <p class="text-sm">
+              Expires in: <span class="font-semibold">{@remaining_time}</span>
+            </p>
+            <p class="text-sm">
+              Expiration:
+              <span class="font-mono">{Calendar.strftime(@expires_at, "%b %d, %Y %H:%M")}</span>
+            </p>
           </div>
         </div>
       </div>
@@ -55,7 +70,9 @@
         <div class="text-center py-12 bg-base-200 rounded-lg">
           <.icon name="hero-inbox" class="h-12 w-12 mx-auto text-base-content opacity-40" />
           <p class="mt-4 text-lg">No messages yet.</p>
-          <p class="text-sm text-base-content opacity-60 mt-2">Messages will appear automatically when received.</p>
+          <p class="text-sm text-base-content opacity-60 mt-2">
+            Messages will appear automatically when received.
+          </p>
         </div>
       <% else %>
         <div class="overflow-x-auto">
@@ -70,21 +87,34 @@
             </thead>
             <tbody id="messages">
               <%= for message <- @messages do %>
-                <tr class={"#{if message.read, do: "hover:bg-base-200", else: "bg-base-200 font-semibold hover:bg-base-300"}"} id={"message-#{message.id}"}>
+                <tr
+                  class={"#{if message.read, do: "hover:bg-base-200", else: "bg-base-200 font-semibold hover:bg-base-300"}"}
+                  id={"message-#{message.id}"}
+                >
                   <td class="max-w-0 overflow-hidden">
-                    <div class="truncate" title={message.from}><%= message.from %></div>
+                    <div class="truncate" title={message.from}>{message.from}</div>
                   </td>
                   <td class="max-w-0 overflow-hidden">
-                    <.link navigate={~p"/temp-mail/#{@mailbox.token}/message/#{message.id}"} class="hover:underline">
+                    <.link
+                      navigate={~p"/temp-mail/#{@mailbox.token}/message/#{message.id}"}
+                      class="hover:underline"
+                    >
                       <div class="truncate" title={message.subject || "(No Subject)"}>
-                        <%= message.subject || "(No Subject)" %>
+                        {message.subject || "(No Subject)"}
                       </div>
                     </.link>
                   </td>
-                  <td class="whitespace-nowrap text-sm"><%= Calendar.strftime(message.inserted_at, "%b %d, %Y %H:%M") %></td>
+                  <td class="whitespace-nowrap text-sm">
+                    {Calendar.strftime(message.inserted_at, "%b %d, %Y %H:%M")}
+                  </td>
                   <td class="text-right w-16">
                     <%= if @is_owner do %>
-                      <button phx-click="delete_message" phx-value-id={message.id} class="btn btn-sm btn-ghost text-error" data-confirm="Are you sure you want to delete this message?">
+                      <button
+                        phx-click="delete_message"
+                        phx-value-id={message.id}
+                        class="btn btn-sm btn-ghost text-error"
+                        data-confirm="Are you sure you want to delete this message?"
+                      >
                         <.icon name="hero-trash" class="h-5 w-5" />
                       </button>
                     <% end %>
@@ -97,15 +127,19 @@
       <% end %>
     </div>
   </div>
-  
+
   <div class="mt-8 bg-base-100 shadow-xl rounded-lg overflow-hidden">
     <div class="p-6">
       <h2 class="text-xl font-bold mb-4">Instructions</h2>
       <div class="prose max-w-none">
-        <p>This is a temporary email address that you can use to receive messages without signing up.</p>
+        <p>
+          This is a temporary email address that you can use to receive messages without signing up.
+        </p>
         <ul>
           <li>Your temporary email starts with 24 hours of activity.</li>
-          <li>Use <strong>Extend Time</strong> to add more time - from 24 hours up to 30 days total.</li>
+          <li>
+            Use <strong>Extend Time</strong> to add more time - from 24 hours up to 30 days total.
+          </li>
           <li>Maximum lifetime is 30 days from creation.</li>
           <li>New messages will appear automatically in real-time.</li>
           <li>All messages and the mailbox will be automatically deleted when it expires.</li>

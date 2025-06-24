@@ -26,7 +26,9 @@ defmodule Elektrine.Accounts.User do
     |> cast(attrs, [:username, :password, :password_confirmation])
     |> validate_required([:username, :password, :password_confirmation])
     |> validate_length(:username, min: 1, max: 30)
-    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")
+    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/,
+      message: "only letters, numbers, and underscores allowed"
+    )
     |> validate_username_not_alias()
     |> unique_constraint(:username)
     |> validate_length(:password, min: 8, max: 72)
@@ -48,7 +50,9 @@ defmodule Elektrine.Accounts.User do
     |> cast(attrs, [:username, :avatar])
     |> validate_required([:username])
     |> validate_length(:username, min: 1, max: 30)
-    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")
+    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/,
+      message: "only letters, numbers, and underscores allowed"
+    )
     |> validate_username_change_frequency()
     |> validate_username_not_alias()
     |> unique_constraint(:username)
@@ -77,7 +81,9 @@ defmodule Elektrine.Accounts.User do
     |> cast(attrs, [:username, :password_hash])
     |> validate_required([:username, :password_hash])
     |> validate_length(:username, min: 1, max: 30)
-    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")
+    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/,
+      message: "only letters, numbers, and underscores allowed"
+    )
     |> unique_constraint(:username)
   end
 
@@ -89,7 +95,9 @@ defmodule Elektrine.Accounts.User do
     |> cast(attrs, [:username, :avatar])
     |> validate_required([:username])
     |> validate_length(:username, min: 1, max: 30)
-    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores allowed")
+    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/,
+      message: "only letters, numbers, and underscores allowed"
+    )
     |> validate_username_not_alias()
     |> unique_constraint(:username)
   end
@@ -119,6 +127,7 @@ defmodule Elektrine.Accounts.User do
   Checks if the user can change their username (only once per week).
   """
   def can_change_username?(%__MODULE__{last_username_change_at: nil}), do: true
+
   def can_change_username?(%__MODULE__{last_username_change_at: last_change}) do
     one_week_ago = DateTime.utc_now() |> DateTime.add(-7, :day)
     DateTime.compare(last_change, one_week_ago) == :lt
@@ -128,6 +137,7 @@ defmodule Elektrine.Accounts.User do
   Returns the next allowed username change date.
   """
   def next_username_change_date(%__MODULE__{last_username_change_at: nil}), do: nil
+
   def next_username_change_date(%__MODULE__{last_username_change_at: last_change}) do
     DateTime.add(last_change, 7, :day)
   end
@@ -136,20 +146,25 @@ defmodule Elektrine.Accounts.User do
 
   defp validate_username_not_alias(changeset) do
     username = get_field(changeset, :username)
-    
+
     if username do
       # Check if this username would conflict with existing aliases on our domains
       allowed_domains = ["elektrine.com", "z.org"]
-      
+
       # Check each domain for conflicts
-      conflicts = Enum.any?(allowed_domains, fn domain ->
-        alias_email = "#{username}@#{domain}"
-        case Elektrine.Repo.get_by(Elektrine.Email.Alias, alias_email: alias_email, enabled: true) do
-          nil -> false
-          _alias -> true
-        end
-      end)
-      
+      conflicts =
+        Enum.any?(allowed_domains, fn domain ->
+          alias_email = "#{username}@#{domain}"
+
+          case Elektrine.Repo.get_by(Elektrine.Email.Alias,
+                 alias_email: alias_email,
+                 enabled: true
+               ) do
+            nil -> false
+            _alias -> true
+          end
+        end)
+
       if conflicts do
         add_error(changeset, :username, "this username conflicts with an existing email alias")
       else
@@ -165,7 +180,7 @@ defmodule Elektrine.Accounts.User do
       username when is_binary(username) ->
         user = changeset.data
         current_username = user.username
-        
+
         # Only validate if username is actually changing
         if username != current_username do
           if can_change_username?(user) do
@@ -173,13 +188,17 @@ defmodule Elektrine.Accounts.User do
           else
             next_change = next_username_change_date(user)
             days_remaining = DateTime.diff(next_change, DateTime.utc_now(), :day)
-            
-            add_error(changeset, :username, 
-              "can only be changed once per week. Next change allowed in #{days_remaining + 1} day(s)")
+
+            add_error(
+              changeset,
+              :username,
+              "can only be changed once per week. Next change allowed in #{days_remaining + 1} day(s)"
+            )
           end
         else
           changeset
         end
+
       _ ->
         changeset
     end
@@ -187,12 +206,14 @@ defmodule Elektrine.Accounts.User do
 
   defp maybe_update_username_change_timestamp(changeset) do
     case get_change(changeset, :username) do
-      nil -> changeset
+      nil ->
+        changeset
+
       _new_username ->
         user = changeset.data
         current_username = user.username
         new_username = get_field(changeset, :username)
-        
+
         # Only update timestamp if username is actually changing
         if new_username != current_username do
           put_change(changeset, :last_username_change_at, DateTime.utc_now())
@@ -204,10 +225,10 @@ defmodule Elektrine.Accounts.User do
 
   defp validate_current_password(changeset) do
     current_password = get_change(changeset, :current_password)
-    
+
     if current_password do
       user = changeset.data
-      
+
       # Verify the current password
       if verify_password(current_password, user.password_hash) do
         changeset
@@ -222,11 +243,13 @@ defmodule Elektrine.Accounts.User do
   # Helper function to verify password against hash
   defp verify_password(password, hash) when is_binary(password) and is_binary(hash) do
     cond do
-      String.starts_with?(hash, ["$2", "$2a$", "$2b$", "$2y$"]) -> 
+      String.starts_with?(hash, ["$2", "$2a$", "$2b$", "$2y$"]) ->
         Bcrypt.verify_pass(password, hash)
-      true -> 
+
+      true ->
         Argon2.verify_pass(password, hash)
     end
   end
+
   defp verify_password(_, _), do: false
 end

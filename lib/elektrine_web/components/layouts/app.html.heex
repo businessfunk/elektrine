@@ -4,29 +4,102 @@
       <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
         <.icon name="hero-bars-3" class="h-5 w-5" />
       </div>
-      <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-        <li><a href="/" class={if assigns[:conn] && @conn.request_path == "/", do: "active", else: ""}>Home</a></li>
-        <li><a href="/about" class={if assigns[:conn] && @conn.request_path == "/about", do: "active", else: ""}>About</a></li>
-        <li><a href="/contact" class={if assigns[:conn] && @conn.request_path == "/contact", do: "active", else: ""}>Contact</a></li>
+      <ul
+        tabindex="0"
+        class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52"
+      >
+        <li>
+          <a
+            href="/"
+            class={if assigns[:conn] && @conn.request_path == "/", do: "active", else: ""}
+          >
+            Home
+          </a>
+        </li>
+        <li>
+          <a
+            href="/about"
+            class={if assigns[:conn] && @conn.request_path == "/about", do: "active", else: ""}
+          >
+            About
+          </a>
+        </li>
+        <li>
+          <a
+            href="/contact"
+            class={if assigns[:conn] && @conn.request_path == "/contact", do: "active", else: ""}
+          >
+            Contact
+          </a>
+        </li>
         <%= if @current_user do %>
           <li class="menu-title mt-2">
             <span>Email</span>
           </li>
-          <li><.link href={~p"/email/inbox"} class={if assigns[:conn] && @conn.request_path == "/email/inbox", do: "active", else: ""}>Inbox</.link></li>
-          <li><.link href={~p"/email/sent"} class={if assigns[:conn] && @conn.request_path == "/email/sent", do: "active", else: ""}>Sent</.link></li>
-          <li><.link href={~p"/email/compose"} class={if assigns[:conn] && String.starts_with?(@conn.request_path, "/email/compose"), do: "active", else: ""}>Compose</.link></li>
+          <li>
+            <.link
+              href={~p"/email/inbox"}
+              class={
+                if assigns[:conn] && @conn.request_path == "/email/inbox", do: "active", else: ""
+              }
+            >
+              Inbox
+            </.link>
+          </li>
+          <li>
+            <.link
+              href={~p"/email/sent"}
+              class={
+                if assigns[:conn] && @conn.request_path == "/email/sent", do: "active", else: ""
+              }
+            >
+              Sent
+            </.link>
+          </li>
+          <li>
+            <.link
+              href={~p"/email/compose"}
+              class={
+                if assigns[:conn] && String.starts_with?(@conn.request_path, "/email/compose"),
+                  do: "active",
+                  else: ""
+              }
+            >
+              Compose
+            </.link>
+          </li>
 
           <%= if @current_user.is_admin do %>
             <li class="menu-title mt-2">
               <span>Admin</span>
             </li>
-            <li><.link href={~p"/admin"} class={if assigns[:conn] && String.starts_with?(@conn.request_path, "/admin"), do: "active", else: ""}>Admin Panel</.link></li>
+            <li>
+              <.link
+                href={~p"/admin"}
+                class={
+                  if assigns[:conn] && String.starts_with?(@conn.request_path, "/admin"),
+                    do: "active",
+                    else: ""
+                }
+              >
+                Admin Panel
+              </.link>
+            </li>
           <% end %>
 
           <li class="menu-title mt-2">
             <span>Account</span>
           </li>
-          <li><a href={~p"/account"} class={if assigns[:conn] && @conn.request_path == "/account", do: "active", else: ""}>Account</a></li>
+          <li>
+            <a
+              href={~p"/account"}
+              class={
+                if assigns[:conn] && @conn.request_path == "/account", do: "active", else: ""
+              }
+            >
+              Account
+            </a>
+          </li>
           <li>
             <.link href={~p"/logout"} method="delete">
               Log out
@@ -41,11 +114,42 @@
   </div>
   <div class="navbar-center hidden lg:flex">
     <ul class="menu menu-horizontal px-1">
-      <li><a href="/" class={if assigns[:conn] && @conn.request_path == "/", do: "active", else: ""}>Home</a></li>
-      <li><a href="/about" class={if assigns[:conn] && @conn.request_path == "/about", do: "active", else: ""}>About</a></li>
-      <li><a href="/contact" class={if assigns[:conn] && @conn.request_path == "/contact", do: "active", else: ""}>Contact</a></li>
+      <li>
+        <a href="/" class={if assigns[:conn] && @conn.request_path == "/", do: "active", else: ""}>
+          Home
+        </a>
+      </li>
+      <li>
+        <a
+          href="/about"
+          class={if assigns[:conn] && @conn.request_path == "/about", do: "active", else: ""}
+        >
+          About
+        </a>
+      </li>
+      <li>
+        <a
+          href="/contact"
+          class={if assigns[:conn] && @conn.request_path == "/contact", do: "active", else: ""}
+        >
+          Contact
+        </a>
+      </li>
       <%= if @current_user do %>
-        <li><.link href={~p"/email/inbox"} class={if (assigns[:conn] && String.starts_with?(@conn.request_path, "/email")) || (assigns[:socket] && assigns[:socket].view && String.contains?(to_string(assigns[:socket].view), "EmailLive")), do: "active", else: ""}>Email</.link></li>
+        <li>
+          <.link
+            href={~p"/email/inbox"}
+            class={
+              if (assigns[:conn] && String.starts_with?(@conn.request_path, "/email")) ||
+                   (assigns[:socket] && assigns[:socket].view &&
+                      String.contains?(to_string(assigns[:socket].view), "EmailLive")),
+                 do: "active",
+                 else: ""
+            }
+          >
+            Email
+          </.link>
+        </li>
       <% end %>
     </ul>
   </div>
@@ -55,17 +159,24 @@
         <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
           <%= if @current_user.avatar do %>
             <div class="w-10 rounded-full">
-              <img src={@current_user.avatar} alt={@current_user.username} class="rounded-full object-cover" />
+              <img
+                src={@current_user.avatar}
+                alt={@current_user.username}
+                class="rounded-full object-cover"
+              />
             </div>
           <% else %>
             <div class="bg-primary text-neutral-content rounded-full w-10 placeholder">
-              <span><%= String.first(@current_user.username) %></span>
+              <span>{String.first(@current_user.username)}</span>
             </div>
           <% end %>
         </div>
-        <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52">
+        <ul
+          tabindex="0"
+          class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52"
+        >
           <li class="menu-title">
-            <span>Hi, <%= @current_user.username %></span>
+            <span>Hi, {@current_user.username}</span>
           </li>
           <li><.link href={~p"/email/inbox"}>Inbox</.link></li>
           <li><.link href={~p"/email/compose"}>Compose Email</.link></li>

@@ -10,6 +10,7 @@ defmodule Elektrine.Repo.Migrations.CreateMailboxes do
     end
 
     create unique_index(:mailboxes, [:email])
-    create unique_index(:mailboxes, [:user_id])  # Each user has exactly one mailbox
+    # Each user has exactly one mailbox
+    create unique_index(:mailboxes, [:user_id])
   end
 end

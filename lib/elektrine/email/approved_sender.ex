@@ -8,7 +8,7 @@ defmodule Elektrine.Email.ApprovedSender do
     field :last_email_at, :utc_datetime
     field :email_count, :integer, default: 0
     field :notes, :string
-    
+
     belongs_to :mailbox, Elektrine.Email.Mailbox
 
     timestamps(type: :utc_datetime)
@@ -19,12 +19,21 @@ defmodule Elektrine.Email.ApprovedSender do
   """
   def changeset(approved_sender, attrs) do
     approved_sender
-    |> cast(attrs, [:email_address, :mailbox_id, :approved_at, :last_email_at, :email_count, :notes])
+    |> cast(attrs, [
+      :email_address,
+      :mailbox_id,
+      :approved_at,
+      :last_email_at,
+      :email_count,
+      :notes
+    ])
     |> validate_required([:email_address, :mailbox_id, :approved_at])
-    |> validate_format(:email_address, ~r/^[^\s]+@[^\s]+$/, message: "must be a valid email address")
+    |> validate_format(:email_address, ~r/^[^\s]+@[^\s]+$/,
+      message: "must be a valid email address"
+    )
     |> unique_constraint([:email_address, :mailbox_id])
   end
-  
+
   @doc """
   Update email tracking for an approved sender.
   """

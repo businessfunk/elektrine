@@ -3,8 +3,8 @@
     <h1 class="text-2xl font-bold">Users Management</h1>
     <p class="opacity-70 mt-2">Manage all users and their admin permissions.</p>
   </div>
-
-  <!-- Search Form -->
+  
+<!-- Search Form -->
   <div class="card bg-base-100 shadow-xl mb-6">
     <div class="card-body">
       <form method="get" action={~p"/admin/users"} class="flex gap-4 items-end">
@@ -13,41 +13,39 @@
             <span class="label-text">Search users</span>
           </label>
           <div class="input-group">
-            <input 
-              type="text" 
-              name="search" 
-              value={@search_query} 
-              placeholder="Search by username..." 
+            <input
+              type="text"
+              name="search"
+              value={@search_query}
+              placeholder="Search by username..."
               class="input input-bordered flex-1"
             />
             <button type="submit" class="btn btn-primary">
-              <.icon name="hero-magnifying-glass" class="w-4 h-4" />
-              Search
+              <.icon name="hero-magnifying-glass" class="w-4 h-4" /> Search
             </button>
           </div>
         </div>
         <%= if @search_query != "" do %>
           <.link href={~p"/admin/users"} class="btn btn-ghost">
-            <.icon name="hero-x-mark" class="w-4 h-4" />
-            Clear
+            <.icon name="hero-x-mark" class="w-4 h-4" /> Clear
           </.link>
         <% end %>
       </form>
-      
+
       <%= if @search_query != "" do %>
         <div class="mt-4">
           <div class="alert alert-info">
             <.icon name="hero-information-circle" class="stroke-current shrink-0 w-6 h-6" />
             <span>
-              Showing results for "<strong><%= @search_query %></strong>" 
-              (<%= length(@users) %> user<%= if length(@users) != 1, do: "s" %> found)
+              Showing results for "<strong><%= @search_query %></strong>"
+              ({length(@users)} user{if length(@users) != 1, do: "s"} found)
             </span>
           </div>
         </div>
       <% end %>
     </div>
   </div>
-  
+
   <div class="card bg-base-100 shadow-xl">
     <div class="card-body">
       <div class="overflow-x-auto">
@@ -68,13 +66,13 @@
                     <div class="avatar placeholder">
                       <div class="bg-neutral text-neutral-content rounded-full w-10 h-10">
                         <span class="text-sm font-medium">
-                          <%= String.first(user.username) |> String.upcase() %>
+                          {String.first(user.username) |> String.upcase()}
                         </span>
                       </div>
                     </div>
                     <div>
-                      <div class="font-bold"><%= user.username %></div>
-                      <div class="text-sm opacity-50">ID: <%= user.id %></div>
+                      <div class="font-bold">{user.username}</div>
+                      <div class="text-sm opacity-50">ID: {user.id}</div>
                     </div>
                   </div>
                 </td>
@@ -91,7 +89,7 @@
                   </div>
                 </td>
                 <td class="text-sm opacity-70">
-                  <%= Calendar.strftime(user.inserted_at, "%B %d, %Y") %>
+                  {Calendar.strftime(user.inserted_at, "%B %d, %Y")}
                 </td>
                 <td>
                   <%= if user.id != @current_user.id do %>
@@ -100,22 +98,30 @@
                       <.link href={~p"/admin/users/#{user.id}/edit"} class="btn btn-sm btn-ghost">
                         <.icon name="hero-pencil" class="w-4 h-4" />
                       </.link>
-
-                      <!-- Admin Toggle -->
-                      <.link 
-                        href={~p"/admin/users/#{user.id}/toggle_admin"} 
+                      
+<!-- Admin Toggle -->
+                      <.link
+                        href={~p"/admin/users/#{user.id}/toggle_admin"}
                         method="post"
-                        data-confirm={if user.is_admin, do: "Remove admin privileges from #{user.username}?", else: "Grant admin privileges to #{user.username}?"}
-                        class={if user.is_admin, do: "btn btn-sm btn-warning btn-outline", else: "btn btn-sm btn-primary btn-outline"}
+                        data-confirm={
+                          if user.is_admin,
+                            do: "Remove admin privileges from #{user.username}?",
+                            else: "Grant admin privileges to #{user.username}?"
+                        }
+                        class={
+                          if user.is_admin,
+                            do: "btn btn-sm btn-warning btn-outline",
+                            else: "btn btn-sm btn-primary btn-outline"
+                        }
                       >
-                        <%= if user.is_admin, do: "↓", else: "↑" %>
+                        {if user.is_admin, do: "↓", else: "↑"}
                       </.link>
-
-                      <!-- Ban/Unban Button - Hide for admin users -->
+                      
+<!-- Ban/Unban Button - Hide for admin users -->
                       <%= unless user.is_admin do %>
                         <%= if user.banned do %>
-                          <.link 
-                            href={~p"/admin/users/#{user.id}/unban"} 
+                          <.link
+                            href={~p"/admin/users/#{user.id}/unban"}
                             method="post"
                             data-confirm="Unban #{user.username}? They will regain access to the platform."
                             class="btn btn-sm btn-success btn-outline"
@@ -123,7 +129,7 @@
                             <.icon name="hero-lock-open" class="w-4 h-4" />
                           </.link>
                         <% else %>
-                          <.link 
+                          <.link
                             href={~p"/admin/users/#{user.id}/ban"}
                             class="btn btn-sm btn-error btn-outline"
                           >
@@ -131,11 +137,11 @@
                           </.link>
                         <% end %>
                       <% end %>
-
-                      <!-- Delete Button - Hide for admin users -->
+                      
+<!-- Delete Button - Hide for admin users -->
                       <%= unless user.is_admin do %>
-                        <.link 
-                          href={~p"/admin/users/#{user.id}"} 
+                        <.link
+                          href={~p"/admin/users/#{user.id}"}
                           method="delete"
                           data-confirm="DANGER: Delete #{user.username}? This will permanently delete the user and ALL their data including emails, mailboxes, and settings. This action cannot be undone!"
                           class="btn btn-sm btn-error"

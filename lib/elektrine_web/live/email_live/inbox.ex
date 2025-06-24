@@ -9,10 +9,10 @@ defmodule ElektrineWeb.EmailLive.Inbox do
   def mount(params, _session, socket) do
     user = socket.assigns.current_user
     mailbox = get_or_create_mailbox(user)
-    
+
     # Get filter and page from params
     filter = params["filter"] || "inbox"
-    
+
     # Subscribe to the PubSub topic only when the socket is connected
     if connected?(socket) do
       require Logger
@@ -28,7 +28,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         aliases = Email.list_aliases(user.id)
         alias_changeset = Email.change_alias(%Email.Alias{})
         mailbox_changeset = Email.change_mailbox_forwarding(mailbox)
-        
+
         socket
         |> assign(:page_title, "Email Aliases")
         |> assign(:mailbox, mailbox)
@@ -47,7 +47,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         # For regular email tabs, load messages
         page = String.to_integer(params["page"] || "1")
         pagination = get_filtered_messages(mailbox.id, filter, page, 20)
-        
+
         socket
         |> stream_configure(:messages, dom_id: &"message-#{&1.id}")
         |> stream(:messages, pagination.messages)
@@ -72,7 +72,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
   def handle_params(params, _url, socket) do
     filter = params["filter"] || "inbox"
     user = socket.assigns.current_user
-    
+
     socket =
       if filter == "aliases" do
         # For aliases tab, load aliases instead of messages
@@ -80,7 +80,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         alias_changeset = Email.change_alias(%Email.Alias{})
         mailbox = Email.get_user_mailbox(user.id)
         mailbox_changeset = Email.change_mailbox_forwarding(mailbox)
-        
+
         socket
         |> assign(:page_title, "Email Aliases")
         |> assign(:aliases, aliases)
@@ -92,7 +92,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         page = String.to_integer(params["page"] || "1")
         mailbox = socket.assigns.mailbox
         pagination = get_filtered_messages(mailbox.id, filter, page, 20)
-        
+
         socket
         |> assign(:messages, pagination.messages)
         |> assign(:pagination, pagination)
@@ -102,7 +102,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         |> assign(:bulk_mail_count, get_bulk_mail_count(mailbox.id))
         |> stream(:messages, pagination.messages, reset: true)
       end
-    
+
     {:noreply, socket}
   end
 
@@ -205,45 +205,45 @@ defmodule ElektrineWeb.EmailLive.Inbox do
   @impl true
   def handle_event("quick_action", %{"action" => action, "message_id" => message_id}, socket) do
     message = Email.get_message(message_id)
-    
+
     if message && message.mailbox_id == socket.assigns.mailbox.id do
       case action do
         "archive" ->
           {:ok, _} = Email.archive_message(message)
-          
+
           # Get updated pagination
           page = socket.assigns.pagination.page
           filter = socket.assigns.current_filter
           pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-          
+
           {:noreply,
            socket
            |> stream_delete(:messages, message)
            |> assign(:messages, pagination.messages)
            |> assign(:pagination, pagination)
            |> put_flash(:info, "Message archived")}
-           
+
         "reply" ->
           {:noreply, push_navigate(socket, to: ~p"/email/compose?reply=#{message.id}")}
-          
+
         "forward" ->
           {:noreply, push_navigate(socket, to: ~p"/email/compose?forward=#{message.id}")}
-          
+
         "mark_spam" ->
           {:ok, _} = Email.mark_as_spam(message)
-          
+
           # Get updated pagination
           page = socket.assigns.pagination.page
           filter = socket.assigns.current_filter
           pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-          
+
           {:noreply,
            socket
            |> stream_delete(:messages, message)
            |> assign(:messages, pagination.messages)
            |> assign(:pagination, pagination)
            |> put_flash(:info, "Message marked as spam")}
-           
+
         _ ->
           {:noreply, socket}
       end
@@ -254,7 +254,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
 
   @impl true
   def handle_event("toggle_bulk_mode", _params, socket) do
-    {:noreply, 
+    {:noreply,
      socket
      |> assign(:bulk_mode, !socket.assigns.bulk_mode)
      |> assign(:selected_messages, MapSet.new())}
@@ -264,24 +264,24 @@ defmodule ElektrineWeb.EmailLive.Inbox do
   def handle_event("toggle_message_selection", %{"message_id" => message_id}, socket) do
     selected = socket.assigns.selected_messages
     message_id = String.to_integer(message_id)
-    
-    new_selected = 
+
+    new_selected =
       if MapSet.member?(selected, message_id) do
         MapSet.delete(selected, message_id)
       else
         MapSet.put(selected, message_id)
       end
-    
+
     {:noreply, assign(socket, :selected_messages, new_selected)}
   end
 
   @impl true
   def handle_event("select_all_messages", _params, socket) do
-    all_message_ids = 
+    all_message_ids =
       socket.assigns.messages
       |> Enum.map(& &1.id)
       |> MapSet.new()
-    
+
     {:noreply, assign(socket, :selected_messages, all_message_ids)}
   end
 
@@ -293,119 +293,295 @@ defmodule ElektrineWeb.EmailLive.Inbox do
   @impl true
   def handle_event("bulk_action", %{"action" => action}, socket) do
     selected_ids = MapSet.to_list(socket.assigns.selected_messages)
-    
+
     if Enum.empty?(selected_ids) do
       {:noreply, put_flash(socket, :error, "No messages selected")}
     else
       case action do
         "archive" ->
           bulk_archive_messages(socket, selected_ids)
+
         "delete" ->
           bulk_delete_messages(socket, selected_ids)
+
         "mark_spam" ->
           bulk_mark_spam_messages(socket, selected_ids)
+
         "mark_read" ->
           bulk_mark_read_messages(socket, selected_ids)
+
         "mark_unread" ->
           bulk_mark_unread_messages(socket, selected_ids)
+
         _ ->
           {:noreply, put_flash(socket, :error, "Invalid action")}
       end
     end
   end
 
-  # Bulk operation helpers
-  defp bulk_archive_messages(socket, message_ids) do
-    messages = Enum.map(message_ids, &Email.get_message/1)
-    valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
-    
-    Enum.each(valid_messages, &Email.archive_message/1)
-    
-    # Refresh the view
-    refresh_messages_after_bulk_action(socket, length(valid_messages), "archived")
+  # Additional event handlers
+
+  @impl true
+  def handle_event("approve_sender", %{"id" => id}, socket) do
+    message = Email.get_message(id)
+
+    if message && message.mailbox_id == socket.assigns.mailbox.id do
+      {:ok, _} = Email.approve_sender(message)
+
+      # Refresh current view
+      page = socket.assigns.pagination.page
+      filter = socket.assigns.current_filter
+      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
+
+      {:noreply,
+       socket
+       |> stream_delete(:messages, message)
+       |> assign(:messages, pagination.messages)
+       |> assign(:pagination, pagination)
+       |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
+       |> put_flash(:info, "Sender approved and added to contacts")}
+    else
+      {:noreply, put_flash(socket, :error, "Message not found")}
+    end
   end
 
-  defp bulk_delete_messages(socket, message_ids) do
-    messages = Enum.map(message_ids, &Email.get_message/1)
-    valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
-    
-    Enum.each(valid_messages, &Email.delete_message/1)
-    
-    # Refresh the view
-    refresh_messages_after_bulk_action(socket, length(valid_messages), "deleted")
+  def handle_event("reject_sender", %{"id" => id}, socket) do
+    message = Email.get_message(id)
+
+    if message && message.mailbox_id == socket.assigns.mailbox.id do
+      {:ok, _} = Email.reject_sender(message)
+
+      # Refresh current view
+      page = socket.assigns.pagination.page
+      filter = socket.assigns.current_filter
+      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
+
+      {:noreply,
+       socket
+       |> stream_delete(:messages, message)
+       |> assign(:messages, pagination.messages)
+       |> assign(:pagination, pagination)
+       |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
+       |> put_flash(:info, "Sender rejected")}
+    else
+      {:noreply, put_flash(socket, :error, "Message not found")}
+    end
   end
 
-  defp bulk_mark_spam_messages(socket, message_ids) do
-    messages = Enum.map(message_ids, &Email.get_message/1)
-    valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
-    
-    Enum.each(valid_messages, &Email.mark_as_spam/1)
-    
-    # Refresh the view
-    refresh_messages_after_bulk_action(socket, length(valid_messages), "marked as spam")
+  def handle_event("save_message", %{"id" => id}, socket) do
+    message = Email.get_message(id)
+
+    if message && message.mailbox_id == socket.assigns.mailbox.id do
+      {:ok, _} = Email.set_aside_message(message)
+
+      # Refresh current view
+      page = socket.assigns.pagination.page
+      filter = socket.assigns.current_filter
+      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
+
+      {:noreply,
+       socket
+       |> stream_delete(:messages, message)
+       |> assign(:messages, pagination.messages)
+       |> assign(:pagination, pagination)
+       |> put_flash(:info, "Message saved")}
+    else
+      {:noreply, put_flash(socket, :error, "Message not found")}
+    end
   end
 
-  defp bulk_mark_read_messages(socket, message_ids) do
-    messages = Enum.map(message_ids, &Email.get_message/1)
-    valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
-    
-    Enum.each(valid_messages, &Email.mark_as_read/1)
-    
-    # Refresh the view without removing messages
-    page = socket.assigns.pagination.page
-    filter = socket.assigns.current_filter
-    pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-    unread_count = Email.unread_count(socket.assigns.mailbox.id)
-    
+  def handle_event("show_reply_later_modal", %{"id" => id}, socket) do
+    message = Email.get_message(id)
+
+    if message && message.mailbox_id == socket.assigns.mailbox.id do
+      {:noreply,
+       socket
+       |> assign(:reply_later_message, message)
+       |> assign(:show_reply_later_modal, true)}
+    else
+      {:noreply, put_flash(socket, :error, "Message not found")}
+    end
+  end
+
+  def handle_event("schedule_reply_later", %{"id" => id, "days" => days}, socket) do
+    message = Email.get_message(id)
+
+    if message && message.mailbox_id == socket.assigns.mailbox.id do
+      days_int = String.to_integer(days)
+
+      reply_at =
+        DateTime.utc_now()
+        |> DateTime.add(days_int * 24 * 60 * 60, :second)
+        |> DateTime.truncate(:second)
+
+      {:ok, _} = Email.reply_later_message(message, reply_at)
+
+      # Refresh current view
+      page = socket.assigns.pagination.page
+      filter = socket.assigns.current_filter
+      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
+
+      {:noreply,
+       socket
+       |> stream_delete(:messages, message)
+       |> assign(:messages, pagination.messages)
+       |> assign(:pagination, pagination)
+       |> assign(:show_reply_later_modal, false)
+       |> assign(:reply_later_message, nil)
+       |> put_flash(:info, "Message scheduled for reply in #{days_int} day(s)")}
+    else
+      {:noreply, put_flash(socket, :error, "Message not found")}
+    end
+  end
+
+  def handle_event("close_reply_later_modal", _params, socket) do
     {:noreply,
      socket
-     |> assign(:messages, pagination.messages)
-     |> assign(:pagination, pagination)
-     |> assign(:unread_count, unread_count)
-     |> assign(:selected_messages, MapSet.new())
-     |> stream(:messages, pagination.messages, reset: true)
-     |> put_flash(:info, "#{length(valid_messages)} messages marked as read")}
+     |> assign(:show_reply_later_modal, false)
+     |> assign(:reply_later_message, nil)}
   end
 
-  defp bulk_mark_unread_messages(socket, message_ids) do
-    messages = Enum.map(message_ids, &Email.get_message/1)
-    valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
-    
-    Enum.each(valid_messages, &Email.mark_as_unread/1)
-    
-    # Refresh the view without removing messages
-    page = socket.assigns.pagination.page
-    filter = socket.assigns.current_filter
-    pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-    unread_count = Email.unread_count(socket.assigns.mailbox.id)
-    
-    {:noreply,
-     socket
-     |> assign(:messages, pagination.messages)
-     |> assign(:pagination, pagination)
-     |> assign(:unread_count, unread_count)
-     |> assign(:selected_messages, MapSet.new())
-     |> stream(:messages, pagination.messages, reset: true)
-     |> put_flash(:info, "#{length(valid_messages)} messages marked as unread")}
+  def handle_event("clear_reply_later", %{"id" => id}, socket) do
+    message = Email.get_message(id)
+
+    if message && message.mailbox_id == socket.assigns.mailbox.id do
+      {:ok, _} = Email.clear_reply_later(message)
+
+      # Refresh current view
+      page = socket.assigns.pagination.page
+      filter = socket.assigns.current_filter
+      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
+
+      {:noreply,
+       socket
+       |> stream_delete(:messages, message)
+       |> assign(:messages, pagination.messages)
+       |> assign(:pagination, pagination)
+       |> put_flash(:info, "Reply later cleared - message moved back to inbox")}
+    else
+      {:noreply, put_flash(socket, :error, "Message not found")}
+    end
   end
 
-  defp refresh_messages_after_bulk_action(socket, count, action) do
-    # Get updated pagination
-    page = socket.assigns.pagination.page
-    filter = socket.assigns.current_filter
-    pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-    unread_count = Email.unread_count(socket.assigns.mailbox.id)
-    
-    {:noreply,
-     socket
-     |> assign(:messages, pagination.messages)
-     |> assign(:pagination, pagination)
-     |> assign(:unread_count, unread_count)
-     |> assign(:selected_messages, MapSet.new())
-     |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
-     |> assign(:bulk_mail_count, get_bulk_mail_count(socket.assigns.mailbox.id))
-     |> stream(:messages, pagination.messages, reset: true)
-     |> put_flash(:info, "#{count} messages #{action}")}
+  def handle_event("move_to_inbox", %{"id" => id}, socket) do
+    message = Email.get_message(id)
+
+    if message && message.mailbox_id == socket.assigns.mailbox.id do
+      {:ok, _} = Email.update_message(message, %{category: "inbox"})
+
+      # Refresh current view
+      page = socket.assigns.pagination.page
+      filter = socket.assigns.current_filter
+      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
+
+      {:noreply,
+       socket
+       |> stream_delete(:messages, message)
+       |> assign(:messages, pagination.messages)
+       |> assign(:pagination, pagination)
+       |> assign(:bulk_mail_count, get_bulk_mail_count(socket.assigns.mailbox.id))
+       |> put_flash(:info, "Message moved to inbox")}
+    else
+      {:noreply, put_flash(socket, :error, "Message not found")}
+    end
+  end
+
+  # Alias management events
+  def handle_event("create_alias", %{"alias" => alias_params}, socket) do
+    user = socket.assigns.current_user
+    alias_params = Map.put(alias_params, "user_id", user.id)
+
+    case Email.create_alias(alias_params) do
+      {:ok, _alias} ->
+        aliases = Email.list_aliases(user.id)
+        alias_changeset = Email.change_alias(%Email.Alias{})
+
+        {:noreply,
+         socket
+         |> assign(:aliases, aliases)
+         |> assign(:alias_form, to_form(alias_changeset))
+         |> put_flash(:info, "Email alias created successfully")}
+
+      {:error, changeset} ->
+        {:noreply,
+         socket
+         |> assign(:alias_form, to_form(changeset))
+         |> put_flash(:error, "Failed to create alias")}
+    end
+  end
+
+  def handle_event("toggle_alias", %{"id" => id}, socket) do
+    user = socket.assigns.current_user
+
+    case Email.get_alias(id, user.id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Alias not found")}
+
+      alias ->
+        case Email.update_alias(alias, %{enabled: !alias.enabled}) do
+          {:ok, _alias} ->
+            aliases = Email.list_aliases(user.id)
+            status = if alias.enabled, do: "disabled", else: "enabled"
+
+            {:noreply,
+             socket
+             |> assign(:aliases, aliases)
+             |> put_flash(:info, "Alias #{status} successfully")}
+
+          {:error, _changeset} ->
+            {:noreply, put_flash(socket, :error, "Failed to update alias")}
+        end
+    end
+  end
+
+  def handle_event("delete_alias", %{"id" => id}, socket) do
+    user = socket.assigns.current_user
+
+    case Email.get_alias(id, user.id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Alias not found")}
+
+      alias ->
+        case Email.delete_alias(alias) do
+          {:ok, _alias} ->
+            aliases = Email.list_aliases(user.id)
+
+            {:noreply,
+             socket
+             |> assign(:aliases, aliases)
+             |> put_flash(:info, "Alias deleted successfully")}
+
+          {:error, _changeset} ->
+            {:noreply, put_flash(socket, :error, "Failed to delete alias")}
+        end
+    end
+  end
+
+  def handle_event("edit_alias", %{"id" => _id}, socket) do
+    # For now, just show a flash message - could implement inline editing later
+    {:noreply, put_flash(socket, :info, "Edit functionality coming soon")}
+  end
+
+  def handle_event("update_mailbox_forwarding", %{"mailbox" => mailbox_params}, socket) do
+    user = socket.assigns.current_user
+    mailbox = Email.get_user_mailbox(user.id)
+
+    case Email.update_mailbox_forwarding(mailbox, mailbox_params) do
+      {:ok, updated_mailbox} ->
+        mailbox_changeset = Email.change_mailbox_forwarding(updated_mailbox)
+
+        {:noreply,
+         socket
+         |> assign(:mailbox, updated_mailbox)
+         |> assign(:mailbox_form, to_form(mailbox_changeset))
+         |> put_flash(:info, "Mailbox forwarding updated successfully")}
+
+      {:error, changeset} ->
+        {:noreply,
+         socket
+         |> assign(:mailbox_form, to_form(changeset))
+         |> put_flash(:error, "Failed to update mailbox forwarding")}
+    end
   end
 
   @impl true
@@ -415,15 +591,22 @@ defmodule ElektrineWeb.EmailLive.Inbox do
 
     # Log when we receive a message to help debugging
     Logger.info("Inbox LiveView received new_email event for mailbox #{mailbox.id}")
-    Logger.info("Message type: #{if is_struct(message), do: inspect(message.__struct__), else: "plain map"}")
-    Logger.info("Message keys: #{inspect(if is_map(message), do: Map.keys(message), else: "not a map")}")
+
+    Logger.info(
+      "Message type: #{if is_struct(message), do: inspect(message.__struct__), else: "plain map"}"
+    )
+
+    Logger.info(
+      "Message keys: #{inspect(if is_map(message), do: Map.keys(message), else: "not a map")}"
+    )
+
     Logger.debug("Full message details: #{inspect(message, pretty: true)}")
 
     # Get the latest messages with pagination - stay on page 1 for new messages
     filter = socket.assigns.current_filter
     pagination = get_filtered_messages(mailbox.id, filter, 1, 20)
     unread_count = Email.unread_count(mailbox.id)
-    
+
     Logger.info("Retrieved #{length(pagination.messages)} messages from database")
     Logger.info("Current messages in socket: #{length(socket.assigns.messages)}")
 
@@ -467,296 +650,117 @@ defmodule ElektrineWeb.EmailLive.Inbox do
   def handle_info({:unread_count_updated, new_count}, socket) do
     require Logger
     Logger.info("Inbox received unread count update: #{new_count}")
-    
+
     {:noreply, assign(socket, :unread_count, new_count)}
   end
 
-  # Hey.com event handlers
-  
-  @impl true
-  def handle_event("approve_sender", %{"id" => id}, socket) do
-    message = Email.get_message(id)
-    
-    if message && message.mailbox_id == socket.assigns.mailbox.id do
-      {:ok, _} = Email.approve_sender(message)
-      
-      # Refresh current view
-      page = socket.assigns.pagination.page
-      filter = socket.assigns.current_filter
-      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-      
-      {:noreply,
-       socket
-       |> stream_delete(:messages, message)
-       |> assign(:messages, pagination.messages)
-       |> assign(:pagination, pagination)
-       |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
-       |> put_flash(:info, "Sender approved and added to contacts")}
-    else
-      {:noreply, put_flash(socket, :error, "Message not found")}
-    end
-  end
-  
-  @impl true
-  def handle_event("reject_sender", %{"id" => id}, socket) do
-    message = Email.get_message(id)
-    
-    if message && message.mailbox_id == socket.assigns.mailbox.id do
-      {:ok, _} = Email.reject_sender(message)
-      
-      # Refresh current view
-      page = socket.assigns.pagination.page
-      filter = socket.assigns.current_filter
-      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-      
-      {:noreply,
-       socket
-       |> stream_delete(:messages, message)
-       |> assign(:messages, pagination.messages)
-       |> assign(:pagination, pagination)
-       |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
-       |> put_flash(:info, "Sender rejected")}
-    else
-      {:noreply, put_flash(socket, :error, "Message not found")}
-    end
-  end
-  
-  @impl true
-  def handle_event("save_message", %{"id" => id}, socket) do
-    message = Email.get_message(id)
-    
-    if message && message.mailbox_id == socket.assigns.mailbox.id do
-      {:ok, _} = Email.set_aside_message(message)
-      
-      # Refresh current view
-      page = socket.assigns.pagination.page
-      filter = socket.assigns.current_filter
-      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-      
-      {:noreply,
-       socket
-       |> stream_delete(:messages, message)
-       |> assign(:messages, pagination.messages)
-       |> assign(:pagination, pagination)
-       |> put_flash(:info, "Message saved")}
-    else
-      {:noreply, put_flash(socket, :error, "Message not found")}
-    end
-  end
-  
-  @impl true
-  def handle_event("show_reply_later_modal", %{"id" => id}, socket) do
-    message = Email.get_message(id)
-    
-    if message && message.mailbox_id == socket.assigns.mailbox.id do
-      {:noreply,
-       socket
-       |> assign(:reply_later_message, message)
-       |> assign(:show_reply_later_modal, true)}
-    else
-      {:noreply, put_flash(socket, :error, "Message not found")}
-    end
+  # Helper functions
+
+  # Bulk operation helpers
+  defp bulk_archive_messages(socket, message_ids) do
+    messages = Enum.map(message_ids, &Email.get_message/1)
+    valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
+
+    Enum.each(valid_messages, &Email.archive_message/1)
+
+    # Refresh the view
+    refresh_messages_after_bulk_action(socket, length(valid_messages), "archived")
   end
 
-  @impl true
-  def handle_event("schedule_reply_later", %{"id" => id, "days" => days}, socket) do
-    message = Email.get_message(id)
-    
-    if message && message.mailbox_id == socket.assigns.mailbox.id do
-      days_int = String.to_integer(days)
-      reply_at = DateTime.utc_now() |> DateTime.add(days_int * 24 * 60 * 60, :second) |> DateTime.truncate(:second)
-      
-      {:ok, _} = Email.reply_later_message(message, reply_at)
-      
-      # Refresh current view
-      page = socket.assigns.pagination.page
-      filter = socket.assigns.current_filter
-      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-      
-      {:noreply,
-       socket
-       |> stream_delete(:messages, message)
-       |> assign(:messages, pagination.messages)
-       |> assign(:pagination, pagination)
-       |> assign(:show_reply_later_modal, false)
-       |> assign(:reply_later_message, nil)
-       |> put_flash(:info, "Message scheduled for reply in #{days_int} day(s)")}
-    else
-      {:noreply, put_flash(socket, :error, "Message not found")}
-    end
+  defp bulk_delete_messages(socket, message_ids) do
+    messages = Enum.map(message_ids, &Email.get_message/1)
+    valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
+
+    Enum.each(valid_messages, &Email.delete_message/1)
+
+    # Refresh the view
+    refresh_messages_after_bulk_action(socket, length(valid_messages), "deleted")
   end
 
-  @impl true
-  def handle_event("close_reply_later_modal", _params, socket) do
+  defp bulk_mark_spam_messages(socket, message_ids) do
+    messages = Enum.map(message_ids, &Email.get_message/1)
+    valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
+
+    Enum.each(valid_messages, &Email.mark_as_spam/1)
+
+    # Refresh the view
+    refresh_messages_after_bulk_action(socket, length(valid_messages), "marked as spam")
+  end
+
+  defp bulk_mark_read_messages(socket, message_ids) do
+    messages = Enum.map(message_ids, &Email.get_message/1)
+    valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
+
+    Enum.each(valid_messages, &Email.mark_as_read/1)
+
+    # Refresh the view without removing messages
+    page = socket.assigns.pagination.page
+    filter = socket.assigns.current_filter
+    pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
+    unread_count = Email.unread_count(socket.assigns.mailbox.id)
+
     {:noreply,
      socket
-     |> assign(:show_reply_later_modal, false)
-     |> assign(:reply_later_message, nil)}
+     |> assign(:messages, pagination.messages)
+     |> assign(:pagination, pagination)
+     |> assign(:unread_count, unread_count)
+     |> assign(:selected_messages, MapSet.new())
+     |> stream(:messages, pagination.messages, reset: true)
+     |> put_flash(:info, "#{length(valid_messages)} messages marked as read")}
   end
 
-  @impl true
-  def handle_event("clear_reply_later", %{"id" => id}, socket) do
-    message = Email.get_message(id)
-    
-    if message && message.mailbox_id == socket.assigns.mailbox.id do
-      {:ok, _} = Email.clear_reply_later(message)
-      
-      # Refresh current view
-      page = socket.assigns.pagination.page
-      filter = socket.assigns.current_filter
-      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-      
-      {:noreply,
-       socket
-       |> stream_delete(:messages, message)
-       |> assign(:messages, pagination.messages)
-       |> assign(:pagination, pagination)
-       |> put_flash(:info, "Reply later cleared - message moved back to inbox")}
-    else
-      {:noreply, put_flash(socket, :error, "Message not found")}
-    end
+  defp bulk_mark_unread_messages(socket, message_ids) do
+    messages = Enum.map(message_ids, &Email.get_message/1)
+    valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
+
+    Enum.each(valid_messages, &Email.mark_as_unread/1)
+
+    # Refresh the view without removing messages
+    page = socket.assigns.pagination.page
+    filter = socket.assigns.current_filter
+    pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
+    unread_count = Email.unread_count(socket.assigns.mailbox.id)
+
+    {:noreply,
+     socket
+     |> assign(:messages, pagination.messages)
+     |> assign(:pagination, pagination)
+     |> assign(:unread_count, unread_count)
+     |> assign(:selected_messages, MapSet.new())
+     |> stream(:messages, pagination.messages, reset: true)
+     |> put_flash(:info, "#{length(valid_messages)} messages marked as unread")}
   end
 
-  @impl true
-  def handle_event("move_to_inbox", %{"id" => id}, socket) do
-    message = Email.get_message(id)
-    
-    if message && message.mailbox_id == socket.assigns.mailbox.id do
-      {:ok, _} = Email.update_message(message, %{category: "inbox"})
-      
-      # Refresh current view
-      page = socket.assigns.pagination.page
-      filter = socket.assigns.current_filter
-      pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
-      
-      {:noreply,
-       socket
-       |> stream_delete(:messages, message)
-       |> assign(:messages, pagination.messages)
-       |> assign(:pagination, pagination)
-       |> assign(:bulk_mail_count, get_bulk_mail_count(socket.assigns.mailbox.id))
-       |> put_flash(:info, "Message moved to inbox")}
-    else
-      {:noreply, put_flash(socket, :error, "Message not found")}
-    end
+  defp refresh_messages_after_bulk_action(socket, count, action) do
+    # Get updated pagination
+    page = socket.assigns.pagination.page
+    filter = socket.assigns.current_filter
+    pagination = get_filtered_messages(socket.assigns.mailbox.id, filter, page, 20)
+    unread_count = Email.unread_count(socket.assigns.mailbox.id)
+
+    {:noreply,
+     socket
+     |> assign(:messages, pagination.messages)
+     |> assign(:pagination, pagination)
+     |> assign(:unread_count, unread_count)
+     |> assign(:selected_messages, MapSet.new())
+     |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
+     |> assign(:bulk_mail_count, get_bulk_mail_count(socket.assigns.mailbox.id))
+     |> stream(:messages, pagination.messages, reset: true)
+     |> put_flash(:info, "#{count} messages #{action}")}
   end
 
-  # Alias management events
-  @impl true
-  def handle_event("create_alias", %{"alias" => alias_params}, socket) do
-    user = socket.assigns.current_user
-    alias_params = Map.put(alias_params, "user_id", user.id)
-
-    case Email.create_alias(alias_params) do
-      {:ok, _alias} ->
-        aliases = Email.list_aliases(user.id)
-        alias_changeset = Email.change_alias(%Email.Alias{})
-
-        {:noreply,
-         socket
-         |> assign(:aliases, aliases)
-         |> assign(:alias_form, to_form(alias_changeset))
-         |> put_flash(:info, "Email alias created successfully")}
-
-      {:error, changeset} ->
-        {:noreply,
-         socket
-         |> assign(:alias_form, to_form(changeset))
-         |> put_flash(:error, "Failed to create alias")}
-    end
-  end
-
-  @impl true
-  def handle_event("toggle_alias", %{"id" => id}, socket) do
-    user = socket.assigns.current_user
-
-    case Email.get_alias(id, user.id) do
-      nil ->
-        {:noreply, put_flash(socket, :error, "Alias not found")}
-
-      alias ->
-        case Email.update_alias(alias, %{enabled: !alias.enabled}) do
-          {:ok, _alias} ->
-            aliases = Email.list_aliases(user.id)
-            status = if alias.enabled, do: "disabled", else: "enabled"
-
-            {:noreply,
-             socket
-             |> assign(:aliases, aliases)
-             |> put_flash(:info, "Alias #{status} successfully")}
-
-          {:error, _changeset} ->
-            {:noreply, put_flash(socket, :error, "Failed to update alias")}
-        end
-    end
-  end
-
-  @impl true
-  def handle_event("delete_alias", %{"id" => id}, socket) do
-    user = socket.assigns.current_user
-
-    case Email.get_alias(id, user.id) do
-      nil ->
-        {:noreply, put_flash(socket, :error, "Alias not found")}
-
-      alias ->
-        case Email.delete_alias(alias) do
-          {:ok, _alias} ->
-            aliases = Email.list_aliases(user.id)
-
-            {:noreply,
-             socket
-             |> assign(:aliases, aliases)
-             |> put_flash(:info, "Alias deleted successfully")}
-
-          {:error, _changeset} ->
-            {:noreply, put_flash(socket, :error, "Failed to delete alias")}
-        end
-    end
-  end
-
-  @impl true
-  def handle_event("edit_alias", %{"id" => _id}, socket) do
-    # For now, just show a flash message - could implement inline editing later
-    {:noreply, put_flash(socket, :info, "Edit functionality coming soon")}
-  end
-
-  @impl true
-  def handle_event("update_mailbox_forwarding", %{"mailbox" => mailbox_params}, socket) do
-    user = socket.assigns.current_user
-    mailbox = Email.get_user_mailbox(user.id)
-
-    case Email.update_mailbox_forwarding(mailbox, mailbox_params) do
-      {:ok, updated_mailbox} ->
-        mailbox_changeset = Email.change_mailbox_forwarding(updated_mailbox)
-
-        {:noreply,
-         socket
-         |> assign(:mailbox, updated_mailbox)
-         |> assign(:mailbox_form, to_form(mailbox_changeset))
-         |> put_flash(:info, "Mailbox forwarding updated successfully")}
-
-      {:error, changeset} ->
-        {:noreply,
-         socket
-         |> assign(:mailbox_form, to_form(changeset))
-         |> put_flash(:error, "Failed to update mailbox forwarding")}
-    end
-  end
-  
-  # Helper functions
-  
   defp get_filtered_messages(mailbox_id, filter, page, per_page) do
     case filter do
       "new_contacts" -> Email.list_screener_messages_paginated(mailbox_id, page, per_page)
-      "bulk_mail" -> Email.list_feed_messages_paginated(mailbox_id, page, per_page) 
+      "bulk_mail" -> Email.list_feed_messages_paginated(mailbox_id, page, per_page)
       "paper_trail" -> Email.list_paper_trail_messages_paginated(mailbox_id, page, per_page)
       "the_pile" -> Email.list_set_aside_messages_paginated(mailbox_id, page, per_page)
       "boomerang" -> Email.list_reply_later_messages_paginated(mailbox_id, page, per_page)
       _ -> Email.list_inbox_messages_paginated(mailbox_id, page, per_page)
     end
   end
-  
+
   defp get_page_title(filter) do
     case filter do
       "new_contacts" -> "New Contacts"
@@ -768,26 +772,28 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       _ -> "Inbox"
     end
   end
-  
+
   defp get_new_contacts_count(mailbox_id) do
     Email.list_screener_messages(mailbox_id) |> length()
   end
-  
+
   defp get_bulk_mail_count(mailbox_id) do
     Email.list_feed_messages(mailbox_id) |> length()
   end
-  
+
   defp get_or_create_mailbox(user) do
     case Email.get_user_mailbox(user.id) do
-      nil -> 
+      nil ->
         {:ok, mailbox} = Email.ensure_user_has_mailbox(user)
         mailbox
-      mailbox -> mailbox
+
+      mailbox ->
+        mailbox
     end
   end
-  
+
   # Template helper functions
-  
+
   defp get_filter_icon(filter) do
     case filter do
       "new_contacts" -> "hero-user-plus"
@@ -799,7 +805,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       _ -> "hero-inbox"
     end
   end
-  
+
   defp get_filter_description(filter) do
     case filter do
       "new_contacts" -> "Messages from first-time senders awaiting approval"
@@ -811,7 +817,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       _ -> "Your main email inbox"
     end
   end
-  
+
   defp get_empty_title(filter) do
     case filter do
       "new_contacts" -> "All clear!"
@@ -823,201 +829,134 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       _ -> "Your inbox is empty"
     end
   end
-  
+
   defp get_empty_description(filter) do
     case filter do
-      "new_contacts" -> "No messages waiting for approval. New messages from unknown senders will appear here."
-      "bulk_mail" -> "Newsletters, notifications, and automated messages will appear here when they arrive."
-      "paper_trail" -> "Receipts, confirmations, and important records will be organized here."
-      "the_pile" -> "Messages you save for later processing will appear here."
-      "boomerang" -> "Messages you've scheduled to reply to later will appear here."
-      "aliases" -> "Create email aliases to forward emails to different addresses."
-      _ -> "No messages have arrived yet. When someone sends you an email, it will appear here."
+      "new_contacts" ->
+        "No messages waiting for approval. New messages from unknown senders will appear here."
+
+      "bulk_mail" ->
+        "Newsletters, notifications, and automated messages will appear here when they arrive."
+
+      "paper_trail" ->
+        "Receipts, confirmations, and important records will be organized here."
+
+      "the_pile" ->
+        "Messages you save for later processing will appear here."
+
+      "boomerang" ->
+        "Messages you've scheduled to reply to later will appear here."
+
+      "aliases" ->
+        "Create email aliases to forward emails to different addresses."
+
+      _ ->
+        "No messages have arrived yet. When someone sends you an email, it will appear here."
     end
   end
-  
+
   defp get_message_card_class(message, filter) do
-    base_class = case filter do
-      "new_contacts" -> "bg-warning/5 border-warning/20"
-      "bulk_mail" -> "bg-info/5 border-info/20"
-      "paper_trail" -> "bg-accent/5 border-accent/20"
-      "the_pile" -> "bg-secondary/5 border-secondary/20"
-      "boomerang" -> "bg-error/5 border-error/20"
-      _ -> if message.read, do: "bg-base-100", else: "bg-primary/5 border-primary/20"
-    end
-    
+    base_class =
+      case filter do
+        "new_contacts" -> "bg-warning/5 border-warning/20"
+        "bulk_mail" -> "bg-info/5 border-info/20"
+        "paper_trail" -> "bg-accent/5 border-accent/20"
+        "the_pile" -> "bg-secondary/5 border-secondary/20"
+        "boomerang" -> "bg-error/5 border-error/20"
+        _ -> if message.read, do: "bg-base-100", else: "bg-primary/5 border-primary/20"
+      end
+
     base_class
   end
-  
+
   defp render_message_badges(message, filter) do
-    html = cond do
-      filter == "new_contacts" ->
-        ~s"""
-        <div class="badge badge-warning badge-xs">NEW CONTACT</div>
-        """
-      filter == "bulk_mail" ->
-        type_badge = cond do
-          message.is_newsletter -> "NEWSLETTER"
-          message.is_notification -> "NOTIFICATION"
-          true -> "BULK"
-        end
-        color = cond do
-          message.is_newsletter -> "badge-info"
-          message.is_notification -> "badge-warning"
-          true -> "badge-primary"
-        end
-        ~s"""
-        <div class="badge badge-xs #{color}">#{type_badge}</div>
-        """
-      filter == "paper_trail" ->
-        type_badge = if message.is_receipt, do: "RECEIPT", else: "RECORD"
-        ~s"""
-        <div class="badge badge-accent badge-xs">#{type_badge}</div>
-        """
-      filter == "the_pile" ->
-        ~s"""
-        <div class="badge badge-secondary badge-xs">SAVED</div>
-        """
-      filter == "boomerang" ->
-        reply_date = if message.reply_later_at do
-          Calendar.strftime(message.reply_later_at, "%b %d")
-        else
-          "SCHEDULED"
-        end
-        ~s"""
-        <div class="badge badge-error badge-xs">#{reply_date}</div>
-        """
-      true ->
-        # General badges for inbox
-        unread_indicator = if not message.read do
-          ~s[<div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>]
-        else
-          ""
-        end
-        
-        spam_badge = if message.spam do
-          ~s[<div class="badge badge-error badge-xs">SPAM</div>]
-        else
-          ""
-        end
-        
-        archived_badge = if message.archived do
-          ~s[<div class="badge badge-secondary badge-xs">ARCHIVED</div>]
-        else
-          ""
-        end
-        
-        attachment_badge = if message.has_attachments do
-          ~s[<div class="badge badge-info badge-xs" title="Has attachments"><svg class="w-3 h-3 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 1110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd"></path></svg></div>]
-        else
-          ""
-        end
-        
-        unread_indicator <> spam_badge <> archived_badge <> attachment_badge
-    end
-    
+    html =
+      cond do
+        filter == "new_contacts" ->
+          ~s"""
+          <div class="badge badge-warning badge-xs">NEW CONTACT</div>
+          """
+
+        filter == "bulk_mail" ->
+          type_badge =
+            cond do
+              message.is_newsletter -> "NEWSLETTER"
+              message.is_notification -> "NOTIFICATION"
+              true -> "BULK"
+            end
+
+          color =
+            cond do
+              message.is_newsletter -> "badge-info"
+              message.is_notification -> "badge-warning"
+              true -> "badge-primary"
+            end
+
+          ~s"""
+          <div class="badge badge-xs #{color}">#{type_badge}</div>
+          """
+
+        filter == "paper_trail" ->
+          type_badge = if message.is_receipt, do: "RECEIPT", else: "RECORD"
+
+          ~s"""
+          <div class="badge badge-accent badge-xs">#{type_badge}</div>
+          """
+
+        filter == "the_pile" ->
+          ~s"""
+          <div class="badge badge-secondary badge-xs">SAVED</div>
+          """
+
+        filter == "boomerang" ->
+          reply_date =
+            if message.reply_later_at do
+              Calendar.strftime(message.reply_later_at, "%b %d")
+            else
+              "SCHEDULED"
+            end
+
+          ~s"""
+          <div class="badge badge-error badge-xs">#{reply_date}</div>
+          """
+
+        true ->
+          # General badges for inbox
+          unread_indicator =
+            if not message.read do
+              ~s[<div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>]
+            else
+              ""
+            end
+
+          spam_badge =
+            if message.spam do
+              ~s[<div class="badge badge-error badge-xs">SPAM</div>]
+            else
+              ""
+            end
+
+          archived_badge =
+            if message.archived do
+              ~s[<div class="badge badge-secondary badge-xs">ARCHIVED</div>]
+            else
+              ""
+            end
+
+          attachment_badge =
+            if message.has_attachments do
+              ~s[<div class="badge badge-info badge-xs" title="Has attachments"><svg class="w-3 h-3 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 1110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd"></path></svg></div>]
+            else
+              ""
+            end
+
+          unread_indicator <> spam_badge <> archived_badge <> attachment_badge
+      end
+
     raw(html)
   end
-  
-  defp render_action_menu(message, filter) do
-    html = case filter do
-      "bulk_mail" ->
-        ~s"""
-        <li>
-          <button phx-click="move_to_inbox" phx-value-id="#{message.id}" class="text-sm">
-            <svg class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m0 0V9a2 2 0 012-2h8a2 2 0 012 2v4M6 13h8m0 0v5a2 2 0 01-2 2H8a2 2 0 01-2-2v-5z" />
-            </svg>
-            Move to Inbox
-          </button>
-        </li>
-        <li>
-          <button phx-click="archive" phx-value-id="#{message.id}" class="text-sm">
-            <svg class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-            </svg>
-            Archive
-          </button>
-        </li>
-        """
-      "the_pile" ->
-        ~s"""
-        <li>
-          <button phx-click="move_to_inbox" phx-value-id="#{message.id}" class="text-sm">
-            <svg class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m0 0V9a2 2 0 012-2h8a2 2 0 012 2v4M6 13h8m0 0v5a2 2 0 01-2 2H8a2 2 0 01-2-2v-5z" />
-            </svg>
-            Move to Inbox
-          </button>
-        </li>
-        """
-      "boomerang" ->
-        ~s"""
-        <li>
-          <button phx-click="clear_reply_later" phx-value-id="#{message.id}" class="text-sm">
-            <svg class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Mark as Replied
-          </button>
-        </li>
-        <li>
-          <button phx-click="show_reply_later_modal" phx-value-id="#{message.id}" class="text-sm">
-            <svg class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Reschedule
-          </button>
-        </li>
-        """
-      _ ->
-        ~s"""
-        <li>
-          <button phx-click="save_message" phx-value-id="#{message.id}" class="text-sm">
-            <svg class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-            </svg>
-            Save Message
-          </button>
-        </li>
-        <li>
-          <button phx-click="show_reply_later_modal" phx-value-id="#{message.id}" class="text-sm">
-            <svg class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Reply Later
-          </button>
-        </li>
-        <li>
-          <button phx-click="archive" phx-value-id="#{message.id}" class="text-sm">
-            <svg class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-            </svg>
-            Archive
-          </button>
-        </li>
-        <li>
-          <button phx-click="mark_spam" phx-value-id="#{message.id}" class="text-sm">
-            <svg class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            Mark Spam
-          </button>
-        </li>
-        <li>
-          <button phx-click="delete" phx-value-id="#{message.id}" class="text-sm text-error" data-confirm="Are you sure you want to delete this message?">
-            <svg class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Delete
-          </button>
-        </li>
-        """
-    end
-    
-    raw(html)
-  end
-  
+
+
   defp get_pagination_url(filter, page) do
     if filter == "inbox" do
       ~p"/email/inbox?page=#{page}"
@@ -1025,5 +964,4 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       ~p"/email/inbox?filter=#{filter}&page=#{page}"
     end
   end
-
 end

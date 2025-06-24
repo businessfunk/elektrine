@@ -41,16 +41,13 @@ defmodule Elektrine.Email do
   end
 
   @doc """
-  Creates a mailbox for a user.
+  Creates a mailbox for a user or with the given parameters.
   """
   def create_mailbox(user) when is_struct(user) do
     Mailbox.create_for_user(user)
     |> Repo.insert()
   end
 
-  @doc """
-  Creates a mailbox with the given parameters.
-  """
   def create_mailbox(mailbox_params) when is_map(mailbox_params) do
     %Mailbox{}
     |> Mailbox.changeset(mailbox_params)
@@ -73,7 +70,7 @@ defmodule Elektrine.Email do
   def list_mailboxes(user_id) do
     Mailbox
     |> where(user_id: ^user_id)
-    |> order_by([m], [desc: m.primary, asc: m.email])
+    |> order_by([m], desc: m.primary, asc: m.email)
     |> Repo.all()
   end
 
@@ -154,28 +151,28 @@ defmodule Elektrine.Email do
     |> offset(^offset)
     |> Repo.all()
   end
-  
+
   @doc """
   Returns paginated messages for a mailbox with metadata.
   """
   def list_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Get total count
-    total_count = 
+    total_count =
       Message
       |> where(mailbox_id: ^mailbox_id)
       |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
     messages = list_messages(mailbox_id, per_page, offset)
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       page: page,
@@ -193,22 +190,22 @@ defmodule Elektrine.Email do
   def list_inbox_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Get total count
-    total_count = 
+    total_count =
       Message
       |> where(mailbox_id: ^mailbox_id, spam: false, archived: false)
       |> where([m], m.status != "sent" or is_nil(m.status))
       |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
     messages = list_inbox_messages(mailbox_id, per_page, offset)
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       page: page,
@@ -226,21 +223,21 @@ defmodule Elektrine.Email do
   def list_spam_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Get total count
-    total_count = 
+    total_count =
       Message
       |> where(mailbox_id: ^mailbox_id, spam: true)
       |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
     messages = list_spam_messages(mailbox_id, per_page, offset)
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       page: page,
@@ -258,21 +255,21 @@ defmodule Elektrine.Email do
   def list_archived_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Get total count
-    total_count = 
+    total_count =
       Message
       |> where(mailbox_id: ^mailbox_id, archived: true)
       |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
     messages = list_archived_messages(mailbox_id, per_page, offset)
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       page: page,
@@ -283,34 +280,34 @@ defmodule Elektrine.Email do
       has_prev: has_prev
     }
   end
-  
+
   @doc """
   Returns paginated sent messages for a mailbox with metadata.
   """
   def list_sent_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Get total count
-    total_count = 
+    total_count =
       Message
       |> where([m], m.mailbox_id == ^mailbox_id and m.status == "sent")
       |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
-    messages = 
+    messages =
       Message
       |> where([m], m.mailbox_id == ^mailbox_id and m.status == "sent")
       |> order_by(desc: :inserted_at)
       |> limit(^per_page)
       |> offset(^offset)
       |> Repo.all()
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       page: page,
@@ -376,10 +373,11 @@ defmodule Elektrine.Email do
   Creates a message.
   """
   def create_message(attrs \\ %{}) do
-    result = %Message{}
-    |> Message.changeset(attrs)
-    |> Repo.insert()
-    
+    result =
+      %Message{}
+      |> Message.changeset(attrs)
+      |> Repo.insert()
+
     case result do
       {:ok, message} ->
         # Broadcast to any LiveViews monitoring this mailbox
@@ -390,10 +388,10 @@ defmodule Elektrine.Email do
             {:new_email, message}
           )
         end
-        
+
         # Return the original result
         {:ok, message}
-        
+
       error ->
         error
     end
@@ -412,19 +410,20 @@ defmodule Elektrine.Email do
   Marks a message as read.
   """
   def mark_as_read(%Message{} = message) do
-    result = message
-    |> Message.read_changeset()
-    |> Repo.update()
-    
+    result =
+      message
+      |> Message.read_changeset()
+      |> Repo.update()
+
     case result do
       {:ok, updated_message} ->
         # Get the mailbox to find the user_id
         mailbox = get_mailbox(updated_message.mailbox_id)
-        
+
         if mailbox && mailbox.user_id do
           # Get the new unread count
           new_unread_count = unread_count(updated_message.mailbox_id)
-          
+
           # Broadcast the unread count update
           Phoenix.PubSub.broadcast!(
             Elektrine.PubSub,
@@ -432,9 +431,9 @@ defmodule Elektrine.Email do
             {:unread_count_updated, new_unread_count}
           )
         end
-        
+
         {:ok, updated_message}
-        
+
       error ->
         error
     end
@@ -444,19 +443,20 @@ defmodule Elektrine.Email do
   Marks a message as unread.
   """
   def mark_as_unread(%Message{} = message) do
-    result = message
-    |> Message.unread_changeset()
-    |> Repo.update()
-    
+    result =
+      message
+      |> Message.unread_changeset()
+      |> Repo.update()
+
     case result do
       {:ok, updated_message} ->
         # Get the mailbox to find the user_id
         mailbox = get_mailbox(updated_message.mailbox_id)
-        
+
         if mailbox && mailbox.user_id do
           # Get the new unread count
           new_unread_count = unread_count(updated_message.mailbox_id)
-          
+
           # Broadcast the unread count update
           Phoenix.PubSub.broadcast!(
             Elektrine.PubSub,
@@ -464,9 +464,9 @@ defmodule Elektrine.Email do
             {:unread_count_updated, new_unread_count}
           )
         end
-        
+
         {:ok, updated_message}
-        
+
       error ->
         error
     end
@@ -515,19 +515,19 @@ defmodule Elektrine.Email do
     # Store info before deletion
     was_unread = !message.read
     mailbox_id = message.mailbox_id
-    
+
     result = Repo.delete(message)
-    
+
     case result do
       {:ok, _deleted_message} ->
         # Only broadcast if the deleted message was unread
         if was_unread do
           mailbox = get_mailbox(mailbox_id)
-          
+
           if mailbox && mailbox.user_id do
             # Get the new unread count
             new_unread_count = unread_count(mailbox_id)
-            
+
             # Broadcast the unread count update
             Phoenix.PubSub.broadcast!(
               Elektrine.PubSub,
@@ -536,9 +536,9 @@ defmodule Elektrine.Email do
             )
           end
         end
-        
+
         result
-        
+
       error ->
         error
     end
@@ -565,11 +565,11 @@ defmodule Elektrine.Email do
     |> where(mailbox_id: ^mailbox_id, read: false)
     |> Repo.aggregate(:count)
   end
-  
+
   #
   # Temporary Mailbox Functions
   #
-  
+
   @doc """
   Creates a new temporary mailbox with a random email address.
   The mailbox will expire after the specified duration (default: 24 hours, max: 30 days).
@@ -578,10 +578,10 @@ defmodule Elektrine.Email do
   def create_temporary_mailbox(expires_in_hours \\ 24, domain \\ nil) do
     # Enforce maximum duration of 30 days (720 hours)
     capped_hours = min(expires_in_hours, 720)
-    
+
     # Set expiration time
     expires_at = DateTime.utc_now() |> DateTime.add(capped_hours * 60 * 60, :second)
-    
+
     # Retry creation with unique email/token if there are conflicts
     create_temporary_mailbox_with_retry(expires_at, domain, 0)
   end
@@ -590,22 +590,25 @@ defmodule Elektrine.Email do
     # Generate a random email and token
     email = TemporaryMailbox.generate_email(domain)
     token = TemporaryMailbox.generate_token()
-    
+
     # Create the temporary mailbox
     case %TemporaryMailbox{}
-    |> TemporaryMailbox.changeset(%{
-      email: email,
-      token: token,
-      expires_at: expires_at
-    })
-    |> Repo.insert() do
-      {:ok, mailbox} -> {:ok, mailbox}
+         |> TemporaryMailbox.changeset(%{
+           email: email,
+           token: token,
+           expires_at: expires_at
+         })
+         |> Repo.insert() do
+      {:ok, mailbox} ->
+        {:ok, mailbox}
+
       {:error, %Ecto.Changeset{errors: errors}} ->
         # Check if error is due to unique constraint violation
-        has_unique_error = Enum.any?(errors, fn {field, {_, opts}} ->
-          field in [:email, :token] and opts[:constraint] == :unique
-        end)
-        
+        has_unique_error =
+          Enum.any?(errors, fn {field, {_, opts}} ->
+            field in [:email, :token] and opts[:constraint] == :unique
+          end)
+
         if has_unique_error do
           # Retry with new email/token
           create_temporary_mailbox_with_retry(expires_at, domain, attempts + 1)
@@ -619,7 +622,7 @@ defmodule Elektrine.Email do
   defp create_temporary_mailbox_with_retry(_expires_at, _domain, _attempts) do
     {:error, "Failed to create unique temporary mailbox after 10 attempts"}
   end
-  
+
   @doc """
   Creates a new temporary mailbox with duration specified in days.
   Maximum duration is 30 days.
@@ -629,41 +632,45 @@ defmodule Elektrine.Email do
     hours = min(expires_in_days * 24, 720)
     create_temporary_mailbox(hours, domain)
   end
-  
+
   @doc """
   Gets a temporary mailbox by its token.
   Returns nil if the mailbox does not exist or has expired.
   """
   def get_temporary_mailbox_by_token(token) when is_binary(token) do
     now = DateTime.utc_now()
-    
+
     TemporaryMailbox
     |> where([m], m.token == ^token and m.expires_at > ^now)
     |> Repo.one()
   end
-  
+
   @doc """
   Gets a temporary mailbox by its email address.
   Returns nil if the mailbox does not exist or has expired.
   """
   def get_temporary_mailbox_by_email(email) when is_binary(email) do
     now = DateTime.utc_now()
-    
+
     # First try exact match
-    result = TemporaryMailbox
-    |> where([m], m.email == ^email and m.expires_at > ^now)
-    |> Repo.one()
-    
+    result =
+      TemporaryMailbox
+      |> where([m], m.email == ^email and m.expires_at > ^now)
+      |> Repo.one()
+
     # If not found, try case-insensitive match
     if is_nil(result) do
       TemporaryMailbox
-      |> where([m], fragment("lower(?)", m.email) == ^String.downcase(email) and m.expires_at > ^now)
+      |> where(
+        [m],
+        fragment("lower(?)", m.email) == ^String.downcase(email) and m.expires_at > ^now
+      )
       |> Repo.one()
     else
       result
     end
   end
-  
+
   @doc """
   Lists all messages for a temporary mailbox identified by its token.
   Returns an empty list if the mailbox does not exist or has expired.
@@ -674,28 +681,29 @@ defmodule Elektrine.Email do
       mailbox -> list_messages(mailbox.id, limit, offset)
     end
   end
-  
+
   @doc """
   Extends the expiration time of a temporary mailbox.
   Maximum total lifetime is 30 days from creation.
   """
   def extend_temporary_mailbox(mailbox_id, additional_hours \\ 24) do
     mailbox = Repo.get(TemporaryMailbox, mailbox_id)
-    
+
     if mailbox do
       # Calculate proposed new expiration time
-      proposed_expires_at = DateTime.utc_now() |> DateTime.add(additional_hours * 60 * 60, :second)
-      
+      proposed_expires_at =
+        DateTime.utc_now() |> DateTime.add(additional_hours * 60 * 60, :second)
+
       # Calculate maximum allowed expiration (30 days from creation)
       max_expires_at = mailbox.inserted_at |> DateTime.add(720 * 60 * 60, :second)
-      
+
       # Use the earlier of the two dates to respect the 30-day maximum
-      new_expires_at = 
+      new_expires_at =
         case DateTime.compare(proposed_expires_at, max_expires_at) do
           :gt -> max_expires_at
           _ -> proposed_expires_at
         end
-      
+
       # Update the mailbox
       mailbox
       |> TemporaryMailbox.changeset(%{expires_at: new_expires_at})
@@ -704,25 +712,25 @@ defmodule Elektrine.Email do
       {:error, :not_found}
     end
   end
-  
+
   @doc """
   Deletes expired temporary mailboxes.
   """
   def cleanup_expired_temporary_mailboxes do
     now = DateTime.utc_now()
-    
+
     {count, _} =
       TemporaryMailbox
       |> where([m], m.expires_at <= ^now)
       |> Repo.delete_all()
-    
+
     {:ok, count}
   end
-  
+
   #
   # Hey.com Features
   #
-  
+
   @doc """
   Returns messages pending approval in The Screener.
   """
@@ -735,29 +743,29 @@ defmodule Elektrine.Email do
     |> offset(^offset)
     |> Repo.all()
   end
-  
+
   @doc """
   Returns paginated screener messages for a mailbox with metadata.
   """
   def list_screener_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Get total count
-    total_count = 
+    total_count =
       Message
       |> where(mailbox_id: ^mailbox_id, screener_status: "pending")
       |> where([m], not m.spam and not m.archived)
       |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
     messages = list_screener_messages(mailbox_id, per_page, offset)
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       page: page,
@@ -768,7 +776,7 @@ defmodule Elektrine.Email do
       has_prev: has_prev
     }
   end
-  
+
   @doc """
   Returns messages in The Feed (newsletters, notifications).
   """
@@ -781,29 +789,29 @@ defmodule Elektrine.Email do
     |> offset(^offset)
     |> Repo.all()
   end
-  
+
   @doc """
   Returns paginated feed messages for a mailbox with metadata.
   """
   def list_feed_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Get total count
-    total_count = 
+    total_count =
       Message
       |> where(mailbox_id: ^mailbox_id, category: "feed")
       |> where([m], not m.spam and not m.archived)
       |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
     messages = list_feed_messages(mailbox_id, per_page, offset)
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       page: page,
@@ -814,7 +822,7 @@ defmodule Elektrine.Email do
       has_prev: has_prev
     }
   end
-  
+
   @doc """
   Returns messages in Paper Trail (receipts, confirmations).
   """
@@ -827,29 +835,29 @@ defmodule Elektrine.Email do
     |> offset(^offset)
     |> Repo.all()
   end
-  
+
   @doc """
   Returns paginated paper trail messages for a mailbox with metadata.
   """
   def list_paper_trail_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Get total count
-    total_count = 
+    total_count =
       Message
       |> where(mailbox_id: ^mailbox_id, category: "paper_trail")
       |> where([m], not m.spam and not m.archived)
       |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
     messages = list_paper_trail_messages(mailbox_id, per_page, offset)
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       page: page,
@@ -860,7 +868,7 @@ defmodule Elektrine.Email do
       has_prev: has_prev
     }
   end
-  
+
   @doc """
   Returns messages that are set aside.
   """
@@ -874,30 +882,30 @@ defmodule Elektrine.Email do
     |> offset(^offset)
     |> Repo.all()
   end
-  
+
   @doc """
   Returns paginated set aside messages for a mailbox with metadata.
   """
   def list_set_aside_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Get total count
-    total_count = 
+    total_count =
       Message
       |> where(mailbox_id: ^mailbox_id, category: "set_aside")
       |> where([m], not is_nil(m.set_aside_at))
       |> where([m], not m.spam and not m.archived)
       |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
     messages = list_set_aside_messages(mailbox_id, per_page, offset)
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       page: page,
@@ -908,7 +916,7 @@ defmodule Elektrine.Email do
       has_prev: has_prev
     }
   end
-  
+
   @doc """
   Returns messages marked for reply later.
   """
@@ -922,30 +930,30 @@ defmodule Elektrine.Email do
     |> offset(^offset)
     |> Repo.all()
   end
-  
+
   @doc """
   Returns paginated reply later messages for a mailbox with metadata.
   """
   def list_reply_later_messages_paginated(mailbox_id, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Get total count
-    total_count = 
+    total_count =
       Message
       |> where(mailbox_id: ^mailbox_id)
       |> where([m], not is_nil(m.reply_later_at))
       |> where([m], not m.spam and not m.archived)
       |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
     messages = list_reply_later_messages(mailbox_id, per_page, offset)
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       page: page,
@@ -956,7 +964,7 @@ defmodule Elektrine.Email do
       has_prev: has_prev
     }
   end
-  
+
   @doc """
   Searches messages in a mailbox.
   Supports searching in from, to, cc, subject, and body content.
@@ -965,47 +973,49 @@ defmodule Elektrine.Email do
   def search_messages(mailbox_id, query, page \\ 1, per_page \\ 20) do
     page = max(page, 1)
     offset = (page - 1) * per_page
-    
+
     # Split query into terms for better matching
     search_terms = String.split(String.trim(query), " ")
-    
+
     # Build search query
-    base_query = 
+    base_query =
       Message
       |> where(mailbox_id: ^mailbox_id)
       |> where([m], not m.spam and not m.archived)
-    
+
     # Apply search filters - search across multiple fields
-    search_query = 
+    search_query =
       Enum.reduce(search_terms, base_query, fn term, acc_query ->
         search_term = "%#{String.downcase(term)}%"
-        
-        where(acc_query, [m], 
+
+        where(
+          acc_query,
+          [m],
           ilike(fragment("LOWER(?)", m.from), ^search_term) or
-          ilike(fragment("LOWER(?)", m.to), ^search_term) or
-          ilike(fragment("LOWER(?)", m.cc), ^search_term) or
-          ilike(fragment("LOWER(?)", m.subject), ^search_term) or
-          ilike(fragment("LOWER(?)", m.text_body), ^search_term) or
-          ilike(fragment("LOWER(?)", m.html_body), ^search_term)
+            ilike(fragment("LOWER(?)", m.to), ^search_term) or
+            ilike(fragment("LOWER(?)", m.cc), ^search_term) or
+            ilike(fragment("LOWER(?)", m.subject), ^search_term) or
+            ilike(fragment("LOWER(?)", m.text_body), ^search_term) or
+            ilike(fragment("LOWER(?)", m.html_body), ^search_term)
         )
       end)
-    
+
     # Get total count
     total_count = search_query |> Repo.aggregate(:count)
-    
+
     # Get messages for current page
-    messages = 
+    messages =
       search_query
       |> order_by(desc: :inserted_at)
       |> limit(^per_page)
       |> offset(^offset)
       |> Repo.all()
-    
+
     # Calculate pagination metadata
     total_pages = ceil(total_count / per_page)
     has_next = page < total_pages
     has_prev = page > 1
-    
+
     %{
       messages: messages,
       query: query,
@@ -1017,15 +1027,16 @@ defmodule Elektrine.Email do
       has_prev: has_prev
     }
   end
-  
+
   @doc """
   Approves a sender in The Screener.
   """
   def approve_sender(%Message{} = message) do
-    result = message
-    |> Message.approve_sender_changeset()
-    |> Repo.update()
-    
+    result =
+      message
+      |> Message.approve_sender_changeset()
+      |> Repo.update()
+
     case result do
       {:ok, updated_message} ->
         # Add sender to approved list
@@ -1034,14 +1045,14 @@ defmodule Elektrine.Email do
           mailbox_id: updated_message.mailbox_id,
           approved_at: DateTime.utc_now() |> DateTime.truncate(:second)
         })
-        
+
         {:ok, updated_message}
-        
+
       error ->
         error
     end
   end
-  
+
   @doc """
   Rejects a sender in The Screener.
   """
@@ -1050,7 +1061,7 @@ defmodule Elektrine.Email do
     |> Message.reject_sender_changeset()
     |> Repo.update()
   end
-  
+
   @doc """
   Sets aside a message for later processing.
   """
@@ -1059,7 +1070,7 @@ defmodule Elektrine.Email do
     |> Message.set_aside_changeset(%{set_aside_reason: reason})
     |> Repo.update()
   end
-  
+
   @doc """
   Removes a message from set aside.
   """
@@ -1068,7 +1079,7 @@ defmodule Elektrine.Email do
     |> Message.unset_aside_changeset()
     |> Repo.update()
   end
-  
+
   @doc """
   Sets a message for reply later.
   """
@@ -1080,7 +1091,7 @@ defmodule Elektrine.Email do
     })
     |> Repo.update()
   end
-  
+
   @doc """
   Clears reply later for a message.
   """
@@ -1089,7 +1100,7 @@ defmodule Elektrine.Email do
     |> Message.clear_reply_later_changeset()
     |> Repo.update()
   end
-  
+
   @doc """
   Tracks when a message is opened.
   """
@@ -1098,7 +1109,7 @@ defmodule Elektrine.Email do
     |> Message.track_open_changeset()
     |> Repo.update()
   end
-  
+
   @doc """
   Checks if a sender is approved for a mailbox.
   """
@@ -1107,7 +1118,7 @@ defmodule Elektrine.Email do
     |> where(email_address: ^email_address, mailbox_id: ^mailbox_id)
     |> Repo.exists?()
   end
-  
+
   @doc """
   Creates an approved sender.
   """
@@ -1116,7 +1127,7 @@ defmodule Elektrine.Email do
     |> ApprovedSender.changeset(attrs)
     |> Repo.insert()
   end
-  
+
   @doc """
   Lists all approved senders for a mailbox.
   """
@@ -1126,19 +1137,19 @@ defmodule Elektrine.Email do
     |> order_by(desc: :approved_at)
     |> Repo.all()
   end
-  
+
   @doc """
   Gets a single approved sender.
   """
   def get_approved_sender(id), do: Repo.get(ApprovedSender, id)
-  
+
   @doc """
   Deletes an approved sender.
   """
   def delete_approved_sender(%ApprovedSender{} = approved_sender) do
     Repo.delete(approved_sender)
   end
-  
+
   @doc """
   Updates an approved sender.
   """
@@ -1147,13 +1158,16 @@ defmodule Elektrine.Email do
     |> ApprovedSender.changeset(attrs)
     |> Repo.update()
   end
-  
+
   @doc """
   Updates tracking for an approved sender when they send an email.
   """
   def track_approved_sender_email(email_address, mailbox_id) do
     case Repo.get_by(ApprovedSender, email_address: email_address, mailbox_id: mailbox_id) do
-      nil -> :ok # Sender not approved, nothing to track
+      # Sender not approved, nothing to track
+      nil ->
+        :ok
+
       sender ->
         sender
         |> ApprovedSender.track_email_changeset()
@@ -1202,11 +1216,13 @@ defmodule Elektrine.Email do
     # Reset rejected messages to pending for re-screening
     Message
     |> where(mailbox_id: ^mailbox_id, from: ^email_address, screener_status: "rejected")
-    |> Repo.update_all(set: [screener_status: "pending", spam: false, updated_at: DateTime.utc_now()])
+    |> Repo.update_all(
+      set: [screener_status: "pending", spam: false, updated_at: DateTime.utc_now()]
+    )
 
     :ok
   end
-  
+
   @doc """
   Categorizes an incoming message based on content analysis.
   """
@@ -1214,7 +1230,7 @@ defmodule Elektrine.Email do
     subject = String.downcase(message_attrs["subject"] || "")
     from = String.downcase(message_attrs["from"] || "")
     body = String.downcase(message_attrs["text_body"] || "")
-    
+
     cond do
       # Receipt detection
       receipt_keywords?(subject, body) ->
@@ -1222,92 +1238,132 @@ defmodule Elektrine.Email do
           "category" => "paper_trail",
           "is_receipt" => true
         })
-      
+
       # Newsletter detection  
       newsletter_keywords?(subject, from, body) ->
         Map.merge(message_attrs, %{
           "category" => "feed",
           "is_newsletter" => true
         })
-      
+
       # Notification detection
       notification_keywords?(subject, from, body) ->
         Map.merge(message_attrs, %{
-          "category" => "feed", 
+          "category" => "feed",
           "is_notification" => true
         })
-      
+
       true ->
         message_attrs
     end
   end
-  
+
   # Private helper functions for categorization
   defp receipt_keywords?(subject, body) do
     receipt_terms = [
-      "receipt", "invoice", "payment", "confirmation", "order", 
-      "purchase", "transaction", "billing", "refund", "shipping"
+      "receipt",
+      "invoice",
+      "payment",
+      "confirmation",
+      "order",
+      "purchase",
+      "transaction",
+      "billing",
+      "refund",
+      "shipping"
     ]
-    
-    Enum.any?(receipt_terms, fn term -> 
+
+    Enum.any?(receipt_terms, fn term ->
       String.contains?(subject, term) or String.contains?(body, term)
     end)
   end
-  
+
   defp newsletter_keywords?(subject, from, body) do
     newsletter_terms = [
-      "newsletter", "unsubscribe", "weekly", "monthly", "digest",
-      "news", "update", "announcement"
+      "newsletter",
+      "unsubscribe",
+      "weekly",
+      "monthly",
+      "digest",
+      "news",
+      "update",
+      "announcement"
     ]
-    
+
     newsletter_domains = [
-      "newsletter", "news", "updates", "marketing", "promo"
+      "newsletter",
+      "news",
+      "updates",
+      "marketing",
+      "promo"
     ]
-    
-    has_newsletter_terms = Enum.any?(newsletter_terms, fn term ->
-      String.contains?(subject, term) or String.contains?(body, term)
-    end)
-    
-    has_newsletter_domain = Enum.any?(newsletter_domains, fn domain ->
-      String.contains?(from, domain)
-    end)
-    
+
+    has_newsletter_terms =
+      Enum.any?(newsletter_terms, fn term ->
+        String.contains?(subject, term) or String.contains?(body, term)
+      end)
+
+    has_newsletter_domain =
+      Enum.any?(newsletter_domains, fn domain ->
+        String.contains?(from, domain)
+      end)
+
     has_newsletter_terms or has_newsletter_domain
   end
-  
+
   defp notification_keywords?(subject, from, body) do
     notification_terms = [
-      "notification", "alert", "reminder", "notice", "security",
-      "login", "password", "reset", "account", "verify", "welcome",
-      "password reset", "forgot password", "reset password"
+      "notification",
+      "alert",
+      "reminder",
+      "notice",
+      "security",
+      "login",
+      "password",
+      "reset",
+      "account",
+      "verify",
+      "welcome",
+      "password reset",
+      "forgot password",
+      "reset password"
     ]
-    
+
     notification_domains = [
-      "no-reply", "noreply", "notification", "alert", "system",
-      "security", "auth", "account"
+      "no-reply",
+      "noreply",
+      "notification",
+      "alert",
+      "system",
+      "security",
+      "auth",
+      "account"
     ]
-    
-    has_notification_terms = Enum.any?(notification_terms, fn term ->
-      String.contains?(subject, term) or String.contains?(body, term)
-    end)
-    
-    has_notification_domain = Enum.any?(notification_domains, fn domain ->
-      String.contains?(from, domain)
-    end)
-    
+
+    has_notification_terms =
+      Enum.any?(notification_terms, fn term ->
+        String.contains?(subject, term) or String.contains?(body, term)
+      end)
+
+    has_notification_domain =
+      Enum.any?(notification_domains, fn domain ->
+        String.contains?(from, domain)
+      end)
+
     has_notification_terms or has_notification_domain
   end
-  
+
   @doc """
   Re-categorizes existing messages in a mailbox based on current categorization rules.
   Useful for applying updated categorization logic to existing messages.
   """
   def recategorize_messages(mailbox_id) do
-    messages = Message
-    |> where(mailbox_id: ^mailbox_id)
-    |> where([m], not m.spam)
-    |> Repo.all()
-    
+    messages =
+      Message
+      |> where(mailbox_id: ^mailbox_id)
+      |> where([m], not m.spam)
+      |> Repo.all()
+
     Enum.each(messages, fn message ->
       # Create attrs map similar to what's used during message creation
       message_attrs = %{
@@ -1315,17 +1371,18 @@ defmodule Elektrine.Email do
         "from" => message.from || "",
         "text_body" => message.text_body || ""
       }
-      
+
       # Apply categorization
       categorized_attrs = categorize_message(message_attrs)
-      
+
       # Extract only the categorization fields
-      update_attrs = %{}
-      |> maybe_put(:category, categorized_attrs["category"])
-      |> maybe_put(:is_receipt, categorized_attrs["is_receipt"])
-      |> maybe_put(:is_newsletter, categorized_attrs["is_newsletter"])
-      |> maybe_put(:is_notification, categorized_attrs["is_notification"])
-      
+      update_attrs =
+        %{}
+        |> maybe_put(:category, categorized_attrs["category"])
+        |> maybe_put(:is_receipt, categorized_attrs["is_receipt"])
+        |> maybe_put(:is_newsletter, categorized_attrs["is_newsletter"])
+        |> maybe_put(:is_notification, categorized_attrs["is_notification"])
+
       # Update the message if any categorization changed
       if map_size(update_attrs) > 0 do
         message
@@ -1333,10 +1390,10 @@ defmodule Elektrine.Email do
         |> Repo.update()
       end
     end)
-    
+
     :ok
   end
-  
+
   # Helper function to conditionally put values in a map
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
@@ -1349,7 +1406,7 @@ defmodule Elektrine.Email do
   def list_aliases(user_id) do
     Alias
     |> where(user_id: ^user_id)
-    |> order_by([a], [desc: a.inserted_at])
+    |> order_by([a], desc: a.inserted_at)
     |> Repo.all()
   end
 
@@ -1410,11 +1467,13 @@ defmodule Elektrine.Email do
   """
   def resolve_alias(email) do
     case get_alias_by_email(email) do
-      %Alias{target_email: target_email} when is_binary(target_email) and target_email != "" -> 
+      %Alias{target_email: target_email} when is_binary(target_email) and target_email != "" ->
         target_email
-      %Alias{target_email: target_email} when is_nil(target_email) or target_email == "" -> 
+
+      %Alias{target_email: target_email} when is_nil(target_email) or target_email == "" ->
         :no_forward
-      nil -> 
+
+      nil ->
         nil
     end
   end
@@ -1441,7 +1500,8 @@ defmodule Elektrine.Email do
   Checks if a mailbox has forwarding enabled and returns the target email.
   Returns nil if forwarding is disabled or not configured.
   """
-  def get_mailbox_forward_target(%Mailbox{forward_enabled: true, forward_to: target}) when is_binary(target) do
+  def get_mailbox_forward_target(%Mailbox{forward_enabled: true, forward_to: target})
+      when is_binary(target) do
     target
   end
 

@@ -19,12 +19,15 @@ defmodule ElektrineWeb.EmailController do
     mailbox = Email.get_user_mailbox(user.id)
 
     # If no mailbox, create one
-    mailbox = case mailbox do
-      nil ->
-        {:ok, new_mailbox} = Email.ensure_user_has_mailbox(user)
-        new_mailbox
-      existing -> existing
-    end
+    mailbox =
+      case mailbox do
+        nil ->
+          {:ok, new_mailbox} = Email.ensure_user_has_mailbox(user)
+          new_mailbox
+
+        existing ->
+          existing
+      end
 
     # Get messages for the mailbox with pagination
     messages = Email.list_messages(mailbox.id, per_page, (page - 1) * per_page)
@@ -48,21 +51,26 @@ defmodule ElektrineWeb.EmailController do
     mailbox = Email.get_user_mailbox(user.id)
 
     # If no mailbox, create one
-    mailbox = case mailbox do
-      nil ->
-        {:ok, new_mailbox} = Email.ensure_user_has_mailbox(user)
-        new_mailbox
-      existing -> existing
-    end
+    mailbox =
+      case mailbox do
+        nil ->
+          {:ok, new_mailbox} = Email.ensure_user_has_mailbox(user)
+          new_mailbox
+
+        existing ->
+          existing
+      end
 
     # Get sent messages for the mailbox with pagination
     import Ecto.Query
-    sent_messages = Message
-                   |> where(mailbox_id: ^mailbox.id, status: "sent")
-                   |> order_by(desc: :inserted_at)
-                   |> limit(^per_page)
-                   |> offset(^((page - 1) * per_page))
-                   |> Elektrine.Repo.all()
+
+    sent_messages =
+      Message
+      |> where(mailbox_id: ^mailbox.id, status: "sent")
+      |> order_by(desc: :inserted_at)
+      |> limit(^per_page)
+      |> offset(^((page - 1) * per_page))
+      |> Elektrine.Repo.all()
 
     render(conn, :sent,
       mailbox: mailbox,
@@ -79,12 +87,15 @@ defmodule ElektrineWeb.EmailController do
     mailbox = Email.get_user_mailbox(user.id)
 
     # If no mailbox, create one
-    mailbox = case mailbox do
-      nil ->
-        {:ok, new_mailbox} = Email.ensure_user_has_mailbox(user)
-        new_mailbox
-      existing -> existing
-    end
+    mailbox =
+      case mailbox do
+        nil ->
+          {:ok, new_mailbox} = Email.ensure_user_has_mailbox(user)
+          new_mailbox
+
+        existing ->
+          existing
+      end
 
     render(conn, :compose, mailbox: mailbox)
   end
@@ -96,14 +107,14 @@ defmodule ElektrineWeb.EmailController do
     mailbox = Email.get_user_mailbox(user.id)
 
     case Sender.send_email(user.id, %{
-      from: mailbox.email,
-      to: email_params["to"],
-      cc: email_params["cc"],
-      bcc: email_params["bcc"],
-      subject: email_params["subject"],
-      text_body: email_params["body"],
-      html_body: format_html_body(email_params["body"])
-    }) do
+           from: mailbox.email,
+           to: email_params["to"],
+           cc: email_params["cc"],
+           bcc: email_params["bcc"],
+           subject: email_params["subject"],
+           text_body: email_params["body"],
+           html_body: format_html_body(email_params["body"])
+         }) do
       {:ok, _message} ->
         conn
         |> put_flash(:info, "Email sent successfully.")
@@ -178,9 +189,10 @@ defmodule ElektrineWeb.EmailController do
         end
     end
   end
-  
+
   # Converts plain text to simple HTML
   defp format_html_body(nil), do: nil
+
   defp format_html_body(text) do
     text
     |> String.split("\n")

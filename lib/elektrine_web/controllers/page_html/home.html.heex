@@ -1,62 +1,89 @@
-
 <div class="digital-container min-h-screen bg-gray-900 text-cyan-400 flex flex-col items-center justify-center relative overflow-hidden">
   <!-- Generative Art Canvas -->
   <canvas id="generative-canvas" class="absolute inset-0 w-full h-full"></canvas>
-  
+
   <div class="digital-frame homepage-frame border border-cyan-500/30 p-6 md:p-10 max-w-3xl w-full mx-auto bg-gray-900/70 backdrop-blur-sm z-10 relative">
     <!-- Central Mark/Logo -->
     <div class="flex justify-center mb-8 relative z-10">
       <div class="relative">
-        <div class="absolute -inset-2 opacity-8 blur-sm bg-gradient-radial from-cyan-500/10 to-transparent"></div>
-        <img src="/images/mark.png" alt="Elektrine Mark" class="h-12 w-auto object-contain z-10 opacity-30" style="filter: invert(1) sepia(0.5) saturate(1.5) hue-rotate(180deg) brightness(0.7) contrast(0.8);" />
+        <div class="absolute -inset-2 opacity-8 blur-sm bg-gradient-radial from-cyan-500/10 to-transparent">
+        </div>
+        <img
+          src="/images/mark.png"
+          alt="Elektrine Mark"
+          class="h-12 w-auto object-contain z-10 opacity-30"
+          style="filter: invert(1) sepia(0.5) saturate(1.5) hue-rotate(180deg) brightness(0.7) contrast(0.8);"
+        />
       </div>
     </div>
-    
-    <h1 class="text-5xl font-bold mb-4 relative digital-text z-10" style="background: linear-gradient(45deg, #22d3ee 30%, #ffa500 50%, #22d3ee 70%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+
+    <h1
+      class="text-5xl font-bold mb-4 relative digital-text z-10"
+      style="background: linear-gradient(45deg, #22d3ee 30%, #ffa500 50%, #22d3ee 70%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
+    >
       ELEKTRINE
     </h1>
-    
-    
+
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 relative z-10">
       <div class="digital-box border border-cyan-500/40 p-4 hover:bg-cyan-900/20 transition-all">
         <h3 class="text-lg mb-2 text-cyan-300">EMAIL</h3>
-        <p class="text-sm opacity-70">Advanced email with aliases (up to 100), forwarding, spam filtering, and smart categorization.</p>
+        <p class="text-sm opacity-70">
+          Advanced email with aliases (up to 100), forwarding, spam filtering, and smart categorization.
+        </p>
         <p class="text-xs opacity-50 mt-1">Available on @elektrine.com and @z.org</p>
       </div>
-      
+
       <div class="digital-box border border-cyan-500/40 p-4 hover:bg-cyan-900/20 transition-all">
         <h3 class="text-lg mb-2 text-cyan-300">XMPP CHAT</h3>
         <p class="text-sm opacity-70">Use your Elektrine login for XMPP messaging services.</p>
       </div>
     </div>
-    
+
     <div class="flex flex-col sm:flex-row justify-center gap-4 mt-8 relative z-10">
       <%= if @current_user do %>
-        <.link href={~p"/email"} class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30">
+        <.link
+          href={~p"/email"}
+          class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30"
+        >
           <span class="font-mono">ACCESS EMAIL</span>
         </.link>
-        <.link href={~p"/account"} class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30">
+        <.link
+          href={~p"/account"}
+          class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30"
+        >
           <span class="font-mono">MY PROFILE</span>
         </.link>
-        <.link href={~p"/logout"} method="delete" class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30">
+        <.link
+          href={~p"/logout"}
+          method="delete"
+          class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30"
+        >
           <span class="font-mono">SIGN OUT</span>
         </.link>
       <% else %>
-        <.link href={~p"/login"} class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30">
+        <.link
+          href={~p"/login"}
+          class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30"
+        >
           <span class="font-mono">SIGN IN</span>
         </.link>
-        <.link href={~p"/register"} class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30">
+        <.link
+          href={~p"/register"}
+          class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30"
+        >
           <span class="font-mono">CREATE ACCOUNT</span>
         </.link>
-        <.link href={~p"/temp-mail"} class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30">
+        <.link
+          href={~p"/temp-mail"}
+          class="btn bg-transparent border-cyan-500/70 text-cyan-400 hover:bg-cyan-900/30"
+        >
           <span class="font-mono">TEMP MAIL</span>
         </.link>
       <% end %>
     </div>
   </div>
-  
+
   <div class="network-grid absolute inset-0 opacity-10 pointer-events-none">
     <!-- Generated by script -->
   </div>
 </div>
-

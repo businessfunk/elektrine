@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Email.PubsubTest do
   @shortdoc "Test PubSub email broadcasting"
   def run([user_id]) do
     Mix.Task.run("app.start")
-    
+
     # Create a test email message
     test_message = %{
       id: "test-#{System.unique_integer([:positive])}",
@@ -18,16 +18,16 @@ defmodule Mix.Tasks.Email.PubsubTest do
       read: false,
       inserted_at: DateTime.utc_now()
     }
-    
+
     Logger.info("Broadcasting test email to user:#{user_id}")
-    
+
     # Broadcast the test message
     Phoenix.PubSub.broadcast!(
       Elektrine.PubSub,
       "user:#{user_id}",
       {:new_email, test_message}
     )
-    
+
     Logger.info("Test email broadcast complete!")
   end
 end

@@ -7,7 +7,13 @@ defmodule Elektrine.EmailAliasTest do
 
   describe "email aliases" do
     setup do
-      {:ok, user} = Accounts.create_user(%{username: "testuser", password: "password123", password_confirmation: "password123"})
+      {:ok, user} =
+        Accounts.create_user(%{
+          username: "testuser",
+          password: "password123",
+          password_confirmation: "password123"
+        })
+
       %{user: user}
     end
 
@@ -40,8 +46,13 @@ defmodule Elektrine.EmailAliasTest do
     end
 
     test "get_alias/2 returns nil for wrong user", %{user: user} do
-      {:ok, other_user} = Accounts.create_user(%{username: "otheruser", password: "password123", password_confirmation: "password123"})
-      
+      {:ok, other_user} =
+        Accounts.create_user(%{
+          username: "otheruser",
+          password: "password123",
+          password_confirmation: "password123"
+        })
+
       alias_attrs = %{
         alias_email: "test@elektrine.com",
         target_email: "user@example.com",
@@ -234,6 +245,7 @@ defmodule Elektrine.EmailAliasTest do
         target_email: "user@example.com",
         user_id: user.id
       }
+
       assert {:ok, _alias} = Email.create_alias(alias_attrs_1)
 
       # Test z.org
@@ -242,18 +254,25 @@ defmodule Elektrine.EmailAliasTest do
         target_email: "user@example.com",
         user_id: user.id
       }
+
       assert {:ok, _alias} = Email.create_alias(alias_attrs_2)
     end
 
     test "create_alias/1 prevents duplicate aliases across users", %{user: user} do
-      {:ok, other_user} = Accounts.create_user(%{username: "otheruser", password: "password123", password_confirmation: "password123"})
-      
+      {:ok, other_user} =
+        Accounts.create_user(%{
+          username: "otheruser",
+          password: "password123",
+          password_confirmation: "password123"
+        })
+
       # Create alias for first user
       alias_attrs = %{
         alias_email: "shared@elektrine.com",
         target_email: "user1@example.com",
         user_id: user.id
       }
+
       assert {:ok, _alias} = Email.create_alias(alias_attrs)
 
       # Try to create same alias for second user
@@ -262,6 +281,7 @@ defmodule Elektrine.EmailAliasTest do
         target_email: "user2@example.com",
         user_id: other_user.id
       }
+
       assert {:error, changeset} = Email.create_alias(alias_attrs_2)
       assert %{alias_email: ["this alias is already taken"]} = errors_on(changeset)
     end
@@ -269,16 +289,18 @@ defmodule Elektrine.EmailAliasTest do
     test "create_alias/1 prevents aliases that conflict with existing mailboxes", %{user: user} do
       # Get the user's existing mailbox (created during user creation)
       mailbox = Email.get_user_mailbox(user.id)
-      
+
       # Try to create an alias using the same email as the mailbox
       alias_attrs = %{
         alias_email: mailbox.email,
         target_email: "user@example.com",
         user_id: user.id
       }
-      
+
       assert {:error, changeset} = Email.create_alias(alias_attrs)
-      assert %{alias_email: ["this email address is already in use as a mailbox"]} = errors_on(changeset)
+
+      assert %{alias_email: ["this email address is already in use as a mailbox"]} =
+               errors_on(changeset)
     end
   end
 end

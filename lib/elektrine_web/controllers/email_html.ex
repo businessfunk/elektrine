@@ -7,6 +7,7 @@ defmodule ElektrineWeb.EmailHTML do
     case datetime do
       %DateTime{} ->
         Calendar.strftime(datetime, "%b %d, %Y %H:%M")
+
       _ ->
         ""
     end

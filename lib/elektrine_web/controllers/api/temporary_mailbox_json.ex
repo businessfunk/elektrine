@@ -14,7 +14,7 @@ defmodule ElektrineWeb.API.TemporaryMailboxJSON do
       }
     }
   end
-  
+
   # Renders a temporary mailbox without messages.
   def show(%{mailbox: mailbox}) do
     %{
@@ -27,7 +27,7 @@ defmodule ElektrineWeb.API.TemporaryMailboxJSON do
       }
     }
   end
-  
+
   @doc """
   Renders a single message.
   """
@@ -36,7 +36,7 @@ defmodule ElektrineWeb.API.TemporaryMailboxJSON do
       data: message_json(message)
     }
   end
-  
+
   # Helper function to format a message as JSON
   defp message_json(message) do
     %{
@@ -51,22 +51,23 @@ defmodule ElektrineWeb.API.TemporaryMailboxJSON do
       received_at: message.inserted_at
     }
   end
-  
+
   # Helper to calculate remaining time until expiration
   defp calculate_remaining_time(expires_at) do
     now = DateTime.utc_now()
-    
+
     case DateTime.compare(expires_at, now) do
       :gt ->
         # Calculate difference in seconds
         diff_seconds = DateTime.diff(expires_at, now, :second)
+
         %{
           expired: false,
           seconds: diff_seconds,
           minutes: div(diff_seconds, 60),
           hours: div(diff_seconds, 3600)
         }
-        
+
       _ ->
         %{
           expired: true,

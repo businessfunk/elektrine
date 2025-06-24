@@ -65,7 +65,7 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base,
     check_origin: [
-      "https://elektrine.com", 
+      "https://elektrine.com",
       "https://www.elektrine.com",
       "https://z.org",
       "https://www.z.org"
@@ -73,16 +73,18 @@ if config_env() == :prod do
 
   # hCaptcha configuration for production
   config :elektrine, :hcaptcha,
-    site_key: System.get_env("HCAPTCHA_SITE_KEY") ||
-      raise("""
-      environment variable HCAPTCHA_SITE_KEY is missing.
-      Get your site key from https://dashboard.hcaptcha.com/sites
-      """),
-    secret_key: System.get_env("HCAPTCHA_SECRET_KEY") ||
-      raise("""
-      environment variable HCAPTCHA_SECRET_KEY is missing.
-      Get your secret key from https://dashboard.hcaptcha.com/sites
-      """),
+    site_key:
+      System.get_env("HCAPTCHA_SITE_KEY") ||
+        raise("""
+        environment variable HCAPTCHA_SITE_KEY is missing.
+        Get your site key from https://dashboard.hcaptcha.com/sites
+        """),
+    secret_key:
+      System.get_env("HCAPTCHA_SECRET_KEY") ||
+        raise("""
+        environment variable HCAPTCHA_SECRET_KEY is missing.
+        Get your secret key from https://dashboard.hcaptcha.com/sites
+        """),
     verify_url: "https://hcaptcha.com/siteverify"
 
   # ## SSL Support
@@ -137,42 +139,48 @@ if config_env() == :prod do
 
   # Backblaze B2 configuration for production
   config :ex_aws,
-    access_key_id: System.get_env("BACKBLAZE_KEY_ID") ||
-      raise("""
-      environment variable BACKBLAZE_KEY_ID is missing.
-      Get your key ID from Backblaze B2 dashboard.
-      """),
-    secret_access_key: System.get_env("BACKBLAZE_APPLICATION_KEY") ||
-      raise("""
-      environment variable BACKBLAZE_APPLICATION_KEY is missing.
-      Get your application key from Backblaze B2 dashboard.
-      """),
+    access_key_id:
+      System.get_env("BACKBLAZE_KEY_ID") ||
+        raise("""
+        environment variable BACKBLAZE_KEY_ID is missing.
+        Get your key ID from Backblaze B2 dashboard.
+        """),
+    secret_access_key:
+      System.get_env("BACKBLAZE_APPLICATION_KEY") ||
+        raise("""
+        environment variable BACKBLAZE_APPLICATION_KEY is missing.
+        Get your application key from Backblaze B2 dashboard.
+        """),
     region: "auto",
     json_codec: Jason,
     s3: [
       scheme: "https://",
-      host: System.get_env("BACKBLAZE_ENDPOINT") ||
-        raise("""
-        environment variable BACKBLAZE_ENDPOINT is missing.
-        Example: s3.us-west-002.backblazeb2.com
-        """),
+      host:
+        System.get_env("BACKBLAZE_ENDPOINT") ||
+          raise("""
+          environment variable BACKBLAZE_ENDPOINT is missing.
+          Example: s3.us-west-002.backblazeb2.com
+          """),
       region: "auto"
     ]
 
   config :elektrine, :uploads,
     adapter: :s3,
-    bucket: System.get_env("BACKBLAZE_BUCKET_NAME") ||
-      raise("""
-      environment variable BACKBLAZE_BUCKET_NAME is missing.
-      Set your Backblaze B2 bucket name.
-      """),
-    endpoint: System.get_env("BACKBLAZE_ENDPOINT") ||
-      raise("""
-      environment variable BACKBLAZE_ENDPOINT is missing.
-      Example: s3.us-west-002.backblazeb2.com
-      """),
+    bucket:
+      System.get_env("BACKBLAZE_BUCKET_NAME") ||
+        raise("""
+        environment variable BACKBLAZE_BUCKET_NAME is missing.
+        Set your Backblaze B2 bucket name.
+        """),
+    endpoint:
+      System.get_env("BACKBLAZE_ENDPOINT") ||
+        raise("""
+        environment variable BACKBLAZE_ENDPOINT is missing.
+        Example: s3.us-west-002.backblazeb2.com
+        """),
     # Upload security limits
-    max_file_size: 5 * 1024 * 1024,  # 5MB
+    # 5MB
+    max_file_size: 5 * 1024 * 1024,
     max_image_width: 2048,
     max_image_height: 2048
 end

@@ -4,25 +4,27 @@ defmodule Elektrine.Repo.Migrations.AddHeyFeaturesToEmailMessages do
   def change do
     alter table(:email_messages) do
       # The Screener - for new senders
-      add :screener_status, :string, default: "pending" # pending, approved, rejected
+      # pending, approved, rejected
+      add :screener_status, :string, default: "pending"
       add :sender_approved, :boolean, default: false
-      
+
       # Hey.com organization categories
-      add :category, :string, default: "inbox" # inbox, feed, paper_trail, set_aside
-      
+      # inbox, feed, paper_trail, set_aside
+      add :category, :string, default: "inbox"
+
       # Set Aside feature
       add :set_aside_at, :utc_datetime
       add :set_aside_reason, :string
-      
+
       # Reply Later
       add :reply_later_at, :utc_datetime
       add :reply_later_reminder, :boolean, default: false
-      
+
       # Paper Trail auto-categorization
       add :is_receipt, :boolean, default: false
       add :is_notification, :boolean, default: false
       add :is_newsletter, :boolean, default: false
-      
+
       # Tracking
       add :opened_at, :utc_datetime
       add :first_opened_at, :utc_datetime

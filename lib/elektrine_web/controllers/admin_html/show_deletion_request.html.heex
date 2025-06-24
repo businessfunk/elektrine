@@ -12,13 +12,13 @@
         <!-- Request Details -->
         <div>
           <h2 class="text-xl font-semibold mb-4">Request Details</h2>
-          
+
           <div class="space-y-3">
             <div>
               <label class="label label-text font-semibold">User</label>
-              <div class="text-lg"><%= @request.user.username %> (ID: <%= @request.user.id %>)</div>
+              <div class="text-lg">{@request.user.username} (ID: {@request.user.id})</div>
             </div>
-            
+
             <div>
               <label class="label label-text font-semibold">Status</label>
               <span class={[
@@ -30,20 +30,20 @@
                   _ -> "badge-neutral"
                 end
               ]}>
-                <%= String.capitalize(@request.status) %>
+                {String.capitalize(@request.status)}
               </span>
             </div>
-            
+
             <div>
               <label class="label label-text font-semibold">Requested At</label>
-              <div><%= Calendar.strftime(@request.requested_at, "%Y-%m-%d %H:%M:%S UTC") %></div>
+              <div>{Calendar.strftime(@request.requested_at, "%Y-%m-%d %H:%M:%S UTC")}</div>
             </div>
-            
+
             <%= if @request.reason && String.trim(@request.reason) != "" do %>
               <div>
                 <label class="label label-text font-semibold">Reason</label>
                 <div class="bg-base-200 p-3 rounded-lg">
-                  <%= @request.reason %>
+                  {@request.reason}
                 </div>
               </div>
             <% else %>
@@ -54,28 +54,28 @@
             <% end %>
           </div>
         </div>
-
-        <!-- Review Information -->
+        
+<!-- Review Information -->
         <div>
           <h2 class="text-xl font-semibold mb-4">Review Information</h2>
-          
+
           <%= if @request.reviewed_by do %>
             <div class="space-y-3">
               <div>
                 <label class="label label-text font-semibold">Reviewed By</label>
-                <div><%= @request.reviewed_by.username %></div>
+                <div>{@request.reviewed_by.username}</div>
               </div>
-              
+
               <div>
                 <label class="label label-text font-semibold">Reviewed At</label>
-                <div><%= Calendar.strftime(@request.reviewed_at, "%Y-%m-%d %H:%M:%S UTC") %></div>
+                <div>{Calendar.strftime(@request.reviewed_at, "%Y-%m-%d %H:%M:%S UTC")}</div>
               </div>
-              
+
               <%= if @request.admin_notes && String.trim(@request.admin_notes) != "" do %>
                 <div>
                   <label class="label label-text font-semibold">Admin Notes</label>
                   <div class="bg-base-200 p-3 rounded-lg">
-                    <%= @request.admin_notes %>
+                    {@request.admin_notes}
                   </div>
                 </div>
               <% end %>
@@ -85,25 +85,32 @@
           <% end %>
         </div>
       </div>
-
-      <!-- Actions -->
+      
+<!-- Actions -->
       <%= if @request.status == "pending" do %>
         <div class="divider"></div>
         <div>
           <h2 class="text-xl font-semibold mb-4">Review Actions</h2>
-          
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Approve -->
             <div class="card bg-success/10 border border-success/30">
               <div class="card-body">
                 <h3 class="card-title text-success">Approve Request</h3>
-                <p class="text-sm">This will permanently delete the user's account and all associated data.</p>
-                
-                <.simple_form :let={f} for={%{}} action={~p"/admin/deletion-requests/#{@request.id}/approve"} method="post">
-                  <.input 
-                    name="admin_notes" 
-                    type="textarea" 
-                    label="Admin Notes (optional)" 
+                <p class="text-sm">
+                  This will permanently delete the user's account and all associated data.
+                </p>
+
+                <.simple_form
+                  :let={_f}
+                  for={%{}}
+                  action={~p"/admin/deletion-requests/#{@request.id}/approve"}
+                  method="post"
+                >
+                  <.input
+                    name="admin_notes"
+                    type="textarea"
+                    label="Admin Notes (optional)"
                     placeholder="Add any notes about this approval..."
                     value=""
                   />
@@ -113,18 +120,25 @@
                 </.simple_form>
               </div>
             </div>
-
-            <!-- Deny -->
+            
+<!-- Deny -->
             <div class="card bg-error/10 border border-error/30">
               <div class="card-body">
                 <h3 class="card-title text-error">Deny Request</h3>
-                <p class="text-sm">This will deny the deletion request. The user's account will remain active.</p>
-                
-                <.simple_form :let={f} for={%{}} action={~p"/admin/deletion-requests/#{@request.id}/deny"} method="post">
-                  <.input 
-                    name="admin_notes" 
-                    type="textarea" 
-                    label="Admin Notes (optional)" 
+                <p class="text-sm">
+                  This will deny the deletion request. The user's account will remain active.
+                </p>
+
+                <.simple_form
+                  :let={_f}
+                  for={%{}}
+                  action={~p"/admin/deletion-requests/#{@request.id}/deny"}
+                  method="post"
+                >
+                  <.input
+                    name="admin_notes"
+                    type="textarea"
+                    label="Admin Notes (optional)"
                     placeholder="Explain why this request was denied..."
                     value=""
                   />

@@ -47,7 +47,8 @@ defmodule Elektrine.Email.Mailbox do
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
     |> validate_length(:email, max: 160)
     |> unique_constraint(:email)
-    |> put_change(:temporary, true) # Always mark orphaned mailboxes as temporary
+    # Always mark orphaned mailboxes as temporary
+    |> put_change(:temporary, true)
   end
 
   @doc """
@@ -74,7 +75,9 @@ defmodule Elektrine.Email.Mailbox do
 
       forward_to && String.trim(forward_to) != "" ->
         changeset
-        |> validate_format(:forward_to, ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "must be a valid email format")
+        |> validate_format(:forward_to, ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+          message: "must be a valid email format"
+        )
         |> validate_not_self_forwarding()
 
       true ->

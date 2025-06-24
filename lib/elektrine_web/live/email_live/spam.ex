@@ -8,7 +8,7 @@ defmodule ElektrineWeb.EmailLive.Spam do
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
     mailbox = get_or_create_mailbox(user)
-    
+
     # Get paginated spam messages
     page = 1
     pagination = Email.list_spam_messages_paginated(mailbox.id, page, 20)
@@ -38,13 +38,13 @@ defmodule ElektrineWeb.EmailLive.Spam do
     page = String.to_integer(params["page"] || "1")
     mailbox = socket.assigns.mailbox
     pagination = Email.list_spam_messages_paginated(mailbox.id, page, 20)
-    
+
     socket =
       socket
       |> assign(:messages, pagination.messages)
       |> assign(:pagination, pagination)
       |> stream(:messages, pagination.messages, reset: true)
-    
+
     {:noreply, socket}
   end
 
@@ -138,10 +138,12 @@ defmodule ElektrineWeb.EmailLive.Spam do
 
   defp get_or_create_mailbox(user) do
     case Email.get_user_mailbox(user.id) do
-      nil -> 
+      nil ->
         {:ok, mailbox} = Email.ensure_user_has_mailbox(user)
         mailbox
-      mailbox -> mailbox
+
+      mailbox ->
+        mailbox
     end
   end
 end

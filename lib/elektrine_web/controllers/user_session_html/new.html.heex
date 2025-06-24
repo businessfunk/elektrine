@@ -3,10 +3,22 @@
     <h1 class="text-center text-3xl font-bold mb-6">Log in</h1>
 
     <.simple_form :let={f} for={%{}} action={~p"/login"} as={:user}>
-      <.error :if={@error_message}><%= @error_message %></.error>
+      <.error :if={@error_message}>{@error_message}</.error>
 
-      <.input field={f[:username]} type="text" label="Username" placeholder="Enter your username" required />
-      <.input field={f[:password]} type="password" label="Password" placeholder="Enter your password" required />
+      <.input
+        field={f[:username]}
+        type="text"
+        label="Username"
+        placeholder="Enter your username"
+        required
+      />
+      <.input
+        field={f[:password]}
+        type="password"
+        label="Password"
+        placeholder="Enter your password"
+        required
+      />
 
       <:actions>
         <div class="flex flex-col gap-4 w-full">

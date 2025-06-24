@@ -15,7 +15,7 @@ defmodule ElektrineWeb.UserRegistrationController do
     remote_ip = get_remote_ip(conn)
     require Logger
     Logger.debug("Using remote IP for hCaptcha: #{inspect(remote_ip)}")
-    
+
     # Try without IP first, as remoteip is optional for hCaptcha
     case HCaptcha.verify(captcha_token, nil) do
       {:ok, :verified} ->
@@ -33,23 +33,23 @@ defmodule ElektrineWeb.UserRegistrationController do
         # Log the error for debugging
         require Logger
         Logger.error("hCaptcha verification failed: #{inspect(reason)}")
-        
-        changeset = 
+
+        changeset =
           %User{}
           |> Accounts.change_user_registration(user_params)
           |> Ecto.Changeset.add_error(:captcha, "Please complete the captcha verification")
-        
+
         render(conn, :new, changeset: changeset)
     end
   end
 
   def create(conn, %{"user" => user_params}) do
     # No captcha token provided
-    changeset = 
+    changeset =
       %User{}
       |> Accounts.change_user_registration(user_params)
       |> Ecto.Changeset.add_error(:captcha, "Please complete the captcha verification")
-    
+
     render(conn, :new, changeset: changeset)
   end
 
@@ -61,7 +61,7 @@ defmodule ElektrineWeb.UserRegistrationController do
         |> String.split(",")
         |> List.first()
         |> String.trim()
-      
+
       [] ->
         # Convert tuple IP to string format
         conn.remote_ip

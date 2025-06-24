@@ -25,16 +25,20 @@ defmodule Elektrine.Email.PostalClient do
           {:ok, %{"status" => "success", "data" => data}} ->
             Logger.info("Email sent successfully: #{data["message_id"]}")
             {:ok, %{id: data["message_id"], message_id: data["message_id"]}}
+
           {:ok, %{"status" => "error", "data" => error}} ->
             Logger.error("Postal API error: #{inspect(error)}")
             {:error, error}
+
           _ ->
             Logger.error("Invalid response from Postal API: #{response_body}")
             {:error, "Invalid response from Postal API"}
         end
+
       {:ok, %HTTPoison.Response{status_code: status_code, body: response_body}} ->
         Logger.error("Postal API returned status #{status_code}: #{response_body}")
         {:error, "Postal API returned status #{status_code}: #{response_body}"}
+
       {:error, %HTTPoison.Error{reason: reason}} ->
         Logger.error("HTTP request failed: #{inspect(reason)}")
         {:error, reason}
@@ -50,39 +54,42 @@ defmodule Elektrine.Email.PostalClient do
     }
 
     # Add CC if present
-    body = if params[:cc] && params[:cc] != "" do
-      Map.put(body, "cc", params[:cc])
-    else
-      body
-    end
+    body =
+      if params[:cc] && params[:cc] != "" do
+        Map.put(body, "cc", params[:cc])
+      else
+        body
+      end
 
     # Add BCC if present
-    body = if params[:bcc] && params[:bcc] != "" do
-      Map.put(body, "bcc", params[:bcc])
-    else
-      body
-    end
+    body =
+      if params[:bcc] && params[:bcc] != "" do
+        Map.put(body, "bcc", params[:bcc])
+      else
+        body
+      end
 
     # Add body content
-    body = cond do
-      params[:html_body] && params[:text_body] ->
-        # Both HTML and plain text
-        body
-        |> Map.put("html_body", params[:html_body])
-        |> Map.put("plain_body", params[:text_body])
+    body =
+      cond do
+        params[:html_body] && params[:text_body] ->
+          # Both HTML and plain text
+          body
+          |> Map.put("html_body", params[:html_body])
+          |> Map.put("plain_body", params[:text_body])
 
-      params[:html_body] ->
-        # HTML only
-        Map.put(body, "html_body", params[:html_body])
+        params[:html_body] ->
+          # HTML only
+          Map.put(body, "html_body", params[:html_body])
 
-      params[:text_body] ->
-        # Plain text only
-        Map.put(body, "plain_body", params[:text_body])
+        params[:text_body] ->
+          # Plain text only
+          Map.put(body, "plain_body", params[:text_body])
 
-      true ->
-        # No body?
-        body
-    end
+        true ->
+          # No body?
+          body
+      end
 
     Jason.encode!(body)
   end

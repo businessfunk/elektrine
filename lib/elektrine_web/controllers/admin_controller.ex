@@ -27,12 +27,13 @@ defmodule ElektrineWeb.AdminController do
 
   def toggle_admin(conn, %{"id" => id}) do
     user = Accounts.get_user!(id)
-    
+
     case Accounts.update_user_admin_status(user, !user.is_admin) do
       {:ok, _updated_user} ->
         conn
         |> put_flash(:info, "User admin status updated successfully.")
         |> redirect(to: ~p"/admin/users")
+
       {:error, _changeset} ->
         conn
         |> put_flash(:error, "Failed to update user admin status.")
@@ -54,6 +55,7 @@ defmodule ElektrineWeb.AdminController do
         conn
         |> put_flash(:info, "User updated successfully.")
         |> redirect(to: ~p"/admin/users")
+
       {:error, changeset} ->
         render(conn, :edit, user: user, changeset: changeset)
     end
@@ -61,7 +63,7 @@ defmodule ElektrineWeb.AdminController do
 
   def ban(conn, %{"id" => id}) do
     user = Accounts.get_user!(id)
-    
+
     # Prevent banning admin users
     if user.is_admin do
       conn
@@ -86,6 +88,7 @@ defmodule ElektrineWeb.AdminController do
           conn
           |> put_flash(:info, "User has been banned successfully.")
           |> redirect(to: ~p"/admin/users")
+
         {:error, _changeset} ->
           conn
           |> put_flash(:error, "Failed to ban user.")
@@ -102,6 +105,7 @@ defmodule ElektrineWeb.AdminController do
         conn
         |> put_flash(:info, "User has been unbanned successfully.")
         |> redirect(to: ~p"/admin/users")
+
       {:error, _changeset} ->
         conn
         |> put_flash(:error, "Failed to unban user.")
@@ -111,26 +115,27 @@ defmodule ElektrineWeb.AdminController do
 
   def delete(conn, %{"id" => id}) do
     user = Accounts.get_user!(id)
-    
+
     cond do
       # Prevent admins from deleting themselves
       user.id == conn.assigns.current_user.id ->
         conn
         |> put_flash(:error, "You cannot delete your own account.")
         |> redirect(to: ~p"/admin/users")
-      
+
       # Prevent deleting admin users
       user.is_admin ->
         conn
         |> put_flash(:error, "Admin users cannot be deleted.")
         |> redirect(to: ~p"/admin/users")
-      
+
       true ->
         case Accounts.admin_delete_user(user) do
           {:ok, _deleted_user} ->
             conn
             |> put_flash(:info, "User and all associated data deleted successfully.")
             |> redirect(to: ~p"/admin/users")
+
           {:error, _changeset} ->
             conn
             |> put_flash(:error, "Failed to delete user.")
@@ -141,13 +146,19 @@ defmodule ElektrineWeb.AdminController do
 
   def mailboxes(conn, params) do
     search_query = Map.get(params, "search", "")
-    mailboxes = if search_query != "", do: search_mailboxes(search_query), else: get_all_mailboxes()
+
+    mailboxes =
+      if search_query != "", do: search_mailboxes(search_query), else: get_all_mailboxes()
+
     render(conn, :mailboxes, mailboxes: mailboxes, search_query: search_query)
   end
 
   def messages(conn, params) do
     search_query = Map.get(params, "search", "")
-    messages = if search_query != "", do: search_messages(search_query), else: get_recent_messages()
+
+    messages =
+      if search_query != "", do: search_messages(search_query), else: get_recent_messages()
+
     render(conn, :messages, messages: messages, search_query: search_query)
   end
 
@@ -180,7 +191,8 @@ defmodule ElektrineWeb.AdminController do
 
   defp get_all_mailboxes do
     from(m in Email.Mailbox,
-      join: u in Accounts.User, on: m.user_id == u.id,
+      join: u in Accounts.User,
+      on: m.user_id == u.id,
       order_by: [desc: m.inserted_at],
       limit: 50,
       select: %{
@@ -196,8 +208,10 @@ defmodule ElektrineWeb.AdminController do
 
   defp get_recent_messages do
     from(m in Email.Message,
-      join: mb in Email.Mailbox, on: m.mailbox_id == mb.id,
-      join: u in Accounts.User, on: mb.user_id == u.id,
+      join: mb in Email.Mailbox,
+      on: m.mailbox_id == mb.id,
+      join: u in Accounts.User,
+      on: mb.user_id == u.id,
       order_by: [desc: m.inserted_at],
       limit: 50,
       select: %{
@@ -271,7 +285,7 @@ defmodule ElektrineWeb.AdminController do
 
   defp search_users(search_query) do
     search_term = "%#{search_query}%"
-    
+
     from(u in Accounts.User,
       where: ilike(u.username, ^search_term),
       order_by: [desc: u.inserted_at],
@@ -282,9 +296,10 @@ defmodule ElektrineWeb.AdminController do
 
   defp search_mailboxes(search_query) do
     search_term = "%#{search_query}%"
-    
+
     from(m in Email.Mailbox,
-      join: u in Accounts.User, on: m.user_id == u.id,
+      join: u in Accounts.User,
+      on: m.user_id == u.id,
       where: ilike(m.email, ^search_term) or ilike(u.username, ^search_term),
       order_by: [desc: m.inserted_at],
       limit: 50,
@@ -301,11 +316,15 @@ defmodule ElektrineWeb.AdminController do
 
   defp search_messages(search_query) do
     search_term = "%#{search_query}%"
-    
+
     from(m in Email.Message,
-      join: mb in Email.Mailbox, on: m.mailbox_id == mb.id,
-      join: u in Accounts.User, on: mb.user_id == u.id,
-      where: ilike(m.subject, ^search_term) or ilike(m.from, ^search_term) or ilike(u.username, ^search_term),
+      join: mb in Email.Mailbox,
+      on: m.mailbox_id == mb.id,
+      join: u in Accounts.User,
+      on: mb.user_id == u.id,
+      where:
+        ilike(m.subject, ^search_term) or ilike(m.from, ^search_term) or
+          ilike(u.username, ^search_term),
       order_by: [desc: m.inserted_at],
       limit: 50,
       select: %{

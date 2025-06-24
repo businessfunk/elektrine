@@ -3,54 +3,57 @@ defmodule Mix.Tasks.Email.TestInbound do
   require Logger
 
   @shortdoc "Test the Postal inbound email processing"
-  
+
   def run(_) do
     # Start the application
     Mix.shell().info("Starting the application...")
     Mix.Task.run("app.start")
-    
+
     # Get a user to test with
-    user = case Elektrine.Accounts.list_users() do
-      [user | _] -> user
-      [] -> create_test_user()
-    end
-    
+    user =
+      case Elektrine.Accounts.list_users() do
+        [user | _] -> user
+        [] -> create_test_user()
+      end
+
     # Ensure the user has a mailbox
-    mailbox = Elektrine.Email.get_user_mailbox(user.id) || 
-              create_test_mailbox(user)
-    
+    mailbox =
+      Elektrine.Email.get_user_mailbox(user.id) ||
+        create_test_mailbox(user)
+
     Mix.shell().info("Using mailbox: #{mailbox.email}")
-    
+
     # Test receiving an email via the inbound endpoint
     test_inbound_email(mailbox)
   end
-  
+
   defp create_test_user do
     Mix.shell().info("Creating a test user...")
-    
-    {:ok, user} = Elektrine.Accounts.create_user(%{
-      username: "testuser",
-      password: "password123",
-      password_confirmation: "password123"
-    })
-    
+
+    {:ok, user} =
+      Elektrine.Accounts.create_user(%{
+        username: "testuser",
+        password: "password123",
+        password_confirmation: "password123"
+      })
+
     user
   end
-  
+
   defp create_test_mailbox(user) do
     Mix.shell().info("Creating a test mailbox...")
-    
+
     {:ok, mailbox} = Elektrine.Email.ensure_user_has_mailbox(user)
     mailbox
   end
-  
+
   defp test_inbound_email(mailbox) do
     Mix.shell().info("Testing inbound email processing...")
-    
+
     # Create a sample raw email
     date = DateTime.utc_now() |> DateTime.to_string()
     message_id = "<test-#{System.system_time(:millisecond)}@example.com>"
-    
+
     raw_email = """
     From: sender@example.com
     To: #{mailbox.email}
@@ -78,10 +81,10 @@ defmodule Mix.Tasks.Email.TestInbound do
 
     --boundary-string--
     """
-    
+
     # Encode the email in Base64
     base64_message = Base.encode64(raw_email)
-    
+
     # Make a request to the API endpoint
     url = "http://localhost:4000/api/postal/inbound"
     headers = [{"Content-Type", "application/json"}]
@@ -111,6 +114,7 @@ defmodule Mix.Tasks.Email.TestInbound do
 
     # Create a test connection and params
     params = %{"message" => base64_message}
+
     conn = %Plug.Conn{
       remote_ip: {127, 0, 0, 1},
       req_headers: [{"x-real-ip", "127.0.0.1"}]

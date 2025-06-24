@@ -1,8 +1,13 @@
 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
   <div class="flex flex-col lg:flex-row gap-6">
-    <.sidebar mailbox={@mailbox} unread_count={@unread_count} current_page="screener" current_user={@current_user} />
-
-    <!-- Main content -->
+    <.sidebar
+      mailbox={@mailbox}
+      unread_count={@unread_count}
+      current_page="screener"
+      current_user={@current_user}
+    />
+    
+<!-- Main content -->
     <div class="flex-1">
       <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
         <div class="card-body p-6">
@@ -19,66 +24,77 @@
             </div>
             <div class="flex items-center space-x-2">
               <button class="btn btn-ghost btn-sm" phx-click="refresh">
-                <.icon name="hero-arrow-path" class="h-4 w-4" />
-                Refresh
+                <.icon name="hero-arrow-path" class="h-4 w-4" /> Refresh
               </button>
             </div>
           </div>
-          
+
           <%= if Enum.empty?(@messages) do %>
             <div class="flex flex-col items-center justify-center py-16">
               <div class="p-4 bg-base-200 rounded-full mb-6">
                 <.icon name="hero-shield-check" class="h-16 w-16 text-base-content/40" />
               </div>
               <h3 class="text-xl font-semibold mb-2">All clear!</h3>
-              <p class="text-base-content/70 mb-6 text-center max-w-md">No messages waiting for approval. New messages from unknown senders will appear here.</p>
+              <p class="text-base-content/70 mb-6 text-center max-w-md">
+                No messages waiting for approval. New messages from unknown senders will appear here.
+              </p>
             </div>
           <% else %>
             <!-- Messages List -->
             <div class="space-y-2">
               <div id="messages-list" phx-update="stream" class="space-y-2">
                 <%= for {id, message} <- @streams.messages do %>
-                  <div class="card bg-warning/5 border border-warning/20 transition-all duration-200 hover:shadow-xl hover:scale-[1.02] hover:border-warning/40 hover:bg-warning/10" id={id}>
+                  <div
+                    class="card bg-warning/5 border border-warning/20 transition-all duration-200 hover:shadow-xl hover:scale-[1.02] hover:border-warning/40 hover:bg-warning/10"
+                    id={id}
+                  >
                     <div class="card-body p-4">
                       <div class="flex items-start justify-between">
-                        <.link navigate={~p"/email/view/#{message.id}"} class="flex-1 min-w-0 cursor-pointer">
+                        <.link
+                          navigate={~p"/email/view/#{message.id}"}
+                          class="flex-1 min-w-0 cursor-pointer"
+                        >
                           <div class="flex items-center space-x-3 mb-2">
                             <div class="avatar placeholder">
                               <div class="bg-warning/20 text-warning rounded-full w-8 h-8">
-                                <span class="text-xs font-bold"><%= String.first(message.from) |> String.upcase() %></span>
+                                <span class="text-xs font-bold">
+                                  {String.first(message.from) |> String.upcase()}
+                                </span>
                               </div>
                             </div>
                             <div class="flex-1 min-w-0">
                               <div class="flex items-center justify-between">
-                                <p class="font-semibold text-sm truncate"><%= message.from %></p>
-                                <span class="text-xs text-base-content/60 font-mono ml-2"><%= format_date(message.inserted_at) %></span>
+                                <p class="font-semibold text-sm truncate">{message.from}</p>
+                                <span class="text-xs text-base-content/60 font-mono ml-2">
+                                  {format_date(message.inserted_at)}
+                                </span>
                               </div>
-                              <h3 class="font-bold text-base truncate mt-1"><%= message.subject %></h3>
+                              <h3 class="font-bold text-base truncate mt-1">{message.subject}</h3>
                             </div>
                           </div>
-                          <p class="text-sm text-base-content/70 line-clamp-2"><%= truncate(message.text_body, 150) %></p>
+                          <p class="text-sm text-base-content/70 line-clamp-2">
+                            {truncate(message.text_body, 150)}
+                          </p>
                         </.link>
-                        
+
                         <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
                           <div class="badge badge-warning badge-xs">NEW SENDER</div>
                           <div class="flex items-center space-x-1">
-                            <button 
-                              phx-click="approve" 
-                              phx-value-id={message.id} 
+                            <button
+                              phx-click="approve"
+                              phx-value-id={message.id}
                               class="btn btn-success btn-xs"
                               title="Approve sender"
                             >
-                              <.icon name="hero-check" class="h-3 w-3" />
-                              Approve
+                              <.icon name="hero-check" class="h-3 w-3" /> Approve
                             </button>
-                            <button 
-                              phx-click="reject" 
-                              phx-value-id={message.id} 
+                            <button
+                              phx-click="reject"
+                              phx-value-id={message.id}
                               class="btn btn-error btn-xs"
                               title="Reject sender"
                             >
-                              <.icon name="hero-x-mark" class="h-3 w-3" />
-                              Reject
+                              <.icon name="hero-x-mark" class="h-3 w-3" /> Reject
                             </button>
                           </div>
                         </div>
@@ -89,7 +105,7 @@
               </div>
             </div>
             
-            <!-- Info Card -->
+<!-- Info Card -->
             <div class="mt-6 card bg-info/5 border border-info/20">
               <div class="card-body p-4">
                 <div class="flex items-start space-x-3">
@@ -97,9 +113,11 @@
                   <div class="text-sm">
                     <p class="font-semibold text-info mb-1">How The Screener works</p>
                     <p class="text-base-content/70">
-                      Messages from new senders are held here for your review. 
-                      <strong>Approve</strong> to add them to your contacts and let future messages through automatically. 
-                      <strong>Reject</strong> to decline and prevent future messages from this sender.
+                      Messages from new senders are held here for your review.
+                      <strong>Approve</strong>
+                      to add them to your contacts and let future messages through automatically.
+                      <strong>Reject</strong>
+                      to decline and prevent future messages from this sender.
                     </p>
                   </div>
                 </div>

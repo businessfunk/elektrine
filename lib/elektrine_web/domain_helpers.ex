@@ -22,7 +22,9 @@ defmodule ElektrineWeb.DomainHelpers do
           %{} -> default_email_domain()
           _ -> default_email_domain()
         end
-      _ -> default_email_domain()
+
+      _ ->
+        default_email_domain()
     end
   end
 
@@ -53,12 +55,13 @@ defmodule ElektrineWeb.DomainHelpers do
   Generates an email address using the appropriate domain for the current context.
   """
   def generate_email(username, conn_or_socket \\ nil) do
-    domain = if conn_or_socket do
-      current_domain(conn_or_socket)
-    else
-      default_email_domain()
-    end
-    
+    domain =
+      if conn_or_socket do
+        current_domain(conn_or_socket)
+      else
+        default_email_domain()
+      end
+
     "#{username}@#{domain}"
   end
 

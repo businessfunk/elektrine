@@ -1,19 +1,23 @@
 defmodule ElektrineWeb.EmailLive.Search do
   use ElektrineWeb, :live_view
   import ElektrineWeb.EmailLive.EmailHelpers
-  
+
   alias Elektrine.Email
-  
+
   @impl true
   def mount(_params, _session, socket) do
     current_user = socket.assigns.current_user
-    mailbox = case Email.get_user_mailbox(current_user.id) do
-      nil -> 
-        {:ok, mailbox} = Email.create_mailbox(current_user)
-        mailbox
-      mailbox -> mailbox
-    end
-    
+
+    mailbox =
+      case Email.get_user_mailbox(current_user.id) do
+        nil ->
+          {:ok, mailbox} = Email.create_mailbox(current_user)
+          mailbox
+
+        mailbox ->
+          mailbox
+      end
+
     socket =
       socket
       |> assign(:current_user, current_user)
@@ -23,44 +27,44 @@ defmodule ElektrineWeb.EmailLive.Search do
       |> assign(:search_results, nil)
       |> assign(:searching, false)
       |> assign(:unread_count, Email.unread_count(mailbox.id))
-    
+
     {:ok, socket}
   end
-  
+
   @impl true
   def handle_params(params, _url, socket) do
     query = Map.get(params, "q", "")
     page = String.to_integer(Map.get(params, "page", "1"))
-    
+
     socket = assign(socket, :search_query, query)
-    
-    socket = if String.trim(query) != "" do
-      search_results = Email.search_messages(socket.assigns.mailbox.id, query, page, 20)
-      
-      
-      socket
-      |> assign(:search_results, search_results)
-      |> assign(:searching, false)
-    else
-      socket
-      |> assign(:search_results, nil)
-      |> assign(:searching, false)
-    end
-    
+
+    socket =
+      if String.trim(query) != "" do
+        search_results = Email.search_messages(socket.assigns.mailbox.id, query, page, 20)
+
+        socket
+        |> assign(:search_results, search_results)
+        |> assign(:searching, false)
+      else
+        socket
+        |> assign(:search_results, nil)
+        |> assign(:searching, false)
+      end
+
     {:noreply, socket}
   end
-  
+
   @impl true
   def handle_event("search", %{"search" => %{"query" => query}}, socket) do
     query = String.trim(query)
-    
+
     if query != "" do
-      {:noreply, 
+      {:noreply,
        socket
        |> assign(:searching, true)
        |> push_patch(to: ~p"/email/search?q=#{URI.encode(query)}")}
     else
-      {:noreply, 
+      {:noreply,
        socket
        |> assign(:search_query, "")
        |> assign(:search_results, nil)
@@ -68,53 +72,55 @@ defmodule ElektrineWeb.EmailLive.Search do
        |> push_patch(to: ~p"/email/search")}
     end
   end
-  
+
   @impl true
   def handle_event("clear_search", _params, socket) do
-    {:noreply, 
+    {:noreply,
      socket
      |> assign(:search_query, "")
      |> assign(:search_results, nil)
      |> assign(:searching, false)
      |> push_patch(to: ~p"/email/search")}
   end
-  
+
   @impl true
   def handle_event("quick_action", %{"action" => action, "message_id" => message_id}, socket) do
     message = Email.get_message(message_id)
-    
+
     case action do
       "archive" ->
         {:ok, _} = Email.archive_message(message)
         # Refresh search results
         if socket.assigns.search_results do
-          search_results = Email.search_messages(
-            socket.assigns.mailbox.id, 
-            socket.assigns.search_query, 
-            socket.assigns.search_results.page, 
-            20
-          )
-          {:noreply, 
+          search_results =
+            Email.search_messages(
+              socket.assigns.mailbox.id,
+              socket.assigns.search_query,
+              socket.assigns.search_results.page,
+              20
+            )
+
+          {:noreply,
            socket
            |> assign(:search_results, search_results)
            |> put_flash(:info, "Message archived.")}
         else
           {:noreply, put_flash(socket, :info, "Message archived.")}
         end
-        
+
       "reply" ->
         {:noreply, push_navigate(socket, to: ~p"/email/compose?reply=#{message.id}")}
-        
+
       "forward" ->
         {:noreply, push_navigate(socket, to: ~p"/email/compose?forward=#{message.id}")}
-        
+
       _ ->
         {:noreply, socket}
     end
   end
-  
+
   # Helper function for truncating subjects
-  defp truncate_subject(subject, length \\ 50) do
+  defp truncate_subject(subject, length) do
     if String.length(subject || "") > length do
       String.slice(subject || "", 0, length) <> "..."
     else

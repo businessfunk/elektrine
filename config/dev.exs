@@ -90,6 +90,7 @@ config :swoosh, :api_client, false
 if System.get_env("USE_LOCAL_EMAIL") == "true" do
   # Use local file adapter for testing
   IO.puts("Using local file adapter for emails")
+
   config :elektrine, Elektrine.Mailer,
     adapter: Swoosh.Adapters.Local,
     # We'll create this directory to store emails
@@ -113,7 +114,8 @@ config :elektrine, :uploads,
   bucket: System.get_env("BACKBLAZE_BUCKET_NAME") || "elektrine-uploads-dev",
   endpoint: System.get_env("BACKBLAZE_ENDPOINT") || "s3.us-west-002.backblazeb2.com",
   # Upload security limits
-  max_file_size: 5 * 1024 * 1024,  # 5MB
+  # 5MB
+  max_file_size: 5 * 1024 * 1024,
   max_image_width: 2048,
   max_image_height: 2048
 

@@ -35,16 +35,15 @@ defmodule Elektrine.Email.TemporaryMailbox do
   end
 
   defp generate_unique_token(attempts) when attempts < 100 do
-    token = :crypto.strong_rand_bytes(32)
-    |> Base.url_encode64()
-    |> String.replace(~r/[^a-zA-Z0-9]/, "")
-    |> String.slice(0, 32)
-    
+    token =
+      :crypto.strong_rand_bytes(32)
+      |> Base.url_encode64()
+      |> String.replace(~r/[^a-zA-Z0-9]/, "")
+      |> String.slice(0, 32)
+
     # Check if this token has ever been used
-    token_exists = Elektrine.Repo.exists?(
-      from(t in __MODULE__, where: t.token == ^token)
-    )
-    
+    token_exists = Elektrine.Repo.exists?(from(t in __MODULE__, where: t.token == ^token))
+
     if token_exists do
       # Token already used, try again
       generate_unique_token(attempts + 1)
@@ -56,7 +55,7 @@ defmodule Elektrine.Email.TemporaryMailbox do
   defp generate_unique_token(_attempts) do
     raise "Failed to generate unique temporary mailbox token after 100 attempts"
   end
-  
+
   @doc """
   Generates a random email address for a temporary mailbox.
   Optionally accepts a domain override.
@@ -75,16 +74,13 @@ defmodule Elektrine.Email.TemporaryMailbox do
 
     username = generate_random_username()
     email = "#{username}@#{domain}"
-    
+
     # Check if this email has ever been used (in both temporary_mailboxes and mailboxes tables)
-    temp_exists = Elektrine.Repo.exists?(
-      from(t in __MODULE__, where: t.email == ^email)
-    )
-    
-    mailbox_exists = Elektrine.Repo.exists?(
-      from(m in Elektrine.Email.Mailbox, where: m.email == ^email)
-    )
-    
+    temp_exists = Elektrine.Repo.exists?(from(t in __MODULE__, where: t.email == ^email))
+
+    mailbox_exists =
+      Elektrine.Repo.exists?(from(m in Elektrine.Email.Mailbox, where: m.email == ^email))
+
     if temp_exists or mailbox_exists do
       # Email already used, try again
       generate_unique_email(domain, attempts + 1)
@@ -92,14 +88,15 @@ defmodule Elektrine.Email.TemporaryMailbox do
       email
     end
   end
-  
+
   @doc """
   Generates a random username for a temporary email.
   """
   def generate_random_username do
-    random_part = :crypto.strong_rand_bytes(8)
-    |> Base.encode16(case: :lower)
-    
+    random_part =
+      :crypto.strong_rand_bytes(8)
+      |> Base.encode16(case: :lower)
+
     "temp-#{random_part}"
   end
 end

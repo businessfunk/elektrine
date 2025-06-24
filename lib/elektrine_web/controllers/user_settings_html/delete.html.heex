@@ -1,14 +1,26 @@
 <div class="card bg-base-200 shadow-xl max-w-md mx-auto mt-10">
   <div class="card-body">
     <h1 class="text-2xl font-bold mb-6 text-error">Delete Account</h1>
-    
+
     <div class="alert alert-error mb-6">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        class="stroke-current shrink-0 w-6 h-6"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+        />
       </svg>
       <div>
         <h3 class="font-bold">Warning!</h3>
-        <div class="text-sm">This action cannot be undone. This will permanently delete your account and all associated data including:</div>
+        <div class="text-sm">
+          This action cannot be undone. This will permanently delete your account and all associated data including:
+        </div>
         <ul class="text-sm mt-2 list-disc list-inside">
           <li>All your mailboxes and email addresses</li>
           <li>All stored messages</li>
@@ -18,29 +30,29 @@
       </div>
     </div>
 
-    <.simple_form :let={f} for={%{}} action={~p"/account"} method="delete">
+    <.simple_form :let={_f} for={%{}} action={~p"/account"} method="delete">
       <p class="mb-4 text-sm">
-        To confirm deletion, please type your username 
-        <strong class="text-primary"><%= @current_user.username %></strong> 
+        To confirm deletion, please type your username
+        <strong class="text-primary">{@current_user.username}</strong>
         in the field below:
       </p>
-      
-      <.input 
-        name="reason" 
-        type="textarea" 
-        label="Reason for deletion (optional)" 
+
+      <.input
+        name="reason"
+        type="textarea"
+        label="Reason for deletion (optional)"
         placeholder="Please explain why you want to delete your account"
         value=""
       />
-      
-      <.input 
-        name="confirmation" 
-        type="text" 
-        label="Confirm username" 
+
+      <.input
+        name="confirmation"
+        type="text"
+        label="Confirm username"
         placeholder="Enter your username"
         autocomplete="off"
         value=""
-        required 
+        required
       />
 
       <:actions>

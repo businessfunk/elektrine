@@ -125,20 +125,63 @@ defmodule ElektrineWeb.CoreComponents do
       <div class="absolute bottom-0 left-0 h-1 bg-white/30 w-full rounded-b-lg overflow-hidden">
         <div class="flash-progress h-full bg-white/60 w-full origin-left"></div>
       </div>
-      
+
       <div class="flex items-center gap-3">
         <div :if={@kind == :info} class="flex-shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            class="h-6 w-6 stroke-current"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            >
+            </path>
+          </svg>
         </div>
         <div :if={@kind == :error} class="flex-shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            class="h-6 w-6 stroke-current"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+            >
+            </path>
+          </svg>
         </div>
         <div class="flex-grow">
           <h3 :if={@title} class="font-bold">{@title}</h3>
           <div class="text-sm">{msg}</div>
         </div>
-        <button type="button" class="btn btn-sm btn-ghost btn-circle self-start" aria-label={gettext("close")}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        <button
+          type="button"
+          class="btn btn-sm btn-ghost btn-circle self-start"
+          aria-label={gettext("close")}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -321,13 +364,7 @@ defmodule ElektrineWeb.CoreComponents do
     ~H"""
     <div class="form-control w-full">
       <.label for={@id}>{@label}</.label>
-      <select
-        id={@id}
-        name={@name}
-        class="select select-bordered w-full"
-        multiple={@multiple}
-        {@rest}
-      >
+      <select id={@id} name={@name} class="select select-bordered w-full" multiple={@multiple} {@rest}>
         <option :if={@prompt} value="">{@prompt}</option>
         {Phoenix.HTML.Form.options_for_select(@options, @value)}
       </select>
@@ -686,15 +723,21 @@ defmodule ElektrineWeb.CoreComponents do
       case Regex.run(~r/=\?([^?]+)\?([QqBb])\?([^?]*)\?=/, match) do
         [_, _charset, encoding, encoded_text] ->
           case String.upcase(encoding) do
-            "Q" -> decode_quoted_printable_simple(encoded_text |> String.replace("_", " "))
-            "B" -> 
+            "Q" ->
+              decode_quoted_printable_simple(encoded_text |> String.replace("_", " "))
+
+            "B" ->
               case Base.decode64(encoded_text) do
                 {:ok, decoded} -> decoded
                 :error -> match
               end
-            _ -> match
+
+            _ ->
+              match
           end
-        _ -> match
+
+        _ ->
+          match
       end
     end)
     |> String.trim()
@@ -705,9 +748,11 @@ defmodule ElektrineWeb.CoreComponents do
   # Simple quoted-printable decoding for subjects
   defp decode_quoted_printable_simple(content) when is_binary(content) do
     content
-    |> String.replace(~r/=\r?\n/, "")  # Remove soft line breaks
+    # Remove soft line breaks
+    |> String.replace(~r/=\r?\n/, "")
     |> String.replace(~r/=([0-9A-Fa-f]{2})/, fn match ->
       hex = String.slice(match, 1, 2)
+
       case Integer.parse(hex, 16) do
         {value, ""} -> <<value>>
         _ -> match
@@ -718,16 +763,19 @@ defmodule ElektrineWeb.CoreComponents do
   # Try to decode content if it appears to be base64
   defp decode_if_base64(content) when is_binary(content) do
     # Check if content looks like base64 (only contains base64 chars and is reasonably long)
-    if String.match?(content, ~r/^[A-Za-z0-9+\/=\s]+$/) and String.length(content) > 100 and rem(String.length(String.replace(content, ~r/\s/, "")), 4) == 0 do
+    if String.match?(content, ~r/^[A-Za-z0-9+\/=\s]+$/) and String.length(content) > 100 and
+         rem(String.length(String.replace(content, ~r/\s/, "")), 4) == 0 do
       case Base.decode64(String.replace(content, ~r/\s/, "")) do
-        {:ok, decoded} -> 
+        {:ok, decoded} ->
           # Check if decoded content looks like HTML
           if String.contains?(decoded, "<") and String.contains?(decoded, ">") do
             decoded
           else
             content
           end
-        :error -> content
+
+        :error ->
+          content
       end
     else
       content

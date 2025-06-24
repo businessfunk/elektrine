@@ -9,7 +9,7 @@ defmodule ElektrineWeb.EmailLive.Sent do
     user = socket.assigns.current_user
     mailbox = get_or_create_mailbox(user)
     unread_count = Email.unread_count(mailbox.id)
-    
+
     # Get paginated messages
     page = 1
     pagination = Email.list_sent_messages_paginated(mailbox.id, page, 20)
@@ -32,37 +32,37 @@ defmodule ElektrineWeb.EmailLive.Sent do
     page = String.to_integer(params["page"] || "1")
     mailbox = socket.assigns.mailbox
     pagination = Email.list_sent_messages_paginated(mailbox.id, page, 20)
-    
+
     socket =
       socket
       |> assign(:messages, pagination.messages)
       |> assign(:pagination, pagination)
-    
+
     {:noreply, socket}
   end
-  
+
   @impl true
   def handle_event("quick_action", %{"action" => action, "message_id" => message_id}, socket) do
     message = Email.get_message(message_id)
-    
+
     if message && message.mailbox_id == socket.assigns.mailbox.id do
       case action do
         "forward" ->
           {:noreply, push_navigate(socket, to: ~p"/email/compose?forward=#{message.id}")}
-          
+
         "archive" ->
           {:ok, _} = Email.archive_message(message)
-          
+
           # Get updated pagination
           page = socket.assigns.pagination.page
           pagination = Email.list_sent_messages_paginated(socket.assigns.mailbox.id, page, 20)
-          
+
           {:noreply,
            socket
            |> assign(:messages, pagination.messages)
            |> assign(:pagination, pagination)
            |> put_flash(:info, "Message archived")}
-           
+
         _ ->
           {:noreply, socket}
       end
@@ -74,14 +74,14 @@ defmodule ElektrineWeb.EmailLive.Sent do
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
     message = Email.get_message(id)
-    
+
     if message && message.mailbox_id == socket.assigns.mailbox.id do
       {:ok, _} = Email.delete_message(message)
-      
+
       # Get updated pagination
       page = socket.assigns.pagination.page
       pagination = Email.list_sent_messages_paginated(socket.assigns.mailbox.id, page, 20)
-      
+
       {:noreply,
        socket
        |> put_flash(:info, "Message deleted successfully")
@@ -108,11 +108,12 @@ defmodule ElektrineWeb.EmailLive.Sent do
 
   defp get_or_create_mailbox(user) do
     case Email.get_user_mailbox(user.id) do
-      nil -> 
+      nil ->
         {:ok, mailbox} = Email.ensure_user_has_mailbox(user)
         mailbox
-      mailbox -> mailbox
+
+      mailbox ->
+        mailbox
     end
   end
-
 end

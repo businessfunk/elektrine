@@ -114,10 +114,10 @@ defmodule ElektrineWeb.UserAuth do
         conn
         |> put_flash(:error, "Your account has been banned. You have been logged out.")
         |> log_out_user()
-      
+
       %{} = _user ->
         conn
-      
+
       nil ->
         conn
         |> put_flash(:error, "You must log in to access this page.")
@@ -156,6 +156,7 @@ defmodule ElektrineWeb.UserAuth do
     case conn.assigns[:current_user] do
       %{is_admin: true} ->
         conn
+
       _ ->
         conn
         |> put_flash(:error, "You must be an admin to access this page.")

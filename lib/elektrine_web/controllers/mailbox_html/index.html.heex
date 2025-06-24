@@ -1,17 +1,22 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="mb-8">
     <h1 class="text-2xl font-semibold text-gray-900">Manage Mailboxes</h1>
-    <p class="mt-2 text-sm text-gray-500">Add, remove, or set a primary mailbox for your account.</p>
+    <p class="mt-2 text-sm text-gray-500">
+      Add, remove, or set a primary mailbox for your account.
+    </p>
   </div>
-  
+
   <div class="bg-white shadow rounded-lg">
     <div class="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between items-center">
       <h3 class="text-lg leading-6 font-medium text-gray-900">Your Mailboxes</h3>
-      <.link href={~p"/mailboxes/new"} class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      <.link
+        href={~p"/mailboxes/new"}
+        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      >
         Add Mailbox
       </.link>
     </div>
-    
+
     <div class="bg-white shadow overflow-hidden sm:rounded-md">
       <ul role="list" class="divide-y divide-gray-200">
         <%= if Enum.empty?(@mailboxes) do %>
@@ -24,20 +29,31 @@
               <div class="flex items-center justify-between">
                 <div class="flex items-center">
                   <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900"><%= mailbox.email %></div>
+                    <div class="text-sm font-medium text-gray-900">{mailbox.email}</div>
                     <%= if mailbox.primary do %>
-                      <span class="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-1">Primary</span>
+                      <span class="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-1">
+                        Primary
+                      </span>
                     <% end %>
                   </div>
                 </div>
                 <div class="flex space-x-2">
                   <%= unless mailbox.primary do %>
-                    <.link href={~p"/mailboxes/#{mailbox.id}/primary"} method="put" class="text-sm text-blue-600 hover:text-blue-900">
+                    <.link
+                      href={~p"/mailboxes/#{mailbox.id}/primary"}
+                      method="put"
+                      class="text-sm text-blue-600 hover:text-blue-900"
+                    >
                       Set as Primary
                     </.link>
                   <% end %>
-                  
-                  <.link href={~p"/mailboxes/#{mailbox.id}"} method="delete" data-confirm="Are you sure you want to delete this mailbox? All associated emails will be deleted." class="text-sm text-red-600 hover:text-red-900">
+
+                  <.link
+                    href={~p"/mailboxes/#{mailbox.id}"}
+                    method="delete"
+                    data-confirm="Are you sure you want to delete this mailbox? All associated emails will be deleted."
+                    class="text-sm text-red-600 hover:text-red-900"
+                  >
                     Delete
                   </.link>
                 </div>
@@ -48,7 +64,7 @@
       </ul>
     </div>
   </div>
-  
+
   <div class="mt-6">
     <.link href={~p"/email/inbox"} class="text-blue-600 hover:text-blue-900">
       &larr; Back to Inbox

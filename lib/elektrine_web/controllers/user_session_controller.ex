@@ -19,7 +19,10 @@ defmodule ElektrineWeb.UserSessionController do
 
       {:error, :banned} ->
         conn
-        |> put_flash(:error, "Your account has been banned. Please contact support if you believe this is an error.")
+        |> put_flash(
+          :error,
+          "Your account has been banned. Please contact support if you believe this is an error."
+        )
         |> render(:new, error_message: "Account banned")
 
       {:error, :invalid_credentials} ->

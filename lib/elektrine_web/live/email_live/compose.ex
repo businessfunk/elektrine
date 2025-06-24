@@ -4,7 +4,7 @@ defmodule ElektrineWeb.EmailLive.Compose do
 
   alias Elektrine.Email
   alias Elektrine.Email.Sender
-  
+
   require Logger
 
   @impl true
@@ -20,12 +20,13 @@ defmodule ElektrineWeb.EmailLive.Compose do
     # Handle prefilled form data from params
     form_data = build_form_data(params)
     page_title = get_page_title(params)
-    
+
     # Get original message if in reply/forward mode
-    original_message = case Map.get(params, "message_id") do
-      nil -> nil
-      id -> Email.get_message(id)
-    end
+    original_message =
+      case Map.get(params, "message_id") do
+        nil -> nil
+        id -> Email.get_message(id)
+      end
 
     {:ok,
      socket
@@ -43,13 +44,14 @@ defmodule ElektrineWeb.EmailLive.Compose do
   def handle_params(params, _url, socket) do
     form_data = build_form_data(params)
     page_title = get_page_title(params)
-    
+
     # Get original message if in reply/forward mode
-    original_message = case Map.get(params, "message_id") do
-      nil -> nil
-      id -> Email.get_message(id)
-    end
-    
+    original_message =
+      case Map.get(params, "message_id") do
+        nil -> nil
+        id -> Email.get_message(id)
+      end
+
     {:noreply,
      socket
      |> assign(:page_title, page_title)
@@ -63,16 +65,19 @@ defmodule ElektrineWeb.EmailLive.Compose do
   def handle_event("clear_form", _params, socket) do
     {:noreply,
      socket
-     |> assign(:form, to_form(%{
-       "to" => "",
-       "cc" => "",
-       "bcc" => "",
-       "subject" => "",
-       "body" => ""
-     }))
+     |> assign(
+       :form,
+       to_form(%{
+         "to" => "",
+         "cc" => "",
+         "bcc" => "",
+         "subject" => "",
+         "body" => ""
+       })
+     )
      |> put_flash(:info, "Form cleared")}
   end
-  
+
   @impl true
   def handle_event("toggle_html_mode", _params, socket) do
     html_mode = !Map.get(socket.assigns, :html_mode, false)
@@ -88,84 +93,96 @@ defmodule ElektrineWeb.EmailLive.Compose do
     original_message = Map.get(socket.assigns, :original_message)
 
     # Handle reply/forward mode differently
-    {text_body, html_body} = if mode in ["reply", "forward"] && email_params["new_message"] do
-      new_message = email_params["new_message"]
-      quoted_text = email_params["body"]  # This is the plain text quoted content
-      
-      # For text body, combine new message with quoted content
-      combined_text = new_message <> "\n" <> quoted_text
-      
-      # For HTML body, we need to properly format the quoted content
-      combined_html = if original_message && original_message.html_body && String.trim(original_message.html_body) != "" do
-        # We have HTML content from the original message
-        new_message_html = if html_mode do
-          markdown_to_html(new_message)
-        else
-          format_html_body(new_message)
-        end
-        
-        # Format the HTML quote/forward
-        if mode == "reply" do
-          date_str = format_date_for_quote(original_message.inserted_at)
-          sender_text = if original_message.status == "sent", do: "you", else: original_message.from
-          
-          new_message_html <> """
-          <br><br>
-          <div style="color: #666; border-left: 2px solid #ccc; padding-left: 10px; margin-left: 5px;">
-            On #{date_str}, #{sender_text} wrote:<br>
-            #{original_message.html_body}
-          </div>
-          """
-        else
-          # Forward mode
-          date_str = format_date_for_quote(original_message.inserted_at)
-          
-          new_message_html <> """
-          <br><br>
-          <div style="border: 1px solid #ccc; padding: 15px; margin: 10px 0; background-color: #f9f9f9;">
-            <div style="color: #666; margin-bottom: 10px;">
-              ---------- Forwarded message ----------<br>
-              <strong>From:</strong> #{original_message.from}<br>
-              <strong>To:</strong> #{original_message.to}<br>
-              <strong>Date:</strong> #{date_str}<br>
-              <strong>Subject:</strong> #{original_message.subject}
-            </div>
-            <div style="margin-top: 15px;">
-              #{original_message.html_body}
-            </div>
-          </div>
-          """
-        end
+    {text_body, html_body} =
+      if mode in ["reply", "forward"] && email_params["new_message"] do
+        new_message = email_params["new_message"]
+        # This is the plain text quoted content
+        quoted_text = email_params["body"]
+
+        # For text body, combine new message with quoted content
+        combined_text = new_message <> "\n" <> quoted_text
+
+        # For HTML body, we need to properly format the quoted content
+        combined_html =
+          if original_message && original_message.html_body &&
+               String.trim(original_message.html_body) != "" do
+            # We have HTML content from the original message
+            new_message_html =
+              if html_mode do
+                markdown_to_html(new_message)
+              else
+                format_html_body(new_message)
+              end
+
+            # Format the HTML quote/forward
+            if mode == "reply" do
+              date_str = format_date_for_quote(original_message.inserted_at)
+
+              sender_text =
+                if original_message.status == "sent", do: "you", else: original_message.from
+
+              new_message_html <>
+                """
+                <br><br>
+                <div style="color: #666; border-left: 2px solid #ccc; padding-left: 10px; margin-left: 5px;">
+                  On #{date_str}, #{sender_text} wrote:<br>
+                  #{original_message.html_body}
+                </div>
+                """
+            else
+              # Forward mode
+              date_str = format_date_for_quote(original_message.inserted_at)
+
+              new_message_html <>
+                """
+                <br><br>
+                <div style="border: 1px solid #ccc; padding: 15px; margin: 10px 0; background-color: #f9f9f9;">
+                  <div style="color: #666; margin-bottom: 10px;">
+                    ---------- Forwarded message ----------<br>
+                    <strong>From:</strong> #{original_message.from}<br>
+                    <strong>To:</strong> #{original_message.to}<br>
+                    <strong>Date:</strong> #{date_str}<br>
+                    <strong>Subject:</strong> #{original_message.subject}
+                  </div>
+                  <div style="margin-top: 15px;">
+                    #{original_message.html_body}
+                  </div>
+                </div>
+                """
+            end
+          else
+            # No HTML in original, just convert the combined text
+            if html_mode do
+              markdown_to_html(new_message) <> format_html_body(quoted_text)
+            else
+              format_html_body(combined_text)
+            end
+          end
+
+        {combined_text, combined_html}
       else
-        # No HTML in original, just convert the combined text
-        if html_mode do
-          markdown_to_html(new_message) <> format_html_body(quoted_text)
-        else
-          format_html_body(combined_text)
-        end
+        # Regular compose mode
+        text = email_params["body"]
+
+        html =
+          if html_mode do
+            markdown_to_html(text)
+          else
+            format_html_body(text)
+          end
+
+        {text, html}
       end
-      
-      {combined_text, combined_html}
-    else
-      # Regular compose mode
-      text = email_params["body"]
-      html = if html_mode do
-        markdown_to_html(text)
-      else
-        format_html_body(text)
-      end
-      {text, html}
-    end
 
     case Sender.send_email(user.id, %{
-      from: mailbox.email,
-      to: email_params["to"],
-      cc: email_params["cc"],
-      bcc: email_params["bcc"],
-      subject: email_params["subject"],
-      text_body: text_body,
-      html_body: html_body
-    }) do
+           from: mailbox.email,
+           to: email_params["to"],
+           cc: email_params["cc"],
+           bcc: email_params["bcc"],
+           subject: email_params["subject"],
+           text_body: text_body,
+           html_body: html_body
+         }) do
       {:ok, _message} ->
         {:noreply,
          socket
@@ -179,27 +196,22 @@ defmodule ElektrineWeb.EmailLive.Compose do
          |> assign(:form, to_form(email_params))}
     end
   end
-  
-  @impl true
-  def handle_info({:new_email, _message}, socket) do
-    mailbox = socket.assigns.mailbox
-    
-    {:noreply,
-     socket
-     |> assign(:unread_count, Email.unread_count(mailbox.id))}
-  end
+
 
   defp get_or_create_mailbox(user) do
     case Email.get_user_mailbox(user.id) do
-      nil -> 
+      nil ->
         {:ok, mailbox} = Email.ensure_user_has_mailbox(user)
         mailbox
-      mailbox -> mailbox
+
+      mailbox ->
+        mailbox
     end
   end
-  
+
   # Converts plain text to simple HTML
   defp format_html_body(nil), do: nil
+
   defp format_html_body(text) do
     paragraphs = String.split(text, "\n")
 
@@ -223,10 +235,10 @@ defmodule ElektrineWeb.EmailLive.Compose do
     case {Map.get(params, "mode"), Map.get(params, "message_id")} do
       {"reply", message_id} when not is_nil(message_id) ->
         build_reply_data(message_id)
-      
+
       {"forward", message_id} when not is_nil(message_id) ->
         build_forward_data(message_id)
-      
+
       _ ->
         # Default compose form
         %{
@@ -243,25 +255,27 @@ defmodule ElektrineWeb.EmailLive.Compose do
     case Email.get_message(message_id) do
       nil ->
         %{"to" => "", "cc" => "", "bcc" => "", "subject" => "", "body" => ""}
-      
+
       message ->
-        subject = if String.starts_with?(message.subject, "Re: ") do
-          message.subject
-        else
-          "Re: #{message.subject}"
-        end
-        
+        subject =
+          if String.starts_with?(message.subject, "Re: ") do
+            message.subject
+          else
+            "Re: #{message.subject}"
+          end
+
         # Format the quoted reply body
         quoted_body = format_quoted_reply(message)
-        
+
         # For sent messages, reply to the recipient (to field)
         # For received messages, reply to the sender (from field)
-        reply_to = if message.status == "sent" do
-          extract_clean_email(message.to)
-        else
-          extract_clean_email(message.from)
-        end
-        
+        reply_to =
+          if message.status == "sent" do
+            extract_clean_email(message.to)
+          else
+            extract_clean_email(message.from)
+          end
+
         %{
           "to" => reply_to,
           "cc" => "",
@@ -276,17 +290,18 @@ defmodule ElektrineWeb.EmailLive.Compose do
     case Email.get_message(message_id) do
       nil ->
         %{"to" => "", "cc" => "", "bcc" => "", "subject" => "", "body" => ""}
-      
+
       message ->
-        subject = if String.starts_with?(message.subject, "Fwd: ") do
-          message.subject
-        else
-          "Fwd: #{message.subject}"
-        end
-        
+        subject =
+          if String.starts_with?(message.subject, "Fwd: ") do
+            message.subject
+          else
+            "Fwd: #{message.subject}"
+          end
+
         # Format the forwarded message body
         forwarded_body = format_forwarded_message(message)
-        
+
         %{
           "to" => "",
           "cc" => "",
@@ -299,19 +314,21 @@ defmodule ElektrineWeb.EmailLive.Compose do
 
   defp format_quoted_reply(message) do
     date_str = format_date_for_quote(message.inserted_at)
-    
+
     # For sent messages, show "you wrote" instead of the from address
-    sender_text = if message.status == "sent" do
-      "you"
-    else
-      message.from
-    end
-    
+    sender_text =
+      if message.status == "sent" do
+        "you"
+      else
+        message.from
+      end
+
     # Always return plain text for the form field
     text_body = message.text_body || strip_html_tags(message.html_body || "")
+
     """
-    
-    
+
+
     On #{date_str}, #{sender_text} wrote:
     #{quote_message_body(text_body)}
     """
@@ -319,18 +336,19 @@ defmodule ElektrineWeb.EmailLive.Compose do
 
   defp format_forwarded_message(message) do
     date_str = format_date_for_quote(message.inserted_at)
-    
+
     # Always return plain text for the form field
     text_body = message.text_body || strip_html_tags(message.html_body || "")
+
     """
-    
-    
+
+
     ---------- Forwarded message ----------
     From: #{message.from}
     To: #{message.to}
     Date: #{date_str}
     Subject: #{message.subject}
-    
+
     #{text_body}
     """
   end
@@ -338,7 +356,7 @@ defmodule ElektrineWeb.EmailLive.Compose do
   defp quote_message_body(body) do
     body
     |> String.split("\n")
-    |> Enum.map(&("> #{&1}"))
+    |> Enum.map(&"> #{&1}")
     |> Enum.join("\n")
   end
 
@@ -346,6 +364,7 @@ defmodule ElektrineWeb.EmailLive.Compose do
     case datetime do
       %DateTime{} ->
         Calendar.strftime(datetime, "%a, %b %d, %Y at %I:%M %p")
+
       _ ->
         ""
     end
@@ -359,26 +378,14 @@ defmodule ElektrineWeb.EmailLive.Compose do
     end
   end
 
-  defp build_email_metadata(mode, original_message_id) do
-    case {mode, original_message_id} do
-      {"reply", id} when not is_nil(id) ->
-        %{"type" => "reply", "original_message_id" => id}
-      
-      {"forward", id} when not is_nil(id) ->
-        %{"type" => "forward", "original_message_id" => id}
-      
-      _ ->
-        %{"type" => "compose"}
-    end
-  end
-  
+
   defp strip_html_tags(html) do
     html
     |> String.replace(~r/<[^>]+>/, " ")
     |> String.replace(~r/\s+/, " ")
     |> String.trim()
   end
-  
+
   defp markdown_to_html(markdown) do
     markdown
     # Headers
@@ -401,13 +408,15 @@ defmodule ElektrineWeb.EmailLive.Compose do
 
   # Extract clean email address from strings like "Display Name <email@domain.com>"
   defp extract_clean_email(nil), do: nil
+
   defp extract_clean_email(email) when is_binary(email) do
     # Handle multiple recipients by taking only the first one
-    first_email = email
-                  |> String.split(",")
-                  |> List.first()
-                  |> String.trim()
-    
+    first_email =
+      email
+      |> String.split(",")
+      |> List.first()
+      |> String.trim()
+
     cond do
       # Handle "Display Name <email@domain.com>" format
       Regex.match?(~r/<([^@>]+@[^>]+)>/, first_email) ->
@@ -423,17 +432,10 @@ defmodule ElektrineWeb.EmailLive.Compose do
       Regex.match?(~r/^[^\s]+@[^\s]+$/, first_email) ->
         String.trim(first_email)
 
-      true -> 
+      true ->
         # Fallback: return original if no patterns match
         String.trim(first_email)
     end
-  end
-
-  @impl true
-  def handle_info({:new_email, _message}, socket) do
-    # Update unread count when new email arrives
-    unread_count = Email.unread_count(socket.assigns.mailbox.id)
-    {:noreply, assign(socket, :unread_count, unread_count)}
   end
 
   @impl true

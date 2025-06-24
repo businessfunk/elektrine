@@ -30,7 +30,10 @@ defmodule ElektrineWeb.PageController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         conn
-        |> put_flash(:error, "There was a problem with your submission. Please check the form for errors.")
+        |> put_flash(
+          :error,
+          "There was a problem with your submission. Please check the form for errors."
+        )
         |> render(:contact, changeset: changeset)
     end
   end

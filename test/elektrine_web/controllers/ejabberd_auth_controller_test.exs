@@ -10,7 +10,8 @@ defmodule ElektrineWeb.EjabberdAuthControllerTest do
     password_confirmation: "password123"
   }
   @invalid_password "wrongpassword"
-  @server "localhost"  # example server domain
+  # example server domain
+  @server "localhost"
 
   setup do
     # Create a test user
@@ -20,31 +21,34 @@ defmodule ElektrineWeb.EjabberdAuthControllerTest do
 
   describe "auth/2" do
     test "returns true when credentials are valid", %{conn: conn, user: user} do
-      conn = post(conn, ~p"/api/ejabberd/auth", %{
-        "user" => user.username,
-        "server" => @server,
-        "password" => @valid_user_attrs.password
-      })
+      conn =
+        post(conn, ~p"/api/ejabberd/auth", %{
+          "user" => user.username,
+          "server" => @server,
+          "password" => @valid_user_attrs.password
+        })
 
       assert %{"result" => true} = json_response(conn, 200)
     end
 
     test "returns false when password is invalid", %{conn: conn, user: user} do
-      conn = post(conn, ~p"/api/ejabberd/auth", %{
-        "user" => user.username,
-        "server" => @server,
-        "password" => @invalid_password
-      })
+      conn =
+        post(conn, ~p"/api/ejabberd/auth", %{
+          "user" => user.username,
+          "server" => @server,
+          "password" => @invalid_password
+        })
 
       assert %{"result" => false} = json_response(conn, 200)
     end
 
     test "returns false when user does not exist", %{conn: conn} do
-      conn = post(conn, ~p"/api/ejabberd/auth", %{
-        "user" => "nonexistent",
-        "server" => @server,
-        "password" => @valid_user_attrs.password
-      })
+      conn =
+        post(conn, ~p"/api/ejabberd/auth", %{
+          "user" => "nonexistent",
+          "server" => @server,
+          "password" => @valid_user_attrs.password
+        })
 
       assert %{"result" => false} = json_response(conn, 200)
     end
@@ -52,19 +56,21 @@ defmodule ElektrineWeb.EjabberdAuthControllerTest do
 
   describe "isuser/2" do
     test "returns true when user exists", %{conn: conn, user: user} do
-      conn = post(conn, ~p"/api/ejabberd/isuser", %{
-        "user" => user.username,
-        "server" => @server
-      })
+      conn =
+        post(conn, ~p"/api/ejabberd/isuser", %{
+          "user" => user.username,
+          "server" => @server
+        })
 
       assert %{"result" => true} = json_response(conn, 200)
     end
 
     test "returns false when user does not exist", %{conn: conn} do
-      conn = post(conn, ~p"/api/ejabberd/isuser", %{
-        "user" => "nonexistent",
-        "server" => @server
-      })
+      conn =
+        post(conn, ~p"/api/ejabberd/isuser", %{
+          "user" => "nonexistent",
+          "server" => @server
+        })
 
       assert %{"result" => false} = json_response(conn, 200)
     end
@@ -73,12 +79,13 @@ defmodule ElektrineWeb.EjabberdAuthControllerTest do
   describe "setpass/2" do
     test "returns true when updating existing user password", %{conn: conn, user: user} do
       new_password = "newpassword123"
-      
-      conn = post(conn, ~p"/api/ejabberd/setpass", %{
-        "user" => user.username,
-        "server" => @server,
-        "password" => new_password
-      })
+
+      conn =
+        post(conn, ~p"/api/ejabberd/setpass", %{
+          "user" => user.username,
+          "server" => @server,
+          "password" => new_password
+        })
 
       assert %{"result" => true} = json_response(conn, 200)
 
@@ -87,22 +94,25 @@ defmodule ElektrineWeb.EjabberdAuthControllerTest do
     end
 
     test "returns false for non-existent user", %{conn: conn} do
-      conn = post(conn, ~p"/api/ejabberd/setpass", %{
-        "user" => "nonexistent",
-        "server" => @server,
-        "password" => "anypassword123"
-      })
+      conn =
+        post(conn, ~p"/api/ejabberd/setpass", %{
+          "user" => "nonexistent",
+          "server" => @server,
+          "password" => "anypassword123"
+        })
 
       assert %{"result" => false} = json_response(conn, 200)
     end
 
     test "returns false when password is invalid", %{conn: conn, user: user} do
       # Try with a short password that will fail validation
-      conn = post(conn, ~p"/api/ejabberd/setpass", %{
-        "user" => user.username,
-        "server" => @server,
-        "password" => "short"  # Too short to meet validation
-      })
+      conn =
+        post(conn, ~p"/api/ejabberd/setpass", %{
+          "user" => user.username,
+          "server" => @server,
+          # Too short to meet validation
+          "password" => "short"
+        })
 
       assert %{"result" => false} = json_response(conn, 200)
     end

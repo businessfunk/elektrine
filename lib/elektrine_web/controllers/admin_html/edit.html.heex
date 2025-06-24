@@ -11,9 +11,9 @@
           <label class="label">
             <span class="label-text">Username</span>
           </label>
-          <input 
-            type="text" 
-            name="user[username]" 
+          <input
+            type="text"
+            name="user[username]"
             value={f[:username].value || @user.username}
             class="input input-bordered w-full"
             required
@@ -21,7 +21,7 @@
           <%= if f[:username].errors do %>
             <div class="label">
               <span class="label-text-alt text-error">
-                <%= Enum.map(f[:username].errors, fn {msg, _} -> msg end) |> Enum.join(", ") %>
+                {Enum.map(f[:username].errors, fn {msg, _} -> msg end) |> Enum.join(", ")}
               </span>
             </div>
           <% end %>
@@ -32,9 +32,9 @@
             <span class="label-text">Avatar URL</span>
             <span class="label-text-alt opacity-50">Optional</span>
           </label>
-          <input 
-            type="url" 
-            name="user[avatar]" 
+          <input
+            type="url"
+            name="user[avatar]"
             value={f[:avatar].value || @user.avatar}
             class="input input-bordered w-full"
             placeholder="https://example.com/avatar.jpg"
@@ -42,7 +42,7 @@
           <%= if f[:avatar].errors do %>
             <div class="label">
               <span class="label-text-alt text-error">
-                <%= Enum.map(f[:avatar].errors, fn {msg, _} -> msg end) |> Enum.join(", ") %>
+                {Enum.map(f[:avatar].errors, fn {msg, _} -> msg end) |> Enum.join(", ")}
               </span>
             </div>
           <% end %>
@@ -52,27 +52,26 @@
           <.link href={~p"/admin/users"} class="btn btn-ghost">
             Cancel
           </.link>
-          
+
           <button type="submit" class="btn btn-primary">
-            <.icon name="hero-check" class="w-4 h-4 mr-2" />
-            Update User
+            <.icon name="hero-check" class="w-4 h-4 mr-2" /> Update User
           </button>
         </div>
       </.form>
     </div>
   </div>
-
-  <!-- User Info Card -->
+  
+<!-- User Info Card -->
   <div class="card bg-base-100 shadow-xl max-w-2xl mt-6">
     <div class="card-body">
       <h2 class="card-title">User Information</h2>
-      
+
       <div class="stats stats-vertical lg:stats-horizontal shadow">
         <div class="stat">
           <div class="stat-title">User ID</div>
-          <div class="stat-value text-sm"><%= @user.id %></div>
+          <div class="stat-value text-sm">{@user.id}</div>
         </div>
-        
+
         <div class="stat">
           <div class="stat-title">Status</div>
           <div class="stat-value text-sm">
@@ -86,11 +85,11 @@
             <% end %>
           </div>
         </div>
-        
+
         <div class="stat">
           <div class="stat-title">Joined</div>
           <div class="stat-value text-sm">
-            <%= Calendar.strftime(@user.inserted_at, "%B %d, %Y") %>
+            {Calendar.strftime(@user.inserted_at, "%B %d, %Y")}
           </div>
         </div>
       </div>
@@ -102,10 +101,10 @@
             <h3 class="font-bold">User is banned</h3>
             <div class="text-xs">
               <%= if @user.banned_reason do %>
-                Reason: <%= @user.banned_reason %>
+                Reason: {@user.banned_reason}
               <% end %>
               <%= if @user.banned_at do %>
-                <br>Banned on: <%= Calendar.strftime(@user.banned_at, "%B %d, %Y at %I:%M %p") %>
+                <br />Banned on: {Calendar.strftime(@user.banned_at, "%B %d, %Y at %I:%M %p")}
               <% end %>
             </div>
           </div>

@@ -117,7 +117,7 @@ defmodule Elektrine.Email.AliasTest do
 
     test "rejects invalid domains for alias_email" do
       invalid_domains = ["gmail.com", "example.com", "mydomain.org", "test.net"]
-      
+
       for domain <- invalid_domains do
         attrs = %{
           alias_email: "test@#{domain}",

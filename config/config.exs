@@ -34,8 +34,7 @@ config :elektrine, ElektrineWeb.Endpoint,
 # Configures the mailer
 #
 # Use SMTP adapter as a placeholder - we'll override in runtime
-config :elektrine, Elektrine.Mailer,
-  adapter: Swoosh.Adapters.Local
+config :elektrine, Elektrine.Mailer, adapter: Swoosh.Adapters.Local
 
 # Configure esbuild (the version is required)
 config :esbuild,
@@ -94,7 +93,8 @@ config :elektrine, :uploads,
   bucket: System.get_env("BACKBLAZE_BUCKET_NAME") || "elektrine-uploads-prod",
   endpoint: System.get_env("BACKBLAZE_ENDPOINT") || "s3.us-west-002.backblazeb2.com",
   # Upload security limits
-  max_file_size: 5 * 1024 * 1024,  # 5MB
+  # 5MB
+  max_file_size: 5 * 1024 * 1024,
   max_image_width: 2048,
   max_image_height: 2048
 

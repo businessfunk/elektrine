@@ -63,13 +63,20 @@ defmodule Elektrine.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:poison, "~> 5.0"},
       {:hackney, "~> 1.18"},
-      {:gen_smtp, "~> 1.2"},  # Added for SMTP support
-      {:quantum, "~> 3.5"},   # Added for scheduled job handling
-      {:ex_aws, "~> 2.1"},    # AWS SDK for Elixir
-      {:ex_aws_s3, "~> 2.0"}, # S3 support for ExAws
-      {:sweet_xml, "~> 0.6"},  # XML parsing for AWS responses
-      {:httpoison, "~> 2.0"},   # HTTP client for hCaptcha verification
-      {:html_sanitize_ex, "~> 1.4"}  # HTML sanitization for email content
+      # Added for SMTP support
+      {:gen_smtp, "~> 1.2"},
+      # Added for scheduled job handling
+      {:quantum, "~> 3.5"},
+      # AWS SDK for Elixir
+      {:ex_aws, "~> 2.1"},
+      # S3 support for ExAws
+      {:ex_aws_s3, "~> 2.0"},
+      # XML parsing for AWS responses
+      {:sweet_xml, "~> 0.6"},
+      # HTTP client for hCaptcha verification
+      {:httpoison, "~> 2.0"},
+      # HTML sanitization for email content
+      {:html_sanitize_ex, "~> 1.4"}
     ]
   end
 

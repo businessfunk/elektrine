@@ -18,13 +18,18 @@
                 <img src={@user.avatar} alt="Current avatar" />
               <% else %>
                 <div class="bg-primary text-primary-content flex items-center justify-center w-16 h-16">
-                  <span class="text-xl"><%= String.first(@user.username) %></span>
+                  <span class="text-xl">{String.first(@user.username)}</span>
                 </div>
               <% end %>
             </div>
           </div>
           <div class="flex-1">
-            <input type="file" name="user[avatar]" accept="image/*" class="file-input file-input-bordered file-input-primary w-full max-w-xs" />
+            <input
+              type="file"
+              name="user[avatar]"
+              accept="image/*"
+              class="file-input file-input-bordered file-input-primary w-full max-w-xs"
+            />
             <div class="label">
               <span class="label-text-alt">Upload a new avatar image</span>
             </div>
@@ -37,27 +42,60 @@
       <% else %>
         <.input field={f[:username]} type="text" label="Username" required />
       <% end %>
-      
+
       <%= if @user.last_username_change_at do %>
         <div class="alert alert-info mt-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            class="stroke-current shrink-0 w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            >
+            </path>
+          </svg>
           <div>
             <div class="text-sm">Username changes are limited to once per week.</div>
             <%= if Elektrine.Accounts.User.can_change_username?(@user) do %>
-              <div class="text-sm font-semibold text-success">✓ You can change your username now.</div>
+              <div class="text-sm font-semibold text-success">
+                ✓ You can change your username now.
+              </div>
             <% else %>
               <% next_change = Elektrine.Accounts.User.next_username_change_date(@user) %>
-              <% days_remaining = div(DateTime.diff(next_change, DateTime.utc_now(), :second), 86400) + 1 %>
-              <div class="text-sm font-semibold text-warning">⏳ Next change allowed in <%= days_remaining %> day(s).</div>
+              <% days_remaining =
+                div(DateTime.diff(next_change, DateTime.utc_now(), :second), 86400) + 1 %>
+              <div class="text-sm font-semibold text-warning">
+                ⏳ Next change allowed in {days_remaining} day(s).
+              </div>
             <% end %>
           </div>
         </div>
       <% else %>
         <div class="alert alert-success mt-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            class="stroke-current shrink-0 w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            >
+            </path>
+          </svg>
           <div>
             <div class="text-sm font-semibold">✓ You can change your username.</div>
-            <div class="text-sm">After changing, you'll need to wait one week before changing again.</div>
+            <div class="text-sm">
+              After changing, you'll need to wait one week before changing again.
+            </div>
           </div>
         </div>
       <% end %>
@@ -80,22 +118,34 @@
 
     <div class="mt-4">
       <h2 class="text-xl font-semibold mb-4 text-error">Danger Zone</h2>
-      
+
       <%= if @pending_deletion do %>
         <div class="alert alert-warning mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            class="stroke-current shrink-0 w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+            />
           </svg>
           <div>
             <h3 class="font-bold">Account Deletion Pending</h3>
             <div class="text-sm">
-              Your account deletion request is pending admin approval.
-              <br>
-              Requested on: <%= Calendar.strftime(@pending_deletion.requested_at, "%Y-%m-%d at %H:%M UTC") %>
+              Your account deletion request is pending admin approval. <br />
+              Requested on: {Calendar.strftime(
+                @pending_deletion.requested_at,
+                "%Y-%m-%d at %H:%M UTC"
+              )}
             </div>
             <%= if @pending_deletion.reason && String.trim(@pending_deletion.reason) != "" do %>
               <div class="text-sm mt-2">
-                <strong>Reason:</strong> <%= @pending_deletion.reason %>
+                <strong>Reason:</strong> {@pending_deletion.reason}
               </div>
             <% end %>
           </div>

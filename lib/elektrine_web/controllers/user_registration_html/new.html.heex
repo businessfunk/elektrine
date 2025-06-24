@@ -7,29 +7,58 @@
         Oops, something went wrong! Please check the errors below.
       </.error>
 
-      <.input field={f[:username]} type="text" label="Username" placeholder="Enter your username" required />
+      <.input
+        field={f[:username]}
+        type="text"
+        label="Username"
+        placeholder="Enter your username"
+        required
+      />
       <div class="form-control">
-        <.input field={f[:password]} type="password" label="Password" placeholder="Enter your password" required />
+        <.input
+          field={f[:password]}
+          type="password"
+          label="Password"
+          placeholder="Enter your password"
+          required
+        />
         <div class="label">
           <span class="label-text-alt text-xs opacity-70">
             Password must be at least 12 characters long
           </span>
         </div>
       </div>
-      <.input field={f[:password_confirmation]} type="password" label="Confirm password" placeholder="Confirm your password" required />
+      <.input
+        field={f[:password_confirmation]}
+        type="password"
+        label="Confirm password"
+        placeholder="Confirm your password"
+        required
+      />
 
       <div class="form-control">
-        <div id="hcaptcha-container" class="h-captcha" data-sitekey={Application.get_env(:elektrine, :hcaptcha)[:site_key]}></div>
+        <div
+          id="hcaptcha-container"
+          class="h-captcha"
+          data-sitekey={Application.get_env(:elektrine, :hcaptcha)[:site_key]}
+        >
+        </div>
         <%= if captcha_errors = @changeset.errors[:captcha] do %>
           <div class="label">
             <span class="label-text-alt text-error text-sm">
-              <%= case captcha_errors do
-                {msg, _opts} -> msg
-                [{msg, _opts} | _] -> msg
-                list when is_list(list) -> 
+              {case captcha_errors do
+                {msg, _opts} ->
+                  msg
+
+                [{msg, _opts} | _] ->
+                  msg
+
+                list when is_list(list) ->
                   list |> List.first() |> elem(0)
-                _ -> "Please complete the captcha verification"
-              end %>
+
+                _ ->
+                  "Please complete the captcha verification"
+              end}
             </span>
           </div>
         <% end %>
@@ -43,7 +72,9 @@
     <div class="divider mt-6">OR</div>
 
     <div class="text-center">
-      <.link href={~p"/login"} class="btn btn-outline btn-sm">Already have an account? Log in</.link>
+      <.link href={~p"/login"} class="btn btn-outline btn-sm">
+        Already have an account? Log in
+      </.link>
     </div>
   </div>
 </div>

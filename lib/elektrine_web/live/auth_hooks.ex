@@ -38,20 +38,23 @@ defmodule ElektrineWeb.Live.AuthHooks do
   end
 
   defp assign_current_uri(socket) do
-    current_path = case socket do
-      %{view: view} -> 
-        # Extract path from the LiveView module name and route
-        case view do
-          ElektrineWeb.EmailLive.Inbox -> "/email/inbox"
-          ElektrineWeb.EmailLive.Sent -> "/email/sent"
-          ElektrineWeb.EmailLive.Compose -> "/email/compose"
-          ElektrineWeb.EmailLive.Show -> "/email/view"
-          ElektrineWeb.EmailLive.Index -> "/email"
-          _ -> "/email"
-        end
-      _ -> 
-        "/email"
-    end
+    current_path =
+      case socket do
+        %{view: view} ->
+          # Extract path from the LiveView module name and route
+          case view do
+            ElektrineWeb.EmailLive.Inbox -> "/email/inbox"
+            ElektrineWeb.EmailLive.Sent -> "/email/sent"
+            ElektrineWeb.EmailLive.Compose -> "/email/compose"
+            ElektrineWeb.EmailLive.Show -> "/email/view"
+            ElektrineWeb.EmailLive.Index -> "/email"
+            _ -> "/email"
+          end
+
+        _ ->
+          "/email"
+      end
+
     assign(socket, :current_path, current_path)
   end
 
@@ -63,7 +66,9 @@ defmodule ElektrineWeb.Live.AuthHooks do
         rescue
           _ -> nil
         end
-      {:error, _} -> nil
+
+      {:error, _} ->
+        nil
     end
   end
 end

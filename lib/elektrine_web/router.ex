@@ -25,15 +25,15 @@ defmodule ElektrineWeb.Router do
     get "/about", PageController, :about
     get "/contact", PageController, :contact
     post "/contact", PageController, :send_message
-    
+
     # Temporary email LiveView routes
     live "/temp-mail", TemporaryMailboxLive.Index, :index
     live "/temp-mail/:token", TemporaryMailboxLive.Show, :show
     live "/temp-mail/:token/message/:id", TemporaryMailboxLive.Message, :show
-    
+
     # Route for setting session data from LiveView
     get "/temp-mail/:token/set_token", TemporaryMailboxSessionController, :set_token
-    
+
     # Temporary mailbox controller routes
     get "/temp-mail/:token/refresh", TemporaryMailboxController, :refresh
     post "/temp-mail/:token/extend", TemporaryMailboxController, :extend
@@ -62,7 +62,8 @@ defmodule ElektrineWeb.Router do
     delete "/account", UserSettingsController, :confirm_delete
 
     # Email LiveView routes - each is a separate LiveView with individual templates
-    live_session :authenticated, on_mount: {ElektrineWeb.Live.AuthHooks, :require_authenticated_user} do
+    live_session :authenticated,
+      on_mount: {ElektrineWeb.Live.AuthHooks, :require_authenticated_user} do
       live "/email", EmailLive.Index, :index
       live "/email/inbox", EmailLive.Inbox, :inbox
       live "/email/sent", EmailLive.Sent, :sent
@@ -86,7 +87,6 @@ defmodule ElektrineWeb.Router do
     post "/mailboxes", MailboxController, :create
     delete "/mailboxes/:id", MailboxController, :delete
     put "/mailboxes/:id/primary", MailboxController, :set_primary
-
   end
 
   # Admin routes - require admin privileges
@@ -130,21 +130,21 @@ defmodule ElektrineWeb.Router do
 
     # Email API endpoints
     post "/postal/inbound", PostalInboundController, :create
-    
+
     # Flutter app API endpoints
     scope "/temp-mail", as: :api do
       # Create a new temporary mailbox
       post "/", API.TemporaryMailboxController, :create
-      
+
       # Get mailbox details and messages by token
       get "/:token", API.TemporaryMailboxController, :show
-      
+
       # Extend mailbox expiration
       post "/:token/extend", API.TemporaryMailboxController, :extend
-      
+
       # Get a specific message from a mailbox
       get "/:token/message/:id", API.TemporaryMailboxController, :get_message
-      
+
       # Delete a message
       delete "/:token/message/:id", API.TemporaryMailboxController, :delete_message
     end
