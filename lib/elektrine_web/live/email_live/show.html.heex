@@ -43,6 +43,14 @@
                 <.icon name="hero-arrow-uturn-left" class="h-4 w-4 mr-1" /> Reply
               </button>
 
+              <.link href={~p"/email/#{@message.id}/print"} target="_blank" class="btn btn-sm btn-ghost">
+                <.icon name="hero-printer" class="h-4 w-4 mr-1" /> Print
+              </.link>
+
+              <.link href={~p"/email/#{@message.id}/raw"} target="_blank" class="btn btn-sm btn-ghost">
+                <.icon name="hero-code-bracket" class="h-4 w-4 mr-1" /> Raw
+              </.link>
+
               <button
                 phx-click="delete"
                 phx-value-id={@message.id}

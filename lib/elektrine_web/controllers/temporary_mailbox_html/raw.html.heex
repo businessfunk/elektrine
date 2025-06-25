@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raw Email - <%= @message.subject || "No Subject" %></title>
+  <style>
+    body {
+      font-family: 'Courier New', Consolas, Monaco, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      margin: 0;
+      padding: 20px;
+      background: #f8f8f8;
+      color: #333;
+    }
+    
+    .raw-header {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .raw-header h1 {
+      margin: 0 0 15px 0;
+      font-size: 18px;
+      font-weight: bold;
+      color: #2563eb;
+      font-family: Arial, sans-serif;
+    }
+    
+    .temp-notice {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 15px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: #92400e;
+    }
+    
+    .raw-nav {
+      margin-bottom: 15px;
+    }
+    
+    .raw-nav a {
+      display: inline-block;
+      padding: 6px 12px;
+      margin-right: 10px;
+      background: #3b82f6;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+    
+    .raw-nav a:hover {
+      background: #2563eb;
+    }
+    
+    .raw-content {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 20px;
+      overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .raw-section {
+      margin-bottom: 25px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 15px;
+    }
+    
+    .raw-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+    
+    .raw-section h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #1f2937;
+      background: #f3f4f6;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+    }
+    
+    .raw-text {
+      white-space: pre-wrap;
+      word-break: break-all;
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    
+    .metadata-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+    
+    .metadata-table th,
+    .metadata-table td {
+      padding: 8px 12px;
+      text-align: left;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .metadata-table th {
+      background: #f9fafb;
+      font-weight: bold;
+      color: #374151;
+      width: 150px;
+    }
+    
+    .metadata-table td {
+      background: #fff;
+      word-break: break-word;
+    }
+    
+    .attachment-info {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 4px;
+      padding: 12px;
+      margin: 10px 0;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+    
+    .attachment-list {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0;
+    }
+    
+    .attachment-list li {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+    
+    .copy-button {
+      float: right;
+      padding: 4px 8px;
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: Arial, sans-serif;
+    }
+    
+    .copy-button:hover {
+      background: #059669;
+    }
+  </style>
+  <script>
+    function copyToClipboard(elementId) {
+      const element = document.getElementById(elementId);
+      const text = element.textContent;
+      navigator.clipboard.writeText(text).then(function() {
+        alert('Copied to clipboard!');
+      }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+      });
+    }
+  </script>
+</head>
+<body>
+  <div class="raw-header">
+    <h1>Raw Email View</h1>
+    <div class="temp-notice">
+      📧 <strong>Temporary Email:</strong> This email was received in a temporary mailbox (<%= @mailbox.email %>).
+      Token: <%= @token %>
+    </div>
+    <div class="raw-nav">
+      <a href={~p"/temp-mail/#{@token}/message/#{@message.id}"}>← Back to Email</a>
+      <a href="javascript:window.print()">🖨️ Print</a>
+    </div>
+  </div>
+  
+  <div class="raw-content">
+    <div class="raw-section">
+      <h3>Email Metadata</h3>
+      <table class="metadata-table">
+        <tr>
+          <th>Subject</th>
+          <td><%= @message.subject || "No Subject" %></td>
+        </tr>
+        <tr>
+          <th>From</th>
+          <td><%= @message.from %></td>
+        </tr>
+        <tr>
+          <th>To</th>
+          <td><%= @message.to %></td>
+        </tr>
+        <%= if @message.cc && @message.cc != "" do %>
+          <tr>
+            <th>CC</th>
+            <td><%= @message.cc %></td>
+          </tr>
+        <% end %>
+        <%= if @message.bcc && @message.bcc != "" do %>
+          <tr>
+            <th>BCC</th>
+            <td><%= @message.bcc %></td>
+          </tr>
+        <% end %>
+        <tr>
+          <th>Date Received</th>
+          <td><%= Calendar.strftime(@message.inserted_at, "%Y-%m-%d %H:%M:%S UTC") %></td>
+        </tr>
+        <%= if @message.message_id do %>
+          <tr>
+            <th>Message ID</th>
+            <td><%= @message.message_id %></td>
+          </tr>
+        <% end %>
+        <tr>
+          <th>Status</th>
+          <td><%= @message.status %></td>
+        </tr>
+        <tr>
+          <th>Read</th>
+          <td><%= if @message.read, do: "Yes", else: "No" %></td>
+        </tr>
+        <tr>
+          <th>Spam</th>
+          <td><%= if @message.spam, do: "Yes", else: "No" %></td>
+        </tr>
+        <tr>
+          <th>Archived</th>
+          <td><%= if @message.archived, do: "Yes", else: "No" %></td>
+        </tr>
+        <tr>
+          <th>Mailbox Type</th>
+          <td><%= @message.mailbox_type %></td>
+        </tr>
+        <tr>
+          <th>Temporary Mailbox</th>
+          <td><%= @mailbox.email %> (expires: <%= Calendar.strftime(@mailbox.expires_at, "%Y-%m-%d %H:%M:%S UTC") %>)</td>
+        </tr>
+        <%= if @message.metadata && map_size(@message.metadata) > 0 do %>
+          <tr>
+            <th>Additional Metadata</th>
+            <td><%= inspect(@message.metadata, pretty: true) %></td>
+          </tr>
+        <% end %>
+      </table>
+    </div>
+    
+    <%= if @message.html_body do %>
+      <div class="raw-section">
+        <h3>
+          HTML Body (Processed)
+          <button class="copy-button" onclick="copyToClipboard('processed-html')">Copy</button>
+        </h3>
+        <pre class="raw-text" id="processed-html"><%= ElektrineWeb.CoreComponents.process_email_html(@message.html_body) %></pre>
+      </div>
+      
+      <div class="raw-section">
+        <h3>
+          HTML Body (Raw)
+          <button class="copy-button" onclick="copyToClipboard('raw-html')">Copy</button>
+        </h3>
+        <pre class="raw-text" id="raw-html"><%= @message.html_body %></pre>
+      </div>
+    <% end %>
+    
+    <%= if @message.text_body do %>
+      <div class="raw-section">
+        <h3>
+          Text Body
+          <button class="copy-button" onclick="copyToClipboard('text-body')">Copy</button>
+        </h3>
+        <pre class="raw-text" id="text-body"><%= @message.text_body %></pre>
+      </div>
+    <% end %>
+    
+    <%= if @message.has_attachments && @message.attachments && map_size(@message.attachments) > 0 do %>
+      <div class="raw-section">
+        <h3>Attachments (<%= map_size(@message.attachments) %>)</h3>
+        <div class="attachment-info">
+          ⚠️ <strong>Note:</strong> Raw attachment data is base64 encoded and not displayed here for readability.
+          Attachment metadata is shown below.
+        </div>
+        <ul class="attachment-list">
+          <%= for {id, attachment} <- @message.attachments do %>
+            <li>
+              <strong>ID:</strong> <%= id %><br>
+              <strong>Filename:</strong> <%= attachment["filename"] %><br>
+              <strong>Content Type:</strong> <%= attachment["content_type"] %><br>
+              <%= if attachment["size"] do %>
+                <strong>Size:</strong> <%= ElektrineWeb.EmailLive.EmailHelpers.format_file_size(attachment["size"]) %><br>
+              <% end %>
+              <strong>Data Length:</strong> <%= String.length(attachment["data"] || "") %> characters (base64)
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+    
+    <div class="raw-section">
+      <h3>
+        Complete Email Object (JSON)
+        <button class="copy-button" onclick="copyToClipboard('email-json')">Copy</button>
+      </h3>
+      <pre class="raw-text" id="email-json"><%= 
+        @message 
+        |> Map.from_struct() 
+        |> Map.drop([:__meta__]) 
+        |> Jason.encode!(pretty: true) 
+      %></pre>
+    </div>
+  </div>
+</body>
+</html>

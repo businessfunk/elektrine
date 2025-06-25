@@ -185,6 +185,61 @@ defmodule ElektrineWeb.TemporaryMailboxController do
     end
   end
 
+  @doc """
+  Displays print view for a message in a temporary mailbox.
+  """
+  def print(conn, %{"token" => token, "id" => id}) do
+    case Email.get_temporary_mailbox_by_token(token) do
+      nil ->
+        conn
+        |> put_flash(:error, "Temporary mailbox not found or expired.")
+        |> redirect(to: ~p"/temp-mail")
+
+      mailbox ->
+        case Email.get_message(id, mailbox.id) do
+          nil ->
+            conn
+            |> put_flash(:error, "Message not found.")
+            |> redirect(to: ~p"/temp-mail/#{token}")
+
+          message ->
+            # Mark message as read
+            unless message.read do
+              {:ok, _} = Email.mark_as_read(message)
+            end
+
+            conn
+            |> put_layout(false)
+            |> render(:print, mailbox: mailbox, message: message, token: token)
+        end
+    end
+  end
+
+  @doc """
+  Displays raw view for a message in a temporary mailbox.
+  """
+  def raw(conn, %{"token" => token, "id" => id}) do
+    case Email.get_temporary_mailbox_by_token(token) do
+      nil ->
+        conn
+        |> put_flash(:error, "Temporary mailbox not found or expired.")
+        |> redirect(to: ~p"/temp-mail")
+
+      mailbox ->
+        case Email.get_message(id, mailbox.id) do
+          nil ->
+            conn
+            |> put_flash(:error, "Message not found.")
+            |> redirect(to: ~p"/temp-mail/#{token}")
+
+          message ->
+            conn
+            |> put_layout(false)
+            |> render(:raw, mailbox: mailbox, message: message, token: token)
+        end
+    end
+  end
+
   # Helper to extract domain from request
   defp get_request_domain(conn) do
     host =

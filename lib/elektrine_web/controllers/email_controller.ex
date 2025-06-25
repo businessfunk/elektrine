@@ -190,6 +190,61 @@ defmodule ElektrineWeb.EmailController do
     end
   end
 
+  def print(conn, %{"id" => id}) do
+    user = conn.assigns.current_user
+    mailbox = Email.get_user_mailbox(user.id)
+
+    message = Email.get_message(id)
+
+    case message do
+      nil ->
+        conn
+        |> put_flash(:error, "Message not found.")
+        |> redirect(to: ~p"/email/inbox")
+
+      message ->
+        if message.mailbox_id == mailbox.id do
+          # Mark as read if not already
+          unless message.read do
+            Email.mark_as_read(message)
+          end
+
+          conn
+          |> put_layout(false)
+          |> render(:print, message: message, mailbox: mailbox)
+        else
+          conn
+          |> put_flash(:error, "You don't have permission to view this message.")
+          |> redirect(to: ~p"/email/inbox")
+        end
+    end
+  end
+
+  def raw(conn, %{"id" => id}) do
+    user = conn.assigns.current_user
+    mailbox = Email.get_user_mailbox(user.id)
+
+    message = Email.get_message(id)
+
+    case message do
+      nil ->
+        conn
+        |> put_flash(:error, "Message not found.")
+        |> redirect(to: ~p"/email/inbox")
+
+      message ->
+        if message.mailbox_id == mailbox.id do
+          conn
+          |> put_layout(false)
+          |> render(:raw, message: message, mailbox: mailbox)
+        else
+          conn
+          |> put_flash(:error, "You don't have permission to view this message.")
+          |> redirect(to: ~p"/email/inbox")
+        end
+    end
+  end
+
   # Converts plain text to simple HTML
   defp format_html_body(nil), do: nil
 

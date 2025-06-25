@@ -7,6 +7,12 @@
           <.link href={~p"/temp-mail/#{@mailbox.token}"} class="btn btn-sm btn-primary">
             <.icon name="hero-arrow-left" class="h-5 w-5 mr-1" /> Back to Inbox
           </.link>
+          <.link href={~p"/temp-mail/#{@mailbox.token}/message/#{@message.id}/print"} target="_blank" class="btn btn-sm btn-ghost">
+            <.icon name="hero-printer" class="h-5 w-5 mr-1" /> Print
+          </.link>
+          <.link href={~p"/temp-mail/#{@mailbox.token}/message/#{@message.id}/raw"} target="_blank" class="btn btn-sm btn-ghost">
+            <.icon name="hero-code-bracket" class="h-5 w-5 mr-1" /> Raw
+          </.link>
           <%= if @is_owner do %>
             <.link
               href={~p"/temp-mail/#{@mailbox.token}/message/#{@message.id}/delete"}

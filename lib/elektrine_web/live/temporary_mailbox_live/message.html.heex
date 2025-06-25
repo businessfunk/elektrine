@@ -10,6 +10,12 @@
           <button phx-click="refresh" class="btn btn-sm btn-secondary">
             <.icon name="hero-arrow-path" class="h-5 w-5 mr-1" /> Refresh
           </button>
+          <.link href={~p"/temp-mail/#{@mailbox.token}/message/#{@message.id}/print"} target="_blank" class="btn btn-sm btn-ghost">
+            <.icon name="hero-printer" class="h-5 w-5 mr-1" /> Print
+          </.link>
+          <.link href={~p"/temp-mail/#{@mailbox.token}/message/#{@message.id}/raw"} target="_blank" class="btn btn-sm btn-ghost">
+            <.icon name="hero-code-bracket" class="h-5 w-5 mr-1" /> Raw
+          </.link>
           <%= if @is_owner do %>
             <button
               phx-click="delete_message"

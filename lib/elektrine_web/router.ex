@@ -38,6 +38,8 @@ defmodule ElektrineWeb.Router do
     get "/temp-mail/:token/refresh", TemporaryMailboxController, :refresh
     post "/temp-mail/:token/extend", TemporaryMailboxController, :extend
     delete "/temp-mail/:token/message/:id/delete", TemporaryMailboxController, :delete_message
+    get "/temp-mail/:token/message/:id/print", TemporaryMailboxController, :print
+    get "/temp-mail/:token/message/:id/raw", TemporaryMailboxController, :raw
   end
 
   # Routes that are specifically for unauthenticated users
@@ -80,6 +82,8 @@ defmodule ElektrineWeb.Router do
 
     # Email controller routes
     delete "/email/:id", EmailController, :delete
+    get "/email/:id/print", EmailController, :print
+    get "/email/:id/raw", EmailController, :raw
 
     # Mailbox management
     get "/mailboxes", MailboxController, :index

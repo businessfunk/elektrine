@@ -708,6 +708,7 @@ defmodule ElektrineWeb.CoreComponents do
   def process_email_html(html_content) when is_binary(html_content) do
     html_content
     |> decode_if_base64()
+    |> decode_if_quoted_printable()
     |> String.trim()
   end
 
@@ -783,4 +784,36 @@ defmodule ElektrineWeb.CoreComponents do
   end
 
   defp decode_if_base64(content), do: content
+
+  # Try to decode content if it appears to be quoted-printable
+  defp decode_if_quoted_printable(content) when is_binary(content) do
+    # Check if content looks like quoted-printable
+    # Look for =XX hex patterns, soft line breaks (= at end of line), or common QP sequences
+    has_hex_encoding = String.match?(content, ~r/=[0-9A-Fa-f]{2}/)
+    has_soft_breaks = String.match?(content, ~r/=\r?\n/)
+    has_common_qp = String.contains?(content, "=3D") or String.contains?(content, "=20")
+    
+    if has_hex_encoding or has_soft_breaks or has_common_qp do
+      decode_quoted_printable_full(content)
+    else
+      content
+    end
+  end
+
+  defp decode_if_quoted_printable(content), do: content
+
+  # Full quoted-printable decoding for email bodies
+  defp decode_quoted_printable_full(content) when is_binary(content) do
+    content
+    # Remove soft line breaks (= at end of line)
+    |> String.replace(~r/=\r?\n/, "")
+    # Decode =XX hex sequences
+    |> String.replace(~r/=([0-9A-Fa-f]{2})/, fn match ->
+      hex = String.slice(match, 1, 2)
+      case Integer.parse(hex, 16) do
+        {value, ""} -> <<value>>
+        _ -> match
+      end
+    end)
+  end
 end
