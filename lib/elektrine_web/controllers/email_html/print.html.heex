@@ -56,13 +56,17 @@
     }
     
     .email-content img {
-      max-width: 100%;
-      height: auto;
+      max-width: 100% !important;
+      height: auto !important;
+      display: block !important;
+      margin: 10px auto !important;
+      border-radius: 4px;
     }
     
     .email-content table {
       border-collapse: collapse;
       width: 100%;
+      max-width: 100% !important;
     }
     
     .email-content table td,
@@ -70,6 +74,85 @@
       border: 1px solid #ccc;
       padding: 8px;
       text-align: left;
+      vertical-align: top;
+      word-wrap: break-word;
+    }
+    
+    /* Modern email content styling for print */
+    .email-content * {
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    
+    /* Preserve email backgrounds in print */
+    .email-content [style*="background"] {
+      background-size: cover !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      print-color-adjust: exact !important;
+      -webkit-print-color-adjust: exact !important;
+    }
+    
+    .email-content table[bgcolor],
+    .email-content td[bgcolor],
+    .email-content th[bgcolor] {
+      print-color-adjust: exact !important;
+      -webkit-print-color-adjust: exact !important;
+    }
+    
+    .email-content div[style*="background-color"],
+    .email-content div[style*="background-image"],
+    .email-content table[style*="background-color"],
+    .email-content table[style*="background-image"],
+    .email-content td[style*="background-color"],
+    .email-content td[style*="background-image"] {
+      background-size: cover !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      min-height: 30px !important;
+      print-color-adjust: exact !important;
+      -webkit-print-color-adjust: exact !important;
+    }
+    
+    /* Text handling */
+    .email-content p,
+    .email-content div,
+    .email-content span {
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+    }
+    
+    /* Font and color preservation */
+    .email-content font[color] {
+      print-color-adjust: exact !important;
+      -webkit-print-color-adjust: exact !important;
+    }
+    
+    /* Link styling for print */
+    .email-content a {
+      color: #1a73e8 !important;
+      text-decoration: underline !important;
+    }
+    
+    /* Image alignment similar to webmail */
+    .email-content img[align="left"] {
+      float: left !important;
+      margin: 0 10px 10px 0 !important;
+    }
+    
+    .email-content img[align="right"] {
+      float: right !important;
+      margin: 0 0 10px 10px !important;
+    }
+    
+    .email-content img[align="center"] {
+      display: block !important;
+      margin: 10px auto !important;
+    }
+    
+    /* Center tag support */
+    .email-content center {
+      text-align: center !important;
     }
     
     .attachments {

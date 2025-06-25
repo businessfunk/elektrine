@@ -546,8 +546,10 @@
 }
 
 .prose img {
-  max-width: 100%;
-  height: auto;
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0 auto !important;
 }
 
 .prose pre {
@@ -577,6 +579,207 @@
 .prose table th {
   min-width: auto;
   white-space: normal;
+}
+
+/* Modern webmail-style email content container */
+.email-content-container {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 24px;
+  margin: 16px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  border: 1px solid #e1e5e9;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Webmail-style content reset */
+.email-content-container * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Modern image handling - preserve original styling but ensure responsiveness */
+.email-content-container img {
+  max-width: 100% !important;
+  height: auto !important;
+  vertical-align: middle;
+  border: 0;
+}
+
+/* Allow images to maintain their original alignment if specified */
+.email-content-container img[align="left"] {
+  float: left !important;
+  margin: 0 16px 16px 0 !important;
+}
+
+.email-content-container img[align="right"] {
+  float: right !important;
+  margin: 0 0 16px 16px !important;
+}
+
+.email-content-container img[align="center"] {
+  display: block !important;
+  margin: 16px auto !important;
+}
+
+.email-content-container img:not([align]) {
+  display: inline-block;
+  margin: 4px;
+}
+
+/* Preserve email table layouts */
+.email-content-container table {
+  border-collapse: collapse !important;
+  mso-table-lspace: 0pt !important;
+  mso-table-rspace: 0pt !important;
+}
+
+/* Don't override table backgrounds - let email styling through */
+.email-content-container table[bgcolor],
+.email-content-container td[bgcolor],
+.email-content-container th[bgcolor] {
+  /* Allow bgcolor attributes to work */
+}
+
+/* Preserve table dimensions but ensure responsiveness */
+.email-content-container table[width] {
+  max-width: 100% !important;
+}
+
+.email-content-container td,
+.email-content-container th {
+  vertical-align: top;
+  word-wrap: break-word;
+}
+
+/* Modern font stack and typography */
+.email-content-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #202124;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Allow email fonts to override container defaults */
+.email-content-container font[face] {
+  font-family: inherit;
+}
+
+/* Preserve email text colors */
+.email-content-container font[color] {
+  /* Allow color attributes */
+}
+
+/* Link styling similar to modern webmail */
+.email-content-container a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.email-content-container a:hover {
+  text-decoration: underline;
+}
+
+/* Preserve email spacing and layout */
+.email-content-container p {
+  margin: 0 0 16px 0;
+}
+
+.email-content-container p:last-child {
+  margin-bottom: 0;
+}
+
+/* Handle email blockquotes */
+.email-content-container blockquote {
+  margin: 16px 0;
+  padding-left: 16px;
+  border-left: 4px solid #e8eaed;
+  color: #5f6368;
+}
+
+/* Center tag support (common in emails) */
+.email-content-container center {
+  text-align: center;
+}
+
+/* Pre-formatted text in emails */
+.email-content-container pre {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 16px 0;
+  border: 1px solid #e8eaed;
+}
+
+/* Handle email code blocks */
+.email-content-container code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  background: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* Email list styling */
+.email-content-container ul,
+.email-content-container ol {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+.email-content-container li {
+  margin: 4px 0;
+}
+
+/* Preserve email HR styling */
+.email-content-container hr {
+  border: none;
+  border-top: 1px solid #e8eaed;
+  margin: 24px 0;
+}
+
+/* Handle email headers */
+.email-content-container h1,
+.email-content-container h2,
+.email-content-container h3,
+.email-content-container h4,
+.email-content-container h5,
+.email-content-container h6 {
+  margin: 16px 0 8px 0;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.email-content-container h1 { font-size: 24px; }
+.email-content-container h2 { font-size: 20px; }
+.email-content-container h3 { font-size: 18px; }
+.email-content-container h4 { font-size: 16px; }
+.email-content-container h5 { font-size: 14px; }
+.email-content-container h6 { font-size: 13px; }
+
+/* Responsive behavior for small screens */
+@media (max-width: 768px) {
+  .email-content-container {
+    padding: 16px;
+    margin: 8px 0;
+  }
+  
+  .email-content-container table {
+    font-size: 14px;
+  }
+  
+  .email-content-container img[align="left"],
+  .email-content-container img[align="right"] {
+    float: none !important;
+    display: block !important;
+    margin: 16px auto !important;
+  }
 }
 
 

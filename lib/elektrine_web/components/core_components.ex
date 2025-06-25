@@ -723,7 +723,7 @@ defmodule ElektrineWeb.CoreComponents do
     try do
       html_content
       |> process_email_html()
-      |> HtmlSanitizeEx.basic_html()
+      |> permissive_email_sanitize()
     rescue
       UnicodeConversionError ->
         # Fallback: return a safe error message
@@ -735,6 +735,15 @@ defmodule ElektrineWeb.CoreComponents do
         # Fallback for any other errors
         "<p><em>Error processing email content.</em></p>"
     end
+  end
+
+  @doc """
+  Permissive HTML sanitization that preserves styling while maintaining security.
+  Allows background colors, images, tables, and most formatting for rich email display.
+  """
+  def permissive_email_sanitize(html_content) do
+    # Use a more permissive approach that preserves email styling
+    HtmlSanitizeEx.Scrubber.scrub(html_content, ElektrineWeb.EmailScrubber)
   end
 
   @doc """
