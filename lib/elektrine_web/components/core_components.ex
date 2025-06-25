@@ -918,13 +918,14 @@ defmodule ElektrineWeb.CoreComponents do
   defp ensure_valid_utf8(content) when is_binary(content) do
     case String.valid?(content) do
       true -> 
-        content
+        # Even if valid UTF-8, might have double-encoding issues
+        fix_common_encoding_issues(content)
       false ->
         # Convert invalid UTF-8 to valid UTF-8 by replacing invalid sequences
         # This prevents UnicodeConversionError while preserving as much content as possible
         :unicode.characters_to_binary(content, :latin1, :utf8)
         |> case do
-          result when is_binary(result) -> result
+          result when is_binary(result) -> fix_common_encoding_issues(result)
           {:error, _valid, _rest} -> 
             # Fallback: try to scrub the content
             scrub_invalid_utf8(content)
@@ -936,6 +937,34 @@ defmodule ElektrineWeb.CoreComponents do
   end
 
   defp ensure_valid_utf8(content), do: content
+
+  # Fix common UTF-8 encoding issues often seen in emails
+  defp fix_common_encoding_issues(content) when is_binary(content) do
+    content
+    # Fix common double-encoded UTF-8 issues
+    |> fix_encoding_patterns()
+    # Fix some quoted-printable remnants that might have been missed
+    |> String.replace("=\r\n", "")
+    |> String.replace("=\n", "")
+  end
+  
+  # Fix encoding patterns using binary matching to avoid source code issues
+  defp fix_encoding_patterns(content) do
+    content
+    |> String.replace(~r/â€™/, "'")      # Smart single quote
+    |> String.replace(~r/â€œ/, "\"")     # Smart double quote open
+    |> String.replace(~r/â€/, "\"")      # Smart double quote close  
+    |> String.replace(~r/â€"/, "-")      # En dash -> regular dash
+    |> String.replace(~r/â€"/, "-")      # Em dash -> regular dash
+    |> String.replace(~r/â€¦/, "...")    # Ellipsis
+    |> String.replace(~r/Â©/, "©")       # Copyright
+    |> String.replace(~r/Â®/, "®")       # Registered
+    |> String.replace(~r/Â /, " ")       # Non-breaking space to regular space
+    |> String.replace(~r/Â/, " ")        # Standalone Â to space
+    |> String.replace(~r/â¯/, " ")       # Thin space variations
+    |> String.replace(~r/â/, "-")        # Em dash variations
+    |> String.replace(~r/â€ž/, "\"")     # German quote
+  end
 
   # Fallback function to scrub invalid UTF-8 characters
   defp scrub_invalid_utf8(content) do
@@ -968,9 +997,17 @@ defmodule ElektrineWeb.CoreComponents do
     # Look for =XX hex patterns, soft line breaks (= at end of line), or common QP sequences
     has_hex_encoding = String.match?(content, ~r/=[0-9A-Fa-f]{2}/)
     has_soft_breaks = String.match?(content, ~r/=\r?\n/)
-    has_common_qp = String.contains?(content, "=3D") or String.contains?(content, "=20")
+    has_common_qp = String.contains?(content, "=3D") or String.contains?(content, "=20") or 
+                    String.contains?(content, "=E2=80") or String.contains?(content, "=C2=A0")
     
-    if has_hex_encoding or has_soft_breaks or has_common_qp do
+    # For emails, be more aggressive about QP detection
+    has_email_qp_indicators = String.contains?(content, "href=3D") or 
+                             String.contains?(content, "style=3D") or
+                             String.contains?(content, "&amp;") or
+                             String.contains?(content, "=\r\n") or
+                             String.contains?(content, "=\n")
+    
+    if has_hex_encoding or has_soft_breaks or has_common_qp or has_email_qp_indicators do
       decode_quoted_printable_full(content)
     else
       content
@@ -982,8 +1019,9 @@ defmodule ElektrineWeb.CoreComponents do
   # Full quoted-printable decoding for email bodies
   defp decode_quoted_printable_full(content) when is_binary(content) do
     result = content
-    # Remove soft line breaks (= at end of line)
+    # Remove soft line breaks (= at end of line) - handle both CRLF and LF
     |> String.replace(~r/=\r?\n/, "")
+    |> String.replace(~r/=\r/, "")
     # Decode =XX hex sequences
     |> String.replace(~r/=([0-9A-Fa-f]{2})/, fn match ->
       hex = String.slice(match, 1, 2)
@@ -992,6 +1030,8 @@ defmodule ElektrineWeb.CoreComponents do
         _ -> match
       end
     end)
+    # Handle any remaining = at end of lines that might have been missed
+    |> String.replace(~r/=(?=\s*$)/m, "")
     
     # Ensure result is valid UTF-8
     ensure_valid_utf8(result)
