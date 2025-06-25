@@ -738,6 +738,74 @@ defmodule ElektrineWeb.CoreComponents do
   end
 
   @doc """
+  Safely converts an email message to JSON, excluding associations and metadata.
+  """
+  def safe_message_to_json(message) do
+    try do
+      # Convert struct to map and clean up associations
+      clean_map = message
+      |> Map.from_struct()
+      |> Map.drop([:__meta__, :mailbox, :user])  # Drop common associations
+      |> sanitize_map_for_json()
+      
+      Jason.encode!(clean_map, pretty: true)
+    rescue
+      error ->
+        # Fallback: create a simplified JSON representation
+        fallback = %{
+          error: "Could not serialize message to JSON: #{inspect(error)}",
+          id: safe_get(message, :id),
+          subject: safe_get(message, :subject),
+          from: safe_get(message, :from),
+          to: safe_get(message, :to),
+          cc: safe_get(message, :cc),
+          bcc: safe_get(message, :bcc),
+          status: safe_get(message, :status),
+          inserted_at: safe_get(message, :inserted_at) |> format_datetime_for_json()
+        }
+        
+        Jason.encode!(fallback, pretty: true)
+    end
+  end
+  
+  # Helper to safely get values from maps/structs
+  defp safe_get(data, key) do
+    try do
+      Map.get(data, key)
+    rescue
+      _ -> nil
+    end
+  end
+  
+  # Helper to sanitize map values for JSON encoding
+  defp sanitize_map_for_json(map) when is_map(map) do
+    map
+    |> Enum.reduce(%{}, fn {key, value}, acc ->
+      Map.put(acc, key, sanitize_value_for_json(value))
+    end)
+  end
+  
+  # Helper to sanitize individual values for JSON
+  defp sanitize_value_for_json(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
+  defp sanitize_value_for_json(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_iso8601(ndt)
+  defp sanitize_value_for_json(%Date{} = d), do: Date.to_iso8601(d)
+  defp sanitize_value_for_json(%Time{} = t), do: Time.to_iso8601(t)
+  defp sanitize_value_for_json(value) when is_map(value) do
+    # For nested maps, recursively sanitize
+    if Map.has_key?(value, :__struct__) do
+      "#{inspect(value.__struct__)}"  # Just show the struct name
+    else
+      sanitize_map_for_json(value)
+    end
+  end
+  defp sanitize_value_for_json(value), do: value
+  
+  # Helper to format DateTime for JSON safely
+  defp format_datetime_for_json(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
+  defp format_datetime_for_json(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_iso8601(ndt)
+  defp format_datetime_for_json(value), do: value
+
+  @doc """
   Decodes email subject that may be RFC 2047 encoded.
   """
   def decode_email_subject(subject) when is_binary(subject) do

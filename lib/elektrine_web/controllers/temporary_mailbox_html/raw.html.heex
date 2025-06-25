@@ -326,12 +326,7 @@
         Complete Email Object (JSON)
         <button class="copy-button" onclick="copyToClipboard('email-json')">Copy</button>
       </h3>
-      <pre class="raw-text" id="email-json"><%= 
-        @message 
-        |> Map.from_struct() 
-        |> Map.drop([:__meta__]) 
-        |> Jason.encode!(pretty: true) 
-      %></pre>
+      <pre class="raw-text" id="email-json"><%= ElektrineWeb.CoreComponents.safe_message_to_json(@message) %></pre>
     </div>
   </div>
 </body>
