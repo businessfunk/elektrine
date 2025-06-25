@@ -741,10 +741,30 @@ defmodule ElektrineWeb.CoreComponents do
   Permissive HTML sanitization that preserves styling while maintaining security.
   Allows background colors, images, tables, and most formatting for rich email display.
   """
-  def permissive_email_sanitize(html_content) do
-    # Use a more permissive approach that preserves email styling
-    HtmlSanitizeEx.Scrubber.scrub(html_content, ElektrineWeb.EmailScrubber)
+  def permissive_email_sanitize(html_content) when is_binary(html_content) do
+    # Don't process again - it's already processed by safe_sanitize_email_html
+    # Try a much more permissive approach using our custom scrubber
+    try do
+      HtmlSanitizeEx.Scrubber.scrub(html_content, ElektrineWeb.EmailScrubber)
+    rescue
+      _ ->
+        # If custom scrubber fails, fall back to basic_html but don't lose all content
+        case HtmlSanitizeEx.basic_html(html_content) do
+          "" -> 
+            # If basic_html strips everything, try stripping only scripts/dangerous tags
+            html_content
+            |> String.replace(~r/<script[^>]*>.*?<\/script>/is, "")
+            |> String.replace(~r/<link[^>]*>/is, "")
+            |> String.replace(~r/<meta[^>]*>/is, "")
+            |> String.replace(~r/<form[^>]*>.*?<\/form>/is, "")
+            |> String.replace(~r/javascript:/i, "")
+            |> String.replace(~r/on\w+\s*=/i, "")
+          result -> result
+        end
+    end
   end
+  
+  def permissive_email_sanitize(nil), do: nil
 
   @doc """
   Safely converts an email message to JSON, excluding associations and metadata.
