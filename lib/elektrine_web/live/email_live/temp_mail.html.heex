@@ -184,9 +184,7 @@
               <div class="prose prose-sm max-w-none bg-white p-6 rounded-lg border overflow-auto">
                 <%= if @current_message.html_body do %>
                   <div class="overflow-auto break-words">
-                    {Phoenix.HTML.raw(
-                      HtmlSanitizeEx.basic_html(process_email_html(@current_message.html_body))
-                    )}
+                    {Phoenix.HTML.raw(safe_sanitize_email_html(@current_message.html_body))}
                   </div>
                 <% else %>
                   <pre class="whitespace-pre-wrap font-sans overflow-auto break-words"><%= @current_message.text_body %></pre>

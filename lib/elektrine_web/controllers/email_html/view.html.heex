@@ -129,7 +129,7 @@
         <div class="p-4">
           <%= if @message.html_body do %>
             <div class="prose prose-sm max-w-none">
-              {Phoenix.HTML.raw(HtmlSanitizeEx.basic_html(process_email_html(@message.html_body)))}
+              {Phoenix.HTML.raw(safe_sanitize_email_html(@message.html_body))}
             </div>
           <% else %>
             <div class="whitespace-pre-wrap">

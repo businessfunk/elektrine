@@ -78,7 +78,7 @@
             // Set HTML content safely using srcdoc
             document.addEventListener('DOMContentLoaded', function() {
               const frame = document.getElementById('message-frame');
-              const content = `<%= Phoenix.HTML.raw(String.replace(HtmlSanitizeEx.basic_html(process_email_html(@message.html_body) || ""), "\"", "\\\"")) %>`;
+              const content = `<%= Phoenix.HTML.raw(String.replace(safe_sanitize_email_html(@message.html_body), "\"", "\\\"")) %>`;
               frame.srcdoc = content;
             });
 

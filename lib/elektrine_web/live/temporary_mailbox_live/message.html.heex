@@ -85,9 +85,7 @@
               sandbox="allow-same-origin"
               class="w-full min-h-[500px] max-w-full"
               srcdoc={
-                Phoenix.HTML.raw(
-                  HtmlSanitizeEx.basic_html(process_email_html(@message.html_body) || "")
-                )
+                Phoenix.HTML.raw(safe_sanitize_email_html(@message.html_body))
               }
             >
             </iframe>

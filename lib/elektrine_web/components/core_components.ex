@@ -707,12 +707,35 @@ defmodule ElektrineWeb.CoreComponents do
   """
   def process_email_html(html_content) when is_binary(html_content) do
     html_content
+    |> ensure_valid_utf8()
     |> decode_if_base64()
     |> decode_if_quoted_printable()
+    |> ensure_valid_utf8()
     |> String.trim()
   end
 
   def process_email_html(nil), do: nil
+
+  @doc """
+  Safely processes and sanitizes email HTML content, with error handling for encoding issues.
+  """
+  def safe_sanitize_email_html(html_content) do
+    try do
+      html_content
+      |> process_email_html()
+      |> HtmlSanitizeEx.basic_html()
+    rescue
+      UnicodeConversionError ->
+        # Fallback: return a safe error message
+        "<p><em>Email content contains invalid encoding and cannot be displayed safely.</em></p>"
+      ArgumentError ->
+        # Fallback for other argument errors
+        "<p><em>Email content could not be processed safely.</em></p>"
+      _ ->
+        # Fallback for any other errors
+        "<p><em>Error processing email content.</em></p>"
+    end
+  end
 
   @doc """
   Decodes email subject that may be RFC 2047 encoded.
@@ -720,10 +743,11 @@ defmodule ElektrineWeb.CoreComponents do
   def decode_email_subject(subject) when is_binary(subject) do
     # Pattern: =?charset?encoding?encoded-text?=
     subject
+    |> ensure_valid_utf8()
     |> String.replace(~r/=\?([^?]+)\?([QqBb])\?([^?]*)\?=/, fn match ->
       case Regex.run(~r/=\?([^?]+)\?([QqBb])\?([^?]*)\?=/, match) do
         [_, _charset, encoding, encoded_text] ->
-          case String.upcase(encoding) do
+          decoded = case String.upcase(encoding) do
             "Q" ->
               decode_quoted_printable_simple(encoded_text |> String.replace("_", " "))
 
@@ -736,11 +760,14 @@ defmodule ElektrineWeb.CoreComponents do
             _ ->
               match
           end
+          # Ensure the decoded result is valid UTF-8
+          ensure_valid_utf8(decoded)
 
         _ ->
           match
       end
     end)
+    |> ensure_valid_utf8()
     |> String.trim()
   end
 
@@ -748,7 +775,7 @@ defmodule ElektrineWeb.CoreComponents do
 
   # Simple quoted-printable decoding for subjects
   defp decode_quoted_printable_simple(content) when is_binary(content) do
-    content
+    result = content
     # Remove soft line breaks
     |> String.replace(~r/=\r?\n/, "")
     |> String.replace(~r/=([0-9A-Fa-f]{2})/, fn match ->
@@ -759,6 +786,9 @@ defmodule ElektrineWeb.CoreComponents do
         _ -> match
       end
     end)
+    
+    # Ensure result is valid UTF-8
+    ensure_valid_utf8(result)
   end
 
   # Try to decode content if it appears to be base64
@@ -768,6 +798,8 @@ defmodule ElektrineWeb.CoreComponents do
          rem(String.length(String.replace(content, ~r/\s/, "")), 4) == 0 do
       case Base.decode64(String.replace(content, ~r/\s/, "")) do
         {:ok, decoded} ->
+          # Ensure decoded content is valid UTF-8
+          decoded = ensure_valid_utf8(decoded)
           # Check if decoded content looks like HTML
           if String.contains?(decoded, "<") and String.contains?(decoded, ">") do
             decoded
@@ -784,6 +816,54 @@ defmodule ElektrineWeb.CoreComponents do
   end
 
   defp decode_if_base64(content), do: content
+
+  # Ensures the content is valid UTF-8, converting invalid sequences to replacement characters
+  defp ensure_valid_utf8(content) when is_binary(content) do
+    case String.valid?(content) do
+      true -> 
+        content
+      false ->
+        # Convert invalid UTF-8 to valid UTF-8 by replacing invalid sequences
+        # This prevents UnicodeConversionError while preserving as much content as possible
+        :unicode.characters_to_binary(content, :latin1, :utf8)
+        |> case do
+          result when is_binary(result) -> result
+          {:error, _valid, _rest} -> 
+            # Fallback: try to scrub the content
+            scrub_invalid_utf8(content)
+          {:incomplete, _valid, _rest} ->
+            # Fallback: try to scrub the content  
+            scrub_invalid_utf8(content)
+        end
+    end
+  end
+
+  defp ensure_valid_utf8(content), do: content
+
+  # Fallback function to scrub invalid UTF-8 characters
+  defp scrub_invalid_utf8(content) do
+    content
+    |> :binary.bin_to_list()
+    |> Enum.map(fn byte ->
+      # Replace bytes that would cause UTF-8 issues with space
+      if byte < 32 and byte not in [9, 10, 13] do
+        32  # space
+      else
+        byte
+      end
+    end)
+    |> :binary.list_to_bin()
+    |> then(fn result ->
+      # If still invalid, use a more aggressive approach
+      case String.valid?(result) do
+        true -> result
+        false -> 
+          # Last resort: convert each byte to a safe representation
+          for <<byte <- content>>, into: "", do: 
+            if(byte >= 32 and byte <= 126, do: <<byte>>, else: "?")
+      end
+    end)
+  end
 
   # Try to decode content if it appears to be quoted-printable
   defp decode_if_quoted_printable(content) when is_binary(content) do
@@ -804,7 +884,7 @@ defmodule ElektrineWeb.CoreComponents do
 
   # Full quoted-printable decoding for email bodies
   defp decode_quoted_printable_full(content) when is_binary(content) do
-    content
+    result = content
     # Remove soft line breaks (= at end of line)
     |> String.replace(~r/=\r?\n/, "")
     # Decode =XX hex sequences
@@ -815,5 +895,8 @@ defmodule ElektrineWeb.CoreComponents do
         _ -> match
       end
     end)
+    
+    # Ensure result is valid UTF-8
+    ensure_valid_utf8(result)
   end
 end

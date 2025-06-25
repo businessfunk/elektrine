@@ -180,9 +180,7 @@
   <div class="email-content">
     <%= if @message.html_body do %>
       <%= Phoenix.HTML.raw(
-        HtmlSanitizeEx.basic_html(
-          ElektrineWeb.CoreComponents.process_email_html(@message.html_body)
-        )
+        ElektrineWeb.CoreComponents.safe_sanitize_email_html(@message.html_body)
       ) %>
     <% else %>
       <div class="text-content"><%= @message.text_body %></div>
