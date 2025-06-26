@@ -29,109 +29,141 @@ defmodule ElektrineWeb.PostalInboundController do
          :ok <- verify_ip(conn),
          :ok <- validate_request_size(conn),
          :ok <- check_rate_limit(remote_ip) do
-      # Check for required message parameter
-      unless Map.has_key?(params, "message") do
-        Logger.warning(
-          "Missing required message parameter. Available params: #{inspect(Map.keys(params))}"
-        )
+      try do
+        # Check if this is the new JSON format or legacy Base64 format
+        cond do
+          # New JSON format - check for required fields
+          Map.has_key?(params, "plain_body") or Map.has_key?(params, "html_body") ->
+            # Process structured JSON email data
+            case process_json_email(params) do
+              {:ok, email} ->
+                duration = System.monotonic_time(:millisecond) - start_time
+                Logger.info("Successfully processed JSON email: #{email.message_id} (#{duration}ms)")
 
-        conn |> put_status(:bad_request) |> json(%{error: "Missing message parameter"})
-      else
-        try do
-          # Get recipient information if available for later use
-          rcpt_to = Map.get(params, "rcpt_to")
-          mail_from = Map.get(params, "mail_from")
-          if rcpt_to, do: Logger.info("Recipient (RCPT TO): #{rcpt_to}")
-          if mail_from, do: Logger.info("Sender (MAIL FROM): #{mail_from}")
+                conn
+                |> put_status(:ok)
+                |> json(%{
+                  status: "success",
+                  message_id: email.id,
+                  processing_time_ms: duration
+                })
 
-          # Process Base64 encoded message - using simpler approach based on the Rails example
-          message = params["message"] |> to_string()
+              {:error, reason} ->
+                duration = System.monotonic_time(:millisecond) - start_time
+                Logger.warning("Failed to process JSON email: #{inspect(reason)} (#{duration}ms)")
 
-          # Remove all whitespace including newlines
-          message = String.replace(message, ~r/[\s\r\n]/, "")
-
-          # Convert URL-safe to standard Base64
-          message = message |> String.replace("-", "+") |> String.replace("_", "/")
-
-          # Add padding if needed
-          padding_needed = rem(4 - rem(String.length(message), 4), 4)
-
-          message =
-            if padding_needed < 4,
-              do: message <> String.duplicate("=", padding_needed),
-              else: message
-
-          Logger.info("Message length after normalization: #{String.length(message)}")
-          Logger.debug("Message preview: #{String.slice(message, 0, 100)}...")
-
-          decoded_result =
-            case Base.decode64(message) do
-              {:ok, decoded} ->
-                {:ok, decoded}
-
-              :error ->
-                # Try aggressive cleaning as a fallback
-                Logger.warning("Initial Base64 decoding failed, trying aggressive cleaning...")
-                clean_message = String.replace(message, ~r/[^A-Za-z0-9+\/=]/, "")
-
-                # Add padding if needed
-                padding_needed = rem(4 - rem(String.length(clean_message), 4), 4)
-
-                padded_message =
-                  if padding_needed < 4,
-                    do: clean_message <> String.duplicate("=", padding_needed),
-                    else: clean_message
-
-                Base.decode64(padded_message)
+                conn
+                |> put_status(:unprocessable_entity)
+                |> json(%{
+                  error: "Failed to process email: #{inspect(reason)}",
+                  processing_time_ms: duration
+                })
             end
 
-          case decoded_result do
-            {:ok, decoded_message} ->
-              Logger.info(
-                "Successfully decoded message. Length: #{String.length(decoded_message)}"
-              )
+          # Legacy Base64 format
+          Map.has_key?(params, "message") ->
+            # Get recipient information if available for later use
+            rcpt_to = Map.get(params, "rcpt_to")
+            mail_from = Map.get(params, "mail_from")
+            if rcpt_to, do: Logger.info("Recipient (RCPT TO): #{rcpt_to}")
+            if mail_from, do: Logger.info("Sender (MAIL FROM): #{mail_from}")
 
-              # Process the raw email and create a message in the database
-              case process_email(decoded_message, rcpt_to) do
-                {:ok, email} ->
-                  duration = System.monotonic_time(:millisecond) - start_time
-                  Logger.info("Successfully processed email: #{email.message_id} (#{duration}ms)")
+            # Process Base64 encoded message - using simpler approach based on the Rails example
+            message = params["message"] |> to_string()
 
-                  conn
-                  |> put_status(:ok)
-                  |> json(%{
-                    status: "success",
-                    message_id: email.id,
-                    processing_time_ms: duration
-                  })
+            # Remove all whitespace including newlines
+            message = String.replace(message, ~r/[\s\r\n]/, "")
 
-                {:error, reason} ->
-                  duration = System.monotonic_time(:millisecond) - start_time
-                  Logger.warning("Failed to process email: #{inspect(reason)} (#{duration}ms)")
+            # Convert URL-safe to standard Base64
+            message = message |> String.replace("-", "+") |> String.replace("_", "/")
 
-                  conn
-                  |> put_status(:unprocessable_entity)
-                  |> json(%{
-                    error: "Failed to process email: #{inspect(reason)}",
-                    processing_time_ms: duration
-                  })
+            # Add padding if needed
+            padding_needed = rem(4 - rem(String.length(message), 4), 4)
+
+            message =
+              if padding_needed < 4,
+                do: message <> String.duplicate("=", padding_needed),
+                else: message
+
+            Logger.info("Message length after normalization: #{String.length(message)}")
+            Logger.debug("Message preview: #{String.slice(message, 0, 100)}...")
+
+            decoded_result =
+              case Base.decode64(message) do
+                {:ok, decoded} ->
+                  {:ok, decoded}
+
+                :error ->
+                  # Try aggressive cleaning as a fallback
+                  Logger.warning("Initial Base64 decoding failed, trying aggressive cleaning...")
+                  clean_message = String.replace(message, ~r/[^A-Za-z0-9+\/=]/, "")
+
+                  # Add padding if needed
+                  padding_needed = rem(4 - rem(String.length(clean_message), 4), 4)
+
+                  padded_message =
+                    if padding_needed < 4,
+                      do: clean_message <> String.duplicate("=", padding_needed),
+                      else: clean_message
+
+                  Base.decode64(padded_message)
               end
 
-            :error ->
-              Logger.error("Base64 decoding error - even after aggressive cleaning")
-              Logger.error("Raw message (truncated): #{String.slice(message, 0, 100)}...")
-              debug_base64(message)
-              conn |> put_status(:bad_request) |> json(%{error: "Invalid Base64 encoding"})
-          end
-        rescue
-          e ->
-            Logger.error("Error processing email: #{inspect(e)}")
-            Logger.error("Stack trace: #{Exception.format_stacktrace()}")
+            case decoded_result do
+              {:ok, decoded_message} ->
+                Logger.info(
+                  "Successfully decoded message. Length: #{String.length(decoded_message)}"
+                )
 
-            conn
-            |> put_status(:internal_server_error)
-            |> json(%{error: "Server error: #{inspect(e)}"})
+                # Process the raw email and create a message in the database
+                case process_email(decoded_message, rcpt_to) do
+                  {:ok, email} ->
+                    duration = System.monotonic_time(:millisecond) - start_time
+                    Logger.info("Successfully processed email: #{email.message_id} (#{duration}ms)")
+
+                    conn
+                    |> put_status(:ok)
+                    |> json(%{
+                      status: "success",
+                      message_id: email.id,
+                      processing_time_ms: duration
+                    })
+
+                  {:error, reason} ->
+                    duration = System.monotonic_time(:millisecond) - start_time
+                    Logger.warning("Failed to process email: #{inspect(reason)} (#{duration}ms)")
+
+                    conn
+                    |> put_status(:unprocessable_entity)
+                    |> json(%{
+                      error: "Failed to process email: #{inspect(reason)}",
+                      processing_time_ms: duration
+                    })
+                end
+
+              :error ->
+                Logger.error("Base64 decoding error - even after aggressive cleaning")
+                Logger.error("Raw message (truncated): #{String.slice(message, 0, 100)}...")
+                debug_base64(message)
+                conn |> put_status(:bad_request) |> json(%{error: "Invalid Base64 encoding"})
+            end
+
+          # Missing required parameters
+          true ->
+            Logger.warning(
+              "Missing required parameters. Available params: #{inspect(Map.keys(params))}"
+            )
+
+            conn |> put_status(:bad_request) |> json(%{error: "Missing required parameters (message or plain_body/html_body)"})
         end
+      rescue
+        e ->
+          Logger.error("Error processing email: #{inspect(e)}")
+          Logger.error("Stack trace: #{Exception.format_stacktrace()}")
+
+          conn
+          |> put_status(:internal_server_error)
+          |> json(%{error: "Server error: #{inspect(e)}"})
       end
     else
       {:error, :unauthorized} ->
@@ -308,6 +340,184 @@ defmodule ElektrineWeb.PostalInboundController do
         {:error, :parsing_error}
     end
   end
+
+  # Process structured JSON email data
+  def process_json_email(params) do
+    try do
+      # Extract email fields from JSON structure
+      message_id = params["message_id"] || "postal-#{:rand.uniform(1_000_000)}-#{System.system_time(:millisecond)}"
+      from = params["from"] || params["mail_from"] || "unknown@example.com"
+      to = params["to"] || params["rcpt_to"] || "unknown@elektrine.com"
+      subject = params["subject"] || "(No Subject)"
+      text_body = params["plain_body"] || ""
+      html_body = params["html_body"]
+      
+      # Process attachments from JSON format
+      attachments = process_json_attachments(params["attachments"] || [])
+      has_attachments = map_size(attachments) > 0
+
+      Logger.info("Processing JSON email - From: #{from}, To: #{to}, Subject: #{subject}")
+      Logger.info("Email has #{map_size(attachments)} attachments")
+
+      # Check if this is actually an inbound email (TO elektrine.com addresses)
+      from_clean = extract_clean_email(from) || ""
+      to_clean = extract_clean_email(to) || ""
+      Logger.info("Clean addresses - From: #{from_clean}, To: #{to_clean}")
+
+      # Always log the check results for debugging
+      is_outbound = is_outbound_email?(from, to)
+      is_loopback = is_loopback_email?(from, to, subject)
+
+      Logger.info("Email checks - Outbound: #{is_outbound}, Loopback: #{is_loopback}")
+
+      if is_outbound do
+        Logger.info("🚫 SKIPPING OUTBOUND JSON EMAIL from #{from} to #{to}")
+        {:ok, %{id: "skipped-outbound", message_id: message_id}}
+      else
+        # Check if this is a recently sent email that's looping back
+        if is_loopback do
+          Logger.info("🔄 SKIPPING LOOPBACK JSON EMAIL from #{from} to #{to} - Subject: #{subject}")
+          {:ok, %{id: "skipped-loopback", message_id: message_id}}
+        else
+          # Find or create the appropriate mailbox
+          rcpt_to = params["rcpt_to"]
+          Logger.info(
+            "About to find_or_create_mailbox with to=#{inspect(to)}, rcpt_to=#{inspect(rcpt_to)}"
+          )
+
+          case find_or_create_mailbox(to, rcpt_to) do
+            {:ok, mailbox} ->
+              Logger.info(
+                "Successfully found/created mailbox: #{mailbox.email} (id: #{mailbox.id}, user_id: #{mailbox.user_id})"
+              )
+
+              # Determine if this is a temporary mailbox from its structure
+              is_temporary =
+                case mailbox do
+                  %{temporary: true} -> true
+                  _ -> false
+                end
+
+              # Store in database
+              email_data = %{
+                message_id: message_id,
+                from: from,
+                to: to,
+                subject: subject,
+                text_body: text_body,
+                html_body: html_body,
+                attachments: attachments,
+                has_attachments: has_attachments,
+                mailbox_id: mailbox.id,
+                mailbox_type: if(is_temporary, do: "temporary", else: "regular"),
+                status: "received",
+                metadata: %{
+                  parsed_at: DateTime.utc_now() |> DateTime.to_iso8601(),
+                  temporary: is_temporary,
+                  attachment_count: map_size(attachments),
+                  format: "json",
+                  postal_id: params["id"],
+                  spam_status: params["spam_status"],
+                  bounce: params["bounce"],
+                  auto_submitted: params["auto_submitted"],
+                  size: params["size"],
+                  timestamp: params["timestamp"]
+                }
+              }
+
+              # Log that we're about to process the email
+              Logger.info(
+                "Processing JSON email for mailbox:#{mailbox.id}" <>
+                  if(mailbox.user_id, do: " (user:#{mailbox.user_id})", else: "")
+              )
+
+              # Enhanced deduplication check
+              result =
+                case find_duplicate_message(email_data) do
+                  nil ->
+                    # No duplicate found, create new message
+                    Logger.info("Creating new JSON message: #{email_data.message_id}")
+                    Elektrine.Email.MailboxAdapter.create_message(email_data)
+
+                  existing_message ->
+                    # Duplicate found, return existing
+                    Logger.info(
+                      "Duplicate JSON message detected: #{email_data.message_id} (existing: #{existing_message.id})"
+                    )
+
+                    {:ok, existing_message}
+                end
+
+              # Broadcast the actual message struct to user topic after creation
+              case result do
+                {:ok, message} ->
+                  if mailbox.user_id do
+                    Logger.info("Broadcasting created JSON message to user:#{mailbox.user_id}")
+
+                    Phoenix.PubSub.broadcast!(
+                      Elektrine.PubSub,
+                      "user:#{mailbox.user_id}",
+                      {:new_email, message}
+                    )
+                  end
+
+                  result
+
+                error ->
+                  error
+              end
+
+            {:error, reason} ->
+              Logger.error(
+                "FAILED to find or create mailbox for to=#{inspect(to)}, rcpt_to=#{inspect(rcpt_to)}"
+              )
+
+              Logger.error("Error reason: #{inspect(reason)}")
+              Logger.error("This will result in 422 error being returned to Postal")
+              {:error, :no_mailbox}
+          end
+        end
+      end
+    rescue
+      e ->
+        Logger.error("Error processing JSON email: #{inspect(e)}")
+        Logger.error("Stack trace: #{Exception.format_stacktrace()}")
+        {:error, :parsing_error}
+    end
+  end
+
+  # Process attachments from JSON format
+  defp process_json_attachments(attachments) when is_list(attachments) do
+    attachments
+    |> Enum.with_index()
+    |> Enum.reduce(%{}, fn {attachment, index}, acc ->
+      case process_json_attachment(attachment, index) do
+        nil -> acc
+        processed_attachment -> Map.put(acc, "attachment_#{index}", processed_attachment)
+      end
+    end)
+  end
+
+  defp process_json_attachments(_), do: %{}
+
+  # Process a single attachment from JSON format
+  defp process_json_attachment(attachment, index) when is_map(attachment) do
+    filename = attachment["filename"] || "attachment_#{index}"
+    content_type = attachment["content_type"] || "application/octet-stream"
+    size = attachment["size"] || 0
+    data = attachment["data"] || ""
+
+    # The data is already base64 encoded in the JSON format
+    %{
+      "filename" => filename,
+      "content_type" => content_type,
+      "encoding" => "base64",
+      "data" => data,
+      "size" => size
+    }
+  end
+
+  defp process_json_attachment(_, _), do: nil
 
   # Simple header extraction
   defp extract_header(headers, header_name) do
