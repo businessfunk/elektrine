@@ -31,7 +31,12 @@
               class="file-input file-input-bordered file-input-primary w-full max-w-xs"
             />
             <div class="label">
-              <span class="label-text-alt">Upload a new avatar image</span>
+              <span class="label-text-alt">Upload a new avatar image (max 5MB, 2048x2048px)</span>
+            </div>
+            <div class="label">
+              <span class="label-text-alt text-info">
+                📏 Large images will be automatically cropped to fit
+              </span>
             </div>
           </div>
         </div>
@@ -62,8 +67,9 @@
           <div>
             <div class="text-sm">Username changes are limited to once per week.</div>
             <%= if Elektrine.Accounts.User.can_change_username?(@user) do %>
-              <div class="text-sm font-semibold text-success">
-                ✓ You can change your username now.
+              <div class="text-sm font-semibold text-success flex items-center gap-1">
+                <.icon name="hero-check" class="w-4 h-4" />
+                You can change your username now.
               </div>
             <% else %>
               <% next_change = Elektrine.Accounts.User.next_username_change_date(@user) %>
@@ -76,28 +82,6 @@
           </div>
         </div>
       <% else %>
-        <div class="alert alert-success mt-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            class="stroke-current shrink-0 w-6 h-6"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            >
-            </path>
-          </svg>
-          <div>
-            <div class="text-sm font-semibold">✓ You can change your username.</div>
-            <div class="text-sm">
-              After changing, you'll need to wait one week before changing again.
-            </div>
-          </div>
-        </div>
       <% end %>
 
       <:actions>

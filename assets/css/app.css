@@ -4,6 +4,9 @@
 
 /* This file is for your main application CSS */
 
+/* Import image cropper styles */
+@import "./image_cropper.css";
+
 /* Import monospace font for terminal-style text */
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
 

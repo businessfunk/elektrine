@@ -22,6 +22,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import { initGenerativeArt, initDigitalEffects } from "./generative_art"
+import { initImageCropper } from "./image_cropper"
 
 // Global function to show keyboard shortcuts (called from buttons)
 window.showKeyboardShortcuts = function() {
@@ -1199,4 +1200,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize generative art and digital effects for homepage
   initGenerativeArt()
   initDigitalEffects()
+  
+  // Initialize image cropper for avatar uploads
+  initImageCropper()
 })
