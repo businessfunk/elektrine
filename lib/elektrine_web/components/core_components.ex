@@ -732,14 +732,29 @@ defmodule ElektrineWeb.CoreComponents do
   # Remove standalone CSS blocks that appear outside of proper HTML structure
   defp remove_standalone_css(content) do
     content
-    # Remove CSS that appears at the beginning (like email CSS)
-    |> String.replace(~r/^[^<]*@media[^{]*\{[^}]*\}[^<]*/s, "")
-    |> String.replace(~r/^[^<]*\.[^{]*\{[^}]*\}[^<]*/s, "")
+    # Remove the specific Facebook CSS pattern that appears as text
+    |> String.replace(~r/Facebook@media all and \(max-width: 480px\)\{.*?\}[^<]*/s, "")
+    # Remove general @media patterns
+    |> String.replace(~r/^[^<]*@media[^{]*\{.*?\}[^<]*/s, "")
+    # Remove CSS class definitions
+    |> String.replace(~r/^[^<]*\.[a-zA-Z_][^{]*\{.*?\}[^<]*/s, "")
     # Remove orphaned CSS rules with selectors like *[class]
-    |> String.replace(~r/^[^<]*\*\[[^]]*\][^{]*\{[^}]*\}[^<]*/s, "")
+    |> String.replace(~r/^[^<]*\*\[[^]]*\][^{]*\{.*?\}[^<]*/s, "")
+    # Remove any text that starts with CSS selectors and contains curly braces
+    |> String.replace(~r/^[^<]*[a-zA-Z_\*\.\#\[].*?\{.*?\}[^<]*/s, "")
+    # Remove multiple CSS blocks in sequence
+    |> remove_sequential_css_blocks()
     # Remove CSS blocks that appear before HTML content
     |> remove_leading_css_blocks()
     |> String.trim()
+  end
+
+  # Remove multiple CSS blocks that appear in sequence
+  defp remove_sequential_css_blocks(content) do
+    # This handles cases where there are multiple @media or CSS rules in a row
+    content
+    |> String.replace(~r/@media[^{]*\{[^}]*\}\.d_mb_show\{[^}]*\}\.d_mb_flex\{[^}]*\}@media[^{]*\{[^}]*\}/s, "")
+    |> String.replace(~r/\*\[class\][^{]*\{[^}]*\}(\*\[class\][^{]*\{[^}]*\})+/s, "")
   end
 
   # Remove CSS blocks that appear before any HTML content
@@ -747,16 +762,21 @@ defmodule ElektrineWeb.CoreComponents do
     # Split content to find where HTML actually starts
     case String.split(content, ~r/<[a-zA-Z]/, parts: 2) do
       [css_part, html_part] ->
-        # If the first part contains CSS rules, remove them
-        if String.contains?(css_part, "{") and String.contains?(css_part, "}") do
+        # If the first part contains CSS rules or CSS-like patterns, remove them
+        if (String.contains?(css_part, "{") and String.contains?(css_part, "}")) or
+           String.contains?(css_part, "@media") or
+           String.contains?(css_part, "Facebook@media") or
+           Regex.match?(~r/\*\[class\]/, css_part) do
           "<" <> html_part
         else
           content
         end
       
       [_] ->
-        # No HTML tags found, check if it's all CSS
-        if String.contains?(content, "{") and String.contains?(content, "}") and not String.contains?(content, "<") do
+        # No HTML tags found, check if it's all CSS-like content
+        if (String.contains?(content, "{") and String.contains?(content, "}") and not String.contains?(content, "<")) or
+           String.contains?(content, "Facebook@media") or
+           (String.contains?(content, "@media") and not String.contains?(content, "<")) do
           ""
         else
           content
