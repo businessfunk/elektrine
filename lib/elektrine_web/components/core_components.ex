@@ -711,11 +711,36 @@ defmodule ElektrineWeb.CoreComponents do
     |> decode_if_base64()
     |> decode_if_quoted_printable()
     |> ensure_valid_utf8()
+    |> remove_css_before_html()
     |> clean_email_artifacts()
     |> String.trim()
   end
 
   def process_email_html(nil), do: nil
+
+  # Simple aggressive CSS removal - removes everything before first HTML tag
+  defp remove_css_before_html(content) do
+    cond do
+      # If it starts with Facebook@media, remove everything up to actual content
+      String.starts_with?(content, "Facebook@media") ->
+        # Find the first HTML tag
+        case Regex.run(~r/(<[a-zA-Z][^>]*>.*)/s, content) do
+          [_, html] -> html
+          _ -> ""  # No HTML found, return empty
+        end
+      
+      # If it starts with any CSS-like pattern, remove it
+      String.starts_with?(content, "@media") or 
+      String.starts_with?(content, ".") and String.contains?(String.slice(content, 0, 100), "{") ->
+        case Regex.run(~r/(<[a-zA-Z][^>]*>.*)/s, content) do
+          [_, html] -> html
+          _ -> content
+        end
+      
+      true ->
+        content
+    end
+  end
 
   @doc """
   Cleans email artifacts like standalone CSS and MIME headers from email content.
