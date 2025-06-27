@@ -711,10 +711,80 @@ defmodule ElektrineWeb.CoreComponents do
     |> decode_if_base64()
     |> decode_if_quoted_printable()
     |> ensure_valid_utf8()
+    |> clean_email_artifacts()
     |> String.trim()
   end
 
   def process_email_html(nil), do: nil
+
+  @doc """
+  Cleans email artifacts like standalone CSS and MIME headers from email content.
+  """
+  def clean_email_artifacts(content) when is_binary(content) do
+    content
+    |> remove_standalone_css()
+    |> clean_mime_artifacts()
+    |> normalize_whitespace()
+  end
+
+  def clean_email_artifacts(nil), do: nil
+
+  # Remove standalone CSS blocks that appear outside of proper HTML structure
+  defp remove_standalone_css(content) do
+    content
+    # Remove CSS that appears at the beginning (like email CSS)
+    |> String.replace(~r/^[^<]*@media[^{]*\{[^}]*\}[^<]*/s, "")
+    |> String.replace(~r/^[^<]*\.[^{]*\{[^}]*\}[^<]*/s, "")
+    # Remove orphaned CSS rules with selectors like *[class]
+    |> String.replace(~r/^[^<]*\*\[[^]]*\][^{]*\{[^}]*\}[^<]*/s, "")
+    # Remove CSS blocks that appear before HTML content
+    |> remove_leading_css_blocks()
+    |> String.trim()
+  end
+
+  # Remove CSS blocks that appear before any HTML content
+  defp remove_leading_css_blocks(content) do
+    # Split content to find where HTML actually starts
+    case String.split(content, ~r/<[a-zA-Z]/, parts: 2) do
+      [css_part, html_part] ->
+        # If the first part contains CSS rules, remove them
+        if String.contains?(css_part, "{") and String.contains?(css_part, "}") do
+          "<" <> html_part
+        else
+          content
+        end
+      
+      [_] ->
+        # No HTML tags found, check if it's all CSS
+        if String.contains?(content, "{") and String.contains?(content, "}") and not String.contains?(content, "<") do
+          ""
+        else
+          content
+        end
+    end
+  end
+
+  # Clean MIME artifacts and headers
+  defp clean_mime_artifacts(content) do
+    content
+    # Remove MIME boundary markers
+    |> String.replace(~r/^--[^\r\n]+[\r\n]*/m, "")
+    # Remove Content-Type headers that might be mixed in
+    |> String.replace(~r/Content-Type:[^\r\n]*[\r\n]*/i, "")
+    |> String.replace(~r/Content-Transfer-Encoding:[^\r\n]*[\r\n]*/i, "")
+    |> String.replace(~r/Content-Disposition:[^\r\n]*[\r\n]*/i, "")
+    # Remove other common MIME headers
+    |> String.replace(~r/^[A-Za-z-]+:\s*[^\r\n]*[\r\n]*/m, "")
+    |> String.trim()
+  end
+
+  # Normalize whitespace and line breaks
+  defp normalize_whitespace(content) do
+    content
+    |> String.replace(~r/\r\n|\r|\n/, "\n")
+    |> String.replace(~r/\n{3,}/, "\n\n")
+    |> String.trim()
+  end
 
   @doc """
   Safely processes and sanitizes email HTML content, with error handling for encoding issues.
