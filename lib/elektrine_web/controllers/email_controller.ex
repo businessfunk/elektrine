@@ -282,8 +282,23 @@ defmodule ElektrineWeb.EmailController do
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <base target="_blank">
             <style>
-              body { margin: 0; padding: 20px; font-family: sans-serif; }
-              pre { white-space: pre-wrap; word-wrap: break-word; }
+              body { 
+                margin: 0; 
+                padding: 20px; 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                line-height: 1.6;
+                color: #333;
+              }
+              pre { 
+                white-space: pre-wrap; 
+                word-wrap: break-word; 
+                word-break: break-word;
+                overflow-wrap: break-word;
+                font-family: inherit;
+                font-size: 14px;
+                line-height: 1.6;
+                margin: 0;
+              }
             </style>
           </head>
           <body>

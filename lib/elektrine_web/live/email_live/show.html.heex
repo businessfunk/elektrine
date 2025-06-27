@@ -147,9 +147,11 @@
             <%= if @message.html_body do %>
               <iframe 
                 src={~p"/email/#{@message.id}/iframe"}
-                class="w-full h-[600px] border-0"
+                class="w-full min-h-[400px] h-[600px] border-0"
                 sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                 loading="lazy"
+                id="email-iframe"
+                phx-hook="IframeAutoResize"
               >
               </iframe>
             <% else %>

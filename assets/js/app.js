@@ -1077,6 +1077,40 @@ const Hooks = {
       
       document.body.appendChild(modal)
     }
+  },
+  IframeAutoResize: {
+    mounted() {
+      const iframe = this.el
+      
+      // Function to resize iframe based on content
+      const resizeIframe = () => {
+        try {
+          // Reset height to allow shrinking
+          iframe.style.height = 'auto'
+          
+          // Get the content height
+          const contentHeight = iframe.contentWindow.document.body.scrollHeight
+          
+          // Set minimum height of 400px, maximum of viewport height - 200px
+          const maxHeight = window.innerHeight - 200
+          const newHeight = Math.max(400, Math.min(contentHeight + 40, maxHeight))
+          
+          iframe.style.height = newHeight + 'px'
+        } catch (e) {
+          // Cross-origin or other errors, use default height
+          console.log('Could not resize iframe:', e)
+        }
+      }
+      
+      // Resize on load
+      iframe.addEventListener('load', resizeIframe)
+      
+      // Also try to resize after a short delay (for dynamic content)
+      iframe.addEventListener('load', () => {
+        setTimeout(resizeIframe, 100)
+        setTimeout(resizeIframe, 500)
+      })
+    }
   }
 }
 
