@@ -204,7 +204,7 @@ defmodule ElektrineWeb.PostalInboundController do
       is_html_email = String.contains?(String.downcase(content_type), "text/html")
       
       # If this is an HTML email and text_body contains HTML, clear text_body
-      final_text_body = if is_html_email and html_body and String.contains?(text_body, "<") do
+      final_text_body = if is_html_email and html_body != nil and String.contains?(text_body || "", "<") do
         nil  # Clear text_body for HTML-only emails
       else
         text_body
