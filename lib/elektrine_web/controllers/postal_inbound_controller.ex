@@ -527,63 +527,217 @@ defmodule ElektrineWeb.PostalInboundController do
     end
   end
 
-  # Extract HTML content from email body
+  # Extract HTML content from email body - robust modern email parser
   defp extract_html(email) do
-    html_content =
-      cond do
-        # Check if this is a multipart message
-        Regex.match?(~r/Content-Type:\s*multipart\//i, email) ->
-          # Find the boundary string
-          boundary =
-            case Regex.run(~r/boundary="?([^"\r\n;]+)"?/i, email) do
-              [_, boundary] -> boundary
-              _ -> nil
-            end
+    # Parse the email structure first
+    parsed_email = parse_email_structure(email)
+    
+    # Find the best HTML content from parsed structure
+    html_content = find_best_html_content(parsed_email)
+    
+    html_content || html_fallback(email)
+  end
 
+  # Parse email into structured format
+  defp parse_email_structure(email) do
+    # Split headers from body
+    case String.split(email, ~r/\r?\n\r?\n/, parts: 2) do
+      [headers, body] ->
+        content_type = extract_header_value(headers, "content-type")
+        
+        if String.contains?(String.downcase(content_type || ""), "multipart") do
+          parse_multipart_email(headers, body, content_type)
+        else
+          parse_simple_email(headers, body)
+        end
+      
+      [_] ->
+        # No clear header/body separation, treat as simple
+        parse_simple_email(email, "")
+    end
+  end
+
+  # Parse multipart email structure
+  defp parse_multipart_email(headers, body, content_type) do
+    boundary = extract_boundary(content_type, body)
+    
+    if boundary do
+      parts = split_by_boundary(body, boundary)
+      parsed_parts = Enum.map(parts, &parse_email_part/1)
+      
+      %{
+        type: :multipart,
+        headers: headers,
+        boundary: boundary,
+        parts: parsed_parts
+      }
+    else
+      parse_simple_email(headers, body)
+    end
+  end
+
+  # Parse simple (non-multipart) email
+  defp parse_simple_email(headers, body) do
+    content_type = extract_header_value(headers, "content-type")
+    encoding = extract_header_value(headers, "content-transfer-encoding")
+    
+    %{
+      type: :simple,
+      headers: headers,
+      content_type: content_type,
+      encoding: encoding,
+      body: body
+    }
+  end
+
+  # Parse individual email part
+  defp parse_email_part(part_content) do
+    case String.split(part_content, ~r/\r?\n\r?\n/, parts: 2) do
+      [part_headers, part_body] ->
+        content_type = extract_header_value(part_headers, "content-type")
+        encoding = extract_header_value(part_headers, "content-transfer-encoding")
+        
+        parsed_part = %{
+          headers: part_headers,
+          content_type: content_type,
+          encoding: encoding,
+          body: part_body
+        }
+        
+        # Handle nested multipart
+        if String.contains?(String.downcase(content_type || ""), "multipart") do
+          boundary = extract_boundary(content_type, part_body)
           if boundary do
-            # Try to find a text/html part
-            case Regex.run(
-                   ~r/--#{Regex.escape(boundary)}.*?Content-Type:\s*text\/html.*?(?:\r\n\r\n|\n\n)(.*?)(?:--#{Regex.escape(boundary)}|$)/si,
-                   email
-                 ) do
-              [_, content] ->
-                # Check for encoding and decode
-                encoding = extract_content_encoding(email, boundary, "text/html")
-                decode_content(content, encoding)
-
-              _ ->
-                html_fallback(email)
-            end
+            nested_parts = split_by_boundary(part_body, boundary)
+            Map.put(parsed_part, :nested_parts, Enum.map(nested_parts, &parse_email_part/1))
           else
-            html_fallback(email)
+            parsed_part
           end
+        else
+          parsed_part
+        end
+      
+      [_] ->
+        %{headers: "", content_type: nil, encoding: nil, body: part_content}
+    end
+  end
 
-        # Direct text/html content
-        Regex.match?(~r/Content-Type:.*text\/html/i, email) ->
-          case Regex.run(
-                 ~r/Content-Type:.*text\/html.*?(?:\r\n\r\n|\n\n)(.*?)(?:--.*?--|\z)/si,
-                 email
-               ) do
-            [_, html] ->
-              # Check for encoding in the Content-Type header
-              encoding =
-                case Regex.run(~r/Content-Transfer-Encoding:\s*([^\r\n]+)/i, email) do
-                  [_, enc] -> String.trim(enc)
-                  _ -> nil
-                end
+  # Find the best HTML content from parsed email structure
+  defp find_best_html_content(parsed_email) do
+    case parsed_email.type do
+      :simple ->
+        if is_html_content_type?(parsed_email.content_type) do
+          decode_content(parsed_email.body, parsed_email.encoding)
+        else
+          nil
+        end
+      
+      :multipart ->
+        find_html_in_parts(parsed_email.parts)
+    end
+  end
 
-              decode_content(html, encoding)
-
-            _ ->
-              html_fallback(email)
-          end
-
-        # Fallback
-        true ->
-          html_fallback(email)
+  # Find HTML content in email parts (prioritizes multipart/alternative)
+  defp find_html_in_parts(parts) when is_list(parts) do
+    # First, look for HTML in multipart/alternative containers
+    alternative_html = 
+      parts
+      |> Enum.find(&is_multipart_alternative?/1)
+      |> case do
+        nil -> nil
+        part -> find_html_in_nested_parts(part)
       end
+    
+    if alternative_html do
+      alternative_html
+    else
+      # Fallback: find any HTML part
+      parts
+      |> Enum.find(&is_html_content_type?(&1.content_type))
+      |> case do
+        nil -> nil
+        part -> decode_content(part.body, part.encoding)
+      end
+    end
+  end
 
-    html_content
+  # Find HTML in nested parts (for multipart/alternative)
+  defp find_html_in_nested_parts(%{nested_parts: nested_parts}) when nested_parts != nil do
+    nested_parts
+    |> Enum.find(&is_html_content_type?(&1.content_type))
+    |> case do
+      nil -> nil
+      part -> decode_content(part.body, part.encoding)
+    end
+  end
+  
+  defp find_html_in_nested_parts(_), do: nil
+
+  # Extract boundary from Content-Type header or email body
+  defp extract_boundary(content_type, body) do
+    # Try Content-Type header first
+    boundary = 
+      case Regex.run(~r/boundary[=:]\s*"?([^"\r\n;]+)"?/i, content_type || "") do
+        [_, boundary] -> String.trim(boundary, "\"")
+        _ -> nil
+      end
+    
+    # If not found, try to detect boundary patterns in body
+    boundary || detect_boundary_in_body(body)
+  end
+
+  # Detect boundary patterns in email body
+  defp detect_boundary_in_body(body) do
+    cond do
+      # Standard boundary patterns
+      match = Regex.run(~r/^--([^\r\n]+)/m, body) ->
+        case match do
+          [_, boundary] -> String.trim(boundary)
+          _ -> nil
+        end
+      
+      # Microsoft/Exchange boundaries
+      match = Regex.run(~r/------=_Part_[^_\r\n]+_[^\.\r\n]+\.\d+/m, body) ->
+        case match do
+          [boundary] -> String.trim_leading(boundary, "--")
+          _ -> nil
+        end
+      
+      # Apple Mail boundaries
+      match = Regex.run(~r/--Apple-Mail=[A-F0-9-]+/m, body) ->
+        case match do
+          [boundary] -> String.trim_leading(boundary, "--")
+          _ -> nil
+        end
+      
+      true -> nil
+    end
+  end
+
+  # Split email body by boundary markers
+  defp split_by_boundary(body, boundary) do
+    # Split by boundary, removing empty parts and boundary markers
+    String.split(body, "--" <> boundary)
+    |> Enum.reject(&(String.trim(&1) == "" or String.starts_with?(&1, "--")))
+    |> Enum.map(&String.trim/1)
+  end
+
+  # Extract header value (case-insensitive)
+  defp extract_header_value(headers, header_name) do
+    case Regex.run(~r/^#{header_name}:\s*(.+?)$/mi, headers) do
+      [_, value] -> String.trim(value)
+      _ -> nil
+    end
+  end
+
+  # Check if content type is HTML
+  defp is_html_content_type?(content_type) do
+    content_type && String.contains?(String.downcase(content_type), "text/html")
+  end
+
+  # Check if content type is multipart/alternative
+  defp is_multipart_alternative?(part) do
+    part.content_type && String.contains?(String.downcase(part.content_type), "multipart/alternative")
   end
 
   # Fallback for HTML extraction
@@ -599,35 +753,140 @@ defmodule ElektrineWeb.PostalInboundController do
     end
   end
 
-  # Extract content encoding for a specific part in multipart email
-  defp extract_content_encoding(email, boundary, content_type) do
-    case Regex.run(
-           ~r/--#{Regex.escape(boundary)}.*?Content-Type:\s*#{content_type}.*?Content-Transfer-Encoding:\s*([^\r\n]+)/si,
-           email
-         ) do
-      [_, encoding] -> String.trim(encoding)
-      _ -> nil
-    end
-  end
 
-  # Decode content based on encoding
+  # Decode content based on encoding - enhanced for modern emails
   defp decode_content(content, encoding) when is_binary(content) do
-    case String.downcase(encoding || "") do
+    # Clean up content first
+    clean_content = String.trim(content)
+    
+    case String.downcase(String.trim(encoding || "")) do
       "quoted-printable" ->
-        decode_quoted_printable(content)
+        decode_quoted_printable(clean_content)
 
       "base64" ->
-        case Base.decode64(content) do
-          {:ok, decoded} -> decoded
-          :error -> content
-        end
-
+        decode_base64_content(clean_content)
+      
+      "7bit" ->
+        clean_content
+      
+      "8bit" ->
+        clean_content
+      
+      "binary" ->
+        clean_content
+      
+      # Handle encoding specified in different formats
+      enc when enc in ["qp", "q"] ->
+        decode_quoted_printable(clean_content)
+      
+      enc when enc in ["b64", "b"] ->
+        decode_base64_content(clean_content)
+      
       _ ->
-        content
+        # Try to auto-detect encoding if not specified
+        auto_decode_content(clean_content)
     end
   end
 
   defp decode_content(content, _), do: content
+
+  # Enhanced Base64 decoding with fallback
+  defp decode_base64_content(content) do
+    # Remove any whitespace/newlines that might be in base64 content
+    clean_base64 = String.replace(content, ~r/\s/, "")
+    
+    case Base.decode64(clean_base64) do
+      {:ok, decoded} -> 
+        # Check if decoded content is valid UTF-8
+        if String.valid?(decoded) do
+          decoded
+        else
+          # Fallback for invalid UTF-8: try to clean it up
+          clean_invalid_utf8(decoded, content)
+        end
+      
+      :error -> 
+        # Try with padding
+        padded = pad_base64(clean_base64)
+        case Base.decode64(padded) do
+          {:ok, decoded} -> decoded
+          :error -> content
+        end
+    end
+  end
+
+  # Auto-detect and decode content
+  defp auto_decode_content(content) do
+    cond do
+      # Looks like base64 (only alphanumeric + / + = characters)
+      Regex.match?(~r/^[A-Za-z0-9+\/]+=*$/, String.replace(content, ~r/\s/, "")) ->
+        decode_base64_content(content)
+      
+      # Looks like quoted-printable (has = followed by hex)
+      Regex.match?(~r/=[0-9A-Fa-f]{2}/, content) ->
+        decode_quoted_printable(content)
+      
+      # Check for HTML entities that need decoding
+      String.contains?(content, "&") ->
+        decode_html_entities(content)
+      
+      true ->
+        content
+    end
+  end
+
+  # Add padding to base64 string if needed
+  defp pad_base64(str) do
+    case rem(String.length(str), 4) do
+      0 -> str
+      1 -> str <> "==="
+      2 -> str <> "=="
+      3 -> str <> "="
+    end
+  end
+
+  # Clean invalid UTF-8 characters
+  defp clean_invalid_utf8(decoded, fallback) do
+    try do
+      # Try to replace invalid bytes with replacement character
+      String.replace(decoded, ~r/[\x80-\xFF]+/, "?")
+    rescue
+      _ -> fallback
+    end
+  end
+
+  # Decode HTML entities
+  defp decode_html_entities(content) do
+    content
+    |> String.replace("&amp;", "&")
+    |> String.replace("&lt;", "<")
+    |> String.replace("&gt;", ">")
+    |> String.replace("&quot;", "\"")
+    |> String.replace("&#39;", "'")
+    |> String.replace("&nbsp;", " ")
+    # Decode numeric entities
+    |> String.replace(~r/&#(\d+);/, fn match ->
+      case Regex.run(~r/&#(\d+);/, match) do
+        [_, num_str] ->
+          case Integer.parse(num_str) do
+            {num, ""} when num <= 1114111 -> <<num::utf8>>
+            _ -> match
+          end
+        _ -> match
+      end
+    end)
+    # Decode hex entities
+    |> String.replace(~r/&#x([0-9A-Fa-f]+);/, fn match ->
+      case Regex.run(~r/&#x([0-9A-Fa-f]+);/, match) do
+        [_, hex_str] ->
+          case Integer.parse(hex_str, 16) do
+            {num, ""} when num <= 1114111 -> <<num::utf8>>
+            _ -> match
+          end
+        _ -> match
+      end
+    end)
+  end
 
   # Decode quoted-printable encoding
   defp decode_quoted_printable(content) when is_binary(content) do
@@ -800,7 +1059,7 @@ defmodule ElektrineWeb.PostalInboundController do
                  ) do
               [_, content] ->
                 # Check for encoding and decode
-                encoding = extract_content_encoding(body, boundary, "text/plain")
+                encoding = extract_header_value(body, "content-transfer-encoding")
                 decode_content(content, encoding)
 
               _ ->
