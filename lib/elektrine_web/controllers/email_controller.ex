@@ -259,8 +259,18 @@ defmodule ElektrineWeb.EmailController do
 
       message ->
         if message.mailbox_id == mailbox.id do
-          # Serve the full HTML email with its styles in an isolated document
-          html_content = message.html_body || "<pre>#{Phoenix.HTML.html_escape(message.text_body)}</pre>"
+          # Process the email content to handle encoding issues
+          import ElektrineWeb.CoreComponents, only: [process_email_html: 1]
+          
+          html_content = if message.html_body do
+            # Process HTML body to handle encoding
+            process_email_html(message.html_body)
+          else
+            # For text-only emails, decode and wrap in pre tag
+            text = message.text_body || ""
+            decoded_text = decode_quoted_printable_text(text)
+            "<pre>#{Phoenix.HTML.html_escape(decoded_text)}</pre>"
+          end
           
           conn
           |> put_resp_content_type("text/html")
@@ -270,8 +280,10 @@ defmodule ElektrineWeb.EmailController do
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
+            <base target="_blank">
             <style>
               body { margin: 0; padding: 20px; font-family: sans-serif; }
+              pre { white-space: pre-wrap; word-wrap: break-word; }
             </style>
           </head>
           <body>
@@ -286,6 +298,29 @@ defmodule ElektrineWeb.EmailController do
         end
     end
   end
+  
+  # Decode quoted-printable encoded text
+  defp decode_quoted_printable_text(text) when is_binary(text) do
+    text
+    # Remove soft line breaks
+    |> String.replace(~r/=\r?\n/, "")
+    # Decode =XX sequences  
+    |> String.replace(~r/=([0-9A-Fa-f]{2})/, fn match ->
+      hex = String.slice(match, 1, 2)
+      case Integer.parse(hex, 16) do
+        {value, ""} -> <<value>>
+        _ -> match
+      end
+    end)
+    # Handle special sequences
+    |> String.replace("=3D", "=")
+    |> String.replace("=20", " ")
+    |> String.replace("=09", "\t")
+    # Remove any trailing = signs
+    |> String.replace(~r/=\s*$/m, "")
+  end
+  
+  defp decode_quoted_printable_text(text), do: text
 
   # Converts plain text to simple HTML
   defp format_html_body(nil), do: nil

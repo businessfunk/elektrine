@@ -91,12 +91,43 @@ defmodule Elektrine.Email.TemporaryMailbox do
 
   @doc """
   Generates a random username for a temporary email.
+  Creates realistic-looking usernames similar to gaming services.
   """
   def generate_random_username do
-    random_part =
-      :crypto.strong_rand_bytes(8)
-      |> Base.encode16(case: :lower)
-
-    "temp-#{random_part}"
+    # Lists of adjectives and nouns commonly used in gaming usernames
+    adjectives = [
+      "swift", "brave", "silent", "golden", "silver", "crimson", "azure", "shadow",
+      "storm", "thunder", "lightning", "frost", "ember", "cosmic", "mystic", "royal",
+      "ancient", "epic", "legendary", "mighty", "fierce", "rapid", "stealth", "cyber",
+      "neon", "quantum", "plasma", "ultra", "turbo", "hyper", "mega", "super",
+      "dark", "bright", "crystal", "iron", "steel", "blazing", "frozen", "electric"
+    ]
+    
+    nouns = [
+      "wolf", "eagle", "tiger", "dragon", "phoenix", "warrior", "knight", "ninja",
+      "samurai", "wizard", "mage", "hunter", "ranger", "rogue", "paladin", "sage",
+      "champion", "hero", "legend", "master", "chief", "captain", "commander", "ace",
+      "ghost", "phantom", "shadow", "storm", "blade", "sword", "shield", "arrow",
+      "falcon", "hawk", "raven", "viper", "cobra", "panther", "lion", "bear"
+    ]
+    
+    # Randomly select components
+    adjective = Enum.random(adjectives)
+    noun = Enum.random(nouns)
+    
+    # Generate a random number suffix (2-4 digits)
+    number = :rand.uniform(9999)
+    
+    # Randomly choose format
+    formats = [
+      "#{adjective}#{noun}#{number}",
+      "#{String.capitalize(adjective)}#{String.capitalize(noun)}#{number}",
+      "#{adjective}_#{noun}_#{number}",
+      "#{adjective}#{noun}",
+      "#{String.capitalize(noun)}#{number}",
+      "#{adjective}#{String.capitalize(noun)}"
+    ]
+    
+    Enum.random(formats)
   end
 end
