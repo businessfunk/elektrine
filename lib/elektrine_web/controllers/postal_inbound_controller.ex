@@ -195,8 +195,20 @@ defmodule ElektrineWeb.PostalInboundController do
           _ -> {"", normalized_email}
         end
 
-      # Extract the actual text content from multipart emails
-      body = extract_text_content(raw_body)
+      # Extract text and HTML content separately
+      text_body = extract_text_content(raw_body)
+      html_body = extract_html(normalized_email)
+      
+      # For HTML-only emails, don't put HTML content in text_body
+      content_type = extract_header(headers, "Content-Type") || ""
+      is_html_email = String.contains?(String.downcase(content_type), "text/html")
+      
+      # If this is an HTML email and text_body contains HTML, clear text_body
+      final_text_body = if is_html_email and html_body and String.contains?(text_body, "<") do
+        nil  # Clear text_body for HTML-only emails
+      else
+        text_body
+      end
 
       # Extract basic headers
       from =
@@ -265,8 +277,8 @@ defmodule ElektrineWeb.PostalInboundController do
                 from: from,
                 to: to,
                 subject: subject,
-                text_body: body,
-                html_body: extract_html(normalized_email),
+                text_body: final_text_body,
+                html_body: html_body,
                 attachments: attachments,
                 has_attachments: has_attachments,
                 mailbox_id: mailbox.id,
@@ -624,7 +636,7 @@ defmodule ElektrineWeb.PostalInboundController do
 
   # Find the best HTML content from parsed email structure
   defp find_best_html_content(parsed_email) do
-    case parsed_email.type do
+    html_content = case parsed_email.type do
       :simple ->
         if is_html_content_type?(parsed_email.content_type) do
           decode_content(parsed_email.body, parsed_email.encoding)
@@ -635,6 +647,130 @@ defmodule ElektrineWeb.PostalInboundController do
       :multipart ->
         find_html_in_parts(parsed_email.parts)
     end
+    
+    # Clean and extract proper HTML body from the content
+    if html_content do
+      extract_clean_html_body(html_content)
+    else
+      nil
+    end
+  end
+
+  # Extract clean HTML body content, removing MIME artifacts and standalone CSS
+  defp extract_clean_html_body(html_content) do
+    # First, try to find a complete HTML document
+    case Regex.run(~r/<html[^>]*>.*?<\/html>/si, html_content) do
+      [html_doc] ->
+        clean_html_document(html_doc)
+      
+      _ ->
+        # Try to find body content
+        case Regex.run(~r/<body[^>]*>(.*?)<\/body>/si, html_content) do
+          [_, body_content] ->
+            "<html><head></head><body>#{clean_inline_content(body_content)}</body></html>"
+          
+          _ ->
+            # No body tags, try to extract meaningful HTML content
+            extract_meaningful_html(html_content)
+        end
+    end
+  end
+
+  # Clean a complete HTML document
+  defp clean_html_document(html_doc) do
+    html_doc
+    |> remove_standalone_css()
+    |> clean_mime_artifacts()
+    |> normalize_whitespace()
+  end
+
+  # Clean inline content within body
+  defp clean_inline_content(content) do
+    content
+    |> remove_standalone_css()
+    |> clean_mime_artifacts()
+    |> normalize_whitespace()
+  end
+
+  # Extract meaningful HTML from raw content
+  defp extract_meaningful_html(content) do
+    # Remove CSS blocks and MIME artifacts first
+    cleaned = content
+    |> remove_standalone_css()
+    |> clean_mime_artifacts()
+    |> String.trim()
+    
+    # Look for HTML-like content
+    cond do
+      # Contains HTML tags
+      Regex.match?(~r/<[a-zA-Z][^>]*>/, cleaned) ->
+        "<html><head></head><body>#{normalize_whitespace(cleaned)}</body></html>"
+      
+      # Plain text content
+      String.length(cleaned) > 0 ->
+        "<html><head></head><body><p>#{String.replace(cleaned, "\n", "<br>")}</p></body></html>"
+      
+      # Empty or invalid
+      true ->
+        nil
+    end
+  end
+
+  # Remove standalone CSS blocks that appear outside of proper HTML structure
+  defp remove_standalone_css(content) do
+    content
+    # Remove CSS that appears at the beginning (like the Facebook CSS)
+    |> String.replace(~r/^[^<]*@media[^{]*\{[^}]*\}[^<]*/s, "")
+    |> String.replace(~r/^[^<]*\.[^{]*\{[^}]*\}[^<]*/s, "")
+    # Remove orphaned CSS rules with selectors like *[class]
+    |> String.replace(~r/^[^<]*\*\[[^]]*\][^{]*\{[^}]*\}[^<]*/s, "")
+    # Remove any remaining CSS blocks that appear before HTML tags
+    |> remove_leading_css_blocks()
+    |> String.trim()
+  end
+
+  # Remove CSS blocks that appear before any HTML content
+  defp remove_leading_css_blocks(content) do
+    # Split content to find where HTML actually starts
+    case String.split(content, ~r/<[a-zA-Z]/, parts: 2) do
+      [css_part, html_part] ->
+        # If the first part contains CSS rules, remove them
+        if String.contains?(css_part, "{") and String.contains?(css_part, "}") do
+          "<" <> html_part
+        else
+          content
+        end
+      
+      [_] ->
+        # No HTML tags found, check if it's all CSS
+        if String.contains?(content, "{") and String.contains?(content, "}") and not String.contains?(content, "<") do
+          ""
+        else
+          content
+        end
+    end
+  end
+
+  # Clean MIME artifacts and headers
+  defp clean_mime_artifacts(content) do
+    content
+    # Remove MIME boundary markers
+    |> String.replace(~r/^--[^\r\n]+[\r\n]*/m, "")
+    # Remove Content-Type headers that might be mixed in
+    |> String.replace(~r/Content-Type:[^\r\n]*[\r\n]*/i, "")
+    |> String.replace(~r/Content-Transfer-Encoding:[^\r\n]*[\r\n]*/i, "")
+    |> String.replace(~r/Content-Disposition:[^\r\n]*[\r\n]*/i, "")
+    # Remove other common MIME headers
+    |> String.replace(~r/^[A-Za-z-]+:\s*[^\r\n]*[\r\n]*/m, "")
+    |> String.trim()
+  end
+
+  # Normalize whitespace and line breaks
+  defp normalize_whitespace(content) do
+    content
+    |> String.replace(~r/\r\n|\r|\n/, "\n")
+    |> String.replace(~r/\n{3,}/, "\n\n")
+    |> String.trim()
   end
 
   # Find HTML content in email parts (prioritizes multipart/alternative)
