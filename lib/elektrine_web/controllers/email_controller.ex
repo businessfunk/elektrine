@@ -245,6 +245,48 @@ defmodule ElektrineWeb.EmailController do
     end
   end
 
+  def iframe_content(conn, %{"id" => id}) do
+    user = conn.assigns.current_user
+    mailbox = Email.get_user_mailbox(user.id)
+
+    message = Email.get_message(id)
+
+    case message do
+      nil ->
+        conn
+        |> put_resp_content_type("text/html")
+        |> send_resp(404, "Message not found")
+
+      message ->
+        if message.mailbox_id == mailbox.id do
+          # Serve the full HTML email with its styles in an isolated document
+          html_content = message.html_body || "<pre>#{Phoenix.HTML.html_escape(message.text_body)}</pre>"
+          
+          conn
+          |> put_resp_content_type("text/html")
+          |> send_resp(200, """
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body { margin: 0; padding: 20px; font-family: sans-serif; }
+            </style>
+          </head>
+          <body>
+            #{html_content}
+          </body>
+          </html>
+          """)
+        else
+          conn
+          |> put_resp_content_type("text/html")
+          |> send_resp(403, "Forbidden")
+        end
+    end
+  end
+
   # Converts plain text to simple HTML
   defp format_html_body(nil), do: nil
 

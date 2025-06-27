@@ -84,6 +84,7 @@ defmodule ElektrineWeb.Router do
     delete "/email/:id", EmailController, :delete
     get "/email/:id/print", EmailController, :print
     get "/email/:id/raw", EmailController, :raw
+    get "/email/:id/iframe", EmailController, :iframe_content
 
     # Mailbox management
     get "/mailboxes", MailboxController, :index

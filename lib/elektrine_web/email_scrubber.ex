@@ -26,7 +26,6 @@ defmodule ElektrineWeb.EmailScrubber do
   # Allow common HTML elements with their attributes
   Meta.allow_tag_with_these_attributes("html", ["lang", "dir"])
   Meta.allow_tag_with_these_attributes("head", [])
-  Meta.allow_tag_with_these_attributes("style", ["type"])
   Meta.allow_tag_with_these_attributes("body", ["style", "class", "bgcolor", "background"])
   Meta.allow_tag_with_these_attributes("div", ["style", "class", "align", "bgcolor", "background"])
   Meta.allow_tag_with_these_attributes("span", ["style", "class", "align", "bgcolor", "background"])
