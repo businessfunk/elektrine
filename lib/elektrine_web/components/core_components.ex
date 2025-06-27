@@ -722,12 +722,67 @@ defmodule ElektrineWeb.CoreComponents do
   """
   def clean_email_artifacts(content) when is_binary(content) do
     content
+    |> remove_facebook_css_text()
     |> remove_standalone_css()
     |> clean_mime_artifacts()
     |> normalize_whitespace()
   end
 
   def clean_email_artifacts(nil), do: nil
+
+  # Specifically remove Facebook email CSS that appears as text
+  defp remove_facebook_css_text(content) do
+    # Remove ALL CSS that appears before actual content
+    # This handles any CSS text that appears at the beginning
+    
+    # First, try to find where HTML content starts
+    case Regex.run(~r/^(.*?)(<[a-zA-Z].*)/s, content) do
+      [_, prefix, html_content] ->
+        # Check if the prefix contains CSS-like patterns
+        if contains_css_patterns?(prefix) do
+          # Remove the CSS prefix entirely, keep only HTML
+          html_content
+        else
+          # No CSS patterns, keep original content
+          content
+        end
+      
+      _ ->
+        # No HTML found, check if entire content is CSS
+        if contains_css_patterns?(content) and not String.contains?(content, "<") do
+          # It's all CSS, remove it entirely
+          ""
+        else
+          # Try to find any text after CSS blocks
+          content
+          |> remove_all_css_blocks()
+        end
+    end
+  end
+  
+  # Check if content contains CSS patterns
+  defp contains_css_patterns?(text) do
+    String.contains?(text, "{") and String.contains?(text, "}") or
+    String.contains?(text, "@media") or
+    String.contains?(text, ".d_mb_") or
+    String.contains?(text, ".mb_") or
+    Regex.match?(~r/\.[a-zA-Z_-]+\s*\{/, text) or
+    Regex.match?(~r/\*\[class\]/, text)
+  end
+  
+  # Remove all CSS blocks from content
+  defp remove_all_css_blocks(content) do
+    content
+    # Remove any CSS-like content before first real text
+    |> String.replace(~r/^[^<>]*\{[^}]*\}[^<>]*/s, "")
+    # Remove @media queries and their content
+    |> String.replace(~r/@media[^{]*\{[^}]*\}/s, "")
+    # Remove class selectors and their rules
+    |> String.replace(~r/\.[a-zA-Z_-]+[^{]*\{[^}]*\}/s, "")
+    # Remove any remaining CSS selectors
+    |> String.replace(~r/[a-zA-Z0-9_\-\.\#\*\[\]]+\s*\{[^}]*\}/s, "")
+    |> String.trim()
+  end
 
   # Remove standalone CSS blocks that appear outside of proper HTML structure
   defp remove_standalone_css(content) do
