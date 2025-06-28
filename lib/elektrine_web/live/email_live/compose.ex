@@ -18,14 +18,22 @@ defmodule ElektrineWeb.EmailLive.Compose do
     end
 
     # Handle prefilled form data from params
-    form_data = build_form_data(params)
+    form_data = build_form_data(params, mailbox)
     page_title = get_page_title(params)
 
-    # Get original message if in reply/forward mode
+    # Get original message if in reply/forward mode (with security check)
     original_message =
       case Map.get(params, "message_id") do
-        nil -> nil
-        id -> Email.get_message(id)
+        nil -> 
+          nil
+        id -> 
+          message = Email.get_message(id)
+          # Only allow access to messages from user's own mailbox
+          if message && message.mailbox_id == mailbox.id do
+            message
+          else
+            nil
+          end
       end
 
     {:ok,
@@ -42,14 +50,22 @@ defmodule ElektrineWeb.EmailLive.Compose do
 
   @impl true
   def handle_params(params, _url, socket) do
-    form_data = build_form_data(params)
+    form_data = build_form_data(params, socket.assigns.mailbox)
     page_title = get_page_title(params)
 
-    # Get original message if in reply/forward mode
+    # Get original message if in reply/forward mode (with security check)
     original_message =
       case Map.get(params, "message_id") do
-        nil -> nil
-        id -> Email.get_message(id)
+        nil -> 
+          nil
+        id -> 
+          message = Email.get_message(id)
+          # Only allow access to messages from user's own mailbox
+          if message && message.mailbox_id == socket.assigns.mailbox.id do
+            message
+          else
+            nil
+          end
       end
 
     {:noreply,
@@ -231,13 +247,13 @@ defmodule ElektrineWeb.EmailLive.Compose do
   end
 
   # Build form data based on parameters (reply/forward/compose)
-  defp build_form_data(params) do
+  defp build_form_data(params, mailbox) do
     case {Map.get(params, "mode"), Map.get(params, "message_id")} do
       {"reply", message_id} when not is_nil(message_id) ->
-        build_reply_data(message_id)
+        build_reply_data(message_id, mailbox)
 
       {"forward", message_id} when not is_nil(message_id) ->
-        build_forward_data(message_id)
+        build_forward_data(message_id, mailbox)
 
       _ ->
         # Default compose form
@@ -251,12 +267,16 @@ defmodule ElektrineWeb.EmailLive.Compose do
     end
   end
 
-  defp build_reply_data(message_id) do
+  defp build_reply_data(message_id, mailbox) do
     case Email.get_message(message_id) do
       nil ->
         %{"to" => "", "cc" => "", "bcc" => "", "subject" => "", "body" => ""}
 
       message ->
+        # Security check: only allow reply to messages from user's own mailbox
+        if message.mailbox_id != mailbox.id do
+          %{"to" => "", "cc" => "", "bcc" => "", "subject" => "", "body" => ""}
+        else
         subject =
           if String.starts_with?(message.subject, "Re: ") do
             message.subject
@@ -283,15 +303,20 @@ defmodule ElektrineWeb.EmailLive.Compose do
           "subject" => subject,
           "body" => quoted_body
         }
+        end
     end
   end
 
-  defp build_forward_data(message_id) do
+  defp build_forward_data(message_id, mailbox) do
     case Email.get_message(message_id) do
       nil ->
         %{"to" => "", "cc" => "", "bcc" => "", "subject" => "", "body" => ""}
 
       message ->
+        # Security check: only allow forward of messages from user's own mailbox
+        if message.mailbox_id != mailbox.id do
+          %{"to" => "", "cc" => "", "bcc" => "", "subject" => "", "body" => ""}
+        else
         subject =
           if String.starts_with?(message.subject, "Fwd: ") do
             message.subject
@@ -309,6 +334,7 @@ defmodule ElektrineWeb.EmailLive.Compose do
           "subject" => subject,
           "body" => forwarded_body
         }
+        end
     end
   end
 

@@ -4,8 +4,29 @@
 
 /* This file is for your main application CSS */
 
-/* Import image cropper styles */
-@import "./image_cropper.css";
+/* Selection toolbar animation */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Message selection styling */
+.message-selected {
+  background-color: hsl(var(--p) / 0.1) !important;
+  border-color: hsl(var(--p)) !important;
+  box-shadow: 0 0 0 1px hsl(var(--p) / 0.2) !important;
+}
+
 
 /* Import monospace font for terminal-style text */
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');

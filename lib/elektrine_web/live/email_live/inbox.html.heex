@@ -12,158 +12,203 @@
       <div class="card bg-base-100 shadow-lg border border-base-300 digital-frame">
         <div class="card-body p-6">
           <!-- Header -->
-          <div class="flex items-center justify-between mb-6">
-            <div class="flex items-center space-x-3">
-              <div class="p-2 bg-primary/10 rounded-lg">
-                <.icon name={get_filter_icon(@current_filter)} class="h-6 w-6 text-primary" />
+          <div class="flex items-center justify-between mb-4 sm:mb-6">
+            <div class="flex items-center space-x-2 sm:space-x-3">
+              <div class="p-1.5 sm:p-2 bg-primary/10 rounded-lg">
+                <.icon name={get_filter_icon(@current_filter)} class="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
               <div>
-                <h2 class="text-2xl font-bold">{@page_title}</h2>
-                <p class="text-sm text-base-content/70">
+                <h2 class="text-lg sm:text-2xl font-bold">
+                  {@page_title}
+                  <%= if @current_filter in ["inbox", "new_contacts"] && (MapSet.size(@selected_messages) > 0 || @select_all_pages) do %>
+                    <span class="text-sm font-normal text-primary ml-2">
+                      (<%= if @select_all_pages, do: "All #{@pagination.total_count}", else: MapSet.size(@selected_messages) %> selected)
+                    </span>
+                  <% end %>
+                </h2>
+                <p class="text-xs sm:text-sm text-base-content/70 hidden sm:block">
                   {get_filter_description(@current_filter)}
                 </p>
               </div>
             </div>
-            <div class="flex items-center space-x-2">
-              <button class="btn btn-ghost btn-sm" phx-click="refresh">
-                <.icon name="hero-arrow-path" class="h-4 w-4" /> Refresh
+            <div class="flex items-center space-x-1 sm:space-x-2">
+              <button class="btn btn-ghost btn-xs sm:btn-sm" phx-click="refresh">
+                <.icon name="hero-arrow-path" class="h-4 w-4" />
+                <span class="hidden sm:inline">Refresh</span>
               </button>
-              <%= if @current_filter != "aliases" do %>
-                <button class="btn btn-ghost btn-sm" phx-click="toggle_bulk_mode">
-                  <%= if @bulk_mode do %>
-                    <.icon name="hero-x-mark" class="h-4 w-4" /> Exit Bulk
-                  <% else %>
-                    <.icon name="hero-check-circle" class="h-4 w-4" /> Select
-                  <% end %>
-                </button>
-              <% end %>
             </div>
           </div>
           
 <!-- Filter Tabs -->
-          <div class="tabs tabs-bordered mb-6">
-            <.link
-              patch={~p"/email/inbox"}
-              class={if @current_filter == "inbox", do: "tab tab-active", else: "tab"}
-            >
-              <.icon name="hero-inbox" class="h-4 w-4 mr-2" /> Inbox
-            </.link>
+          <div class="border-b border-base-300 mb-6">
+            <div class="flex overflow-x-auto scrollbar-hide">
+              <.link
+                patch={~p"/email/inbox"}
+                class={if @current_filter == "inbox", 
+                  do: "px-3 sm:px-4 py-2 border-b-2 border-primary text-primary font-medium whitespace-nowrap flex items-center gap-1 sm:gap-2", 
+                  else: "px-3 sm:px-4 py-2 border-b-2 border-transparent text-base-content/70 hover:text-base-content whitespace-nowrap flex items-center gap-1 sm:gap-2"}
+              >
+                <.icon name="hero-inbox" class="h-4 w-4" />
+                <span class="text-sm sm:text-base">Inbox</span>
+              </.link>
 
-            <.link
-              patch={~p"/email/inbox?filter=new_contacts"}
-              class={if @current_filter == "new_contacts", do: "tab tab-active", else: "tab"}
-            >
-              <.icon name="hero-user-plus" class="h-4 w-4 mr-2" /> New Contacts
-              <%= if @new_contacts_count > 0 do %>
-                <div class="badge badge-warning badge-sm ml-1">{@new_contacts_count}</div>
-              <% end %>
-            </.link>
+              <.link
+                patch={~p"/email/inbox?filter=new_contacts"}
+                class={if @current_filter == "new_contacts", 
+                  do: "px-3 sm:px-4 py-2 border-b-2 border-primary text-primary font-medium whitespace-nowrap flex items-center gap-1 sm:gap-2", 
+                  else: "px-3 sm:px-4 py-2 border-b-2 border-transparent text-base-content/70 hover:text-base-content whitespace-nowrap flex items-center gap-1 sm:gap-2"}
+              >
+                <.icon name="hero-user-plus" class="h-4 w-4" />
+                <span class="text-sm sm:text-base">New</span>
+                <%= if @new_contacts_count > 0 do %>
+                  <div class="badge badge-warning badge-xs">{@new_contacts_count}</div>
+                <% end %>
+              </.link>
 
-            <.link
-              patch={~p"/email/inbox?filter=bulk_mail"}
-              class={if @current_filter == "bulk_mail", do: "tab tab-active", else: "tab"}
-            >
-              <.icon name="hero-inbox-stack" class="h-4 w-4 mr-2" /> Bulk Mail
-              <%= if @bulk_mail_count > 0 do %>
-                <div class="badge badge-info badge-sm ml-1">{@bulk_mail_count}</div>
-              <% end %>
-            </.link>
+              <.link
+                patch={~p"/email/inbox?filter=bulk_mail"}
+                class={if @current_filter == "bulk_mail", 
+                  do: "px-3 sm:px-4 py-2 border-b-2 border-primary text-primary font-medium whitespace-nowrap flex items-center gap-1 sm:gap-2", 
+                  else: "px-3 sm:px-4 py-2 border-b-2 border-transparent text-base-content/70 hover:text-base-content whitespace-nowrap flex items-center gap-1 sm:gap-2"}
+              >
+                <.icon name="hero-inbox-stack" class="h-4 w-4" />
+                <span class="text-sm sm:text-base">Bulk</span>
+                <%= if @bulk_mail_count > 0 do %>
+                  <div class="badge badge-info badge-xs">{@bulk_mail_count}</div>
+                <% end %>
+              </.link>
 
-            <.link
-              patch={~p"/email/inbox?filter=paper_trail"}
-              class={if @current_filter == "paper_trail", do: "tab tab-active", else: "tab"}
-            >
-              <.icon name="hero-document-text" class="h-4 w-4 mr-2" /> Paper Trail
-            </.link>
+              <.link
+                patch={~p"/email/inbox?filter=paper_trail"}
+                class={if @current_filter == "paper_trail", 
+                  do: "px-3 sm:px-4 py-2 border-b-2 border-primary text-primary font-medium whitespace-nowrap flex items-center gap-1 sm:gap-2", 
+                  else: "px-3 sm:px-4 py-2 border-b-2 border-transparent text-base-content/70 hover:text-base-content whitespace-nowrap flex items-center gap-1 sm:gap-2"}
+              >
+                <.icon name="hero-document-text" class="h-4 w-4" />
+                <span class="text-sm sm:text-base hidden sm:inline">Paper Trail</span>
+                <span class="text-sm sm:text-base sm:hidden">Paper</span>
+              </.link>
 
-            <.link
-              patch={~p"/email/inbox?filter=the_pile"}
-              class={if @current_filter == "the_pile", do: "tab tab-active", else: "tab"}
-            >
-              <.icon name="hero-archive-box" class="h-4 w-4 mr-2" /> The Pile
-            </.link>
+              <.link
+                patch={~p"/email/inbox?filter=the_pile"}
+                class={if @current_filter == "the_pile", 
+                  do: "px-3 sm:px-4 py-2 border-b-2 border-primary text-primary font-medium whitespace-nowrap flex items-center gap-1 sm:gap-2", 
+                  else: "px-3 sm:px-4 py-2 border-b-2 border-transparent text-base-content/70 hover:text-base-content whitespace-nowrap flex items-center gap-1 sm:gap-2"}
+              >
+                <.icon name="hero-archive-box" class="h-4 w-4" />
+                <span class="text-sm sm:text-base">Pile</span>
+              </.link>
 
-            <.link
-              patch={~p"/email/inbox?filter=boomerang"}
-              class={if @current_filter == "boomerang", do: "tab tab-active", else: "tab"}
-            >
-              <.icon name="hero-arrow-uturn-left" class="h-4 w-4 mr-2" /> Boomerang
-            </.link>
+              <.link
+                patch={~p"/email/inbox?filter=boomerang"}
+                class={if @current_filter == "boomerang", 
+                  do: "px-3 sm:px-4 py-2 border-b-2 border-primary text-primary font-medium whitespace-nowrap flex items-center gap-1 sm:gap-2", 
+                  else: "px-3 sm:px-4 py-2 border-b-2 border-transparent text-base-content/70 hover:text-base-content whitespace-nowrap flex items-center gap-1 sm:gap-2"}
+              >
+                <.icon name="hero-arrow-uturn-left" class="h-4 w-4" />
+                <span class="text-sm sm:text-base hidden sm:inline">Boomerang</span>
+                <span class="text-sm sm:text-base sm:hidden">Reply</span>
+              </.link>
 
-            <.link
-              patch={~p"/email/inbox?filter=aliases"}
-              class={if @current_filter == "aliases", do: "tab tab-active", else: "tab"}
-            >
-              <.icon name="hero-at-symbol" class="h-4 w-4 mr-2" /> Aliases
-            </.link>
+              <.link
+                patch={~p"/email/inbox?filter=aliases"}
+                class={if @current_filter == "aliases", 
+                  do: "px-3 sm:px-4 py-2 border-b-2 border-primary text-primary font-medium whitespace-nowrap flex items-center gap-1 sm:gap-2", 
+                  else: "px-3 sm:px-4 py-2 border-b-2 border-transparent text-base-content/70 hover:text-base-content whitespace-nowrap flex items-center gap-1 sm:gap-2"}
+              >
+                <.icon name="hero-at-symbol" class="h-4 w-4" />
+                <span class="text-sm sm:text-base">Aliases</span>
+              </.link>
+            </div>
           </div>
           
-<!-- Bulk Actions Bar -->
-          <%= if @bulk_mode && @current_filter != "aliases" do %>
-            <div class="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-6">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                  <div class="text-sm font-medium">
+<!-- Bulk Actions Bar - Bottom Floating Toolbar -->
+          <%= if (MapSet.size(@selected_messages) > 0 || @select_all_pages) && @current_filter in ["inbox", "new_contacts"] do %>
+            <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-base-100 border border-base-300 rounded-lg p-3 shadow-2xl max-w-4xl w-auto mx-4 animate-slide-up">
+              <div class="flex items-center justify-between gap-3">
+                <!-- Close button -->
+                <button 
+                  phx-click="deselect_all_messages" 
+                  class="btn btn-ghost btn-sm btn-circle"
+                  title="Close (Escape)"
+                >
+                  <.icon name="hero-x-mark" class="h-4 w-4" />
+                </button>
+                
+                <!-- Selection info -->
+                <div class="text-sm font-medium whitespace-nowrap px-2">
+                  <%= if @select_all_pages do %>
+                    All {@pagination.total_count} messages selected
+                  <% else %>
                     {MapSet.size(@selected_messages)} selected
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <button phx-click="select_all_messages" class="btn btn-xs btn-ghost">
-                      Select All
-                    </button>
-                    <button phx-click="deselect_all_messages" class="btn btn-xs btn-ghost">
-                      Deselect All
-                    </button>
-                  </div>
+                  <% end %>
                 </div>
-                <div class="flex items-center space-x-2">
+                
+                <!-- Quick actions -->
+                <div class="flex items-center gap-1">
                   <button
                     phx-click="bulk_action"
                     phx-value-action="archive"
-                    class="btn btn-sm btn-primary"
-                    disabled={MapSet.size(@selected_messages) == 0}
+                    class="btn btn-sm btn-ghost"
+                    disabled={MapSet.size(@selected_messages) == 0 && !@select_all_pages}
+                    title="Archive selected"
                   >
-                    <.icon name="hero-archive-box" class="h-4 w-4" /> Archive
+                    <.icon name="hero-archive-box" class="h-4 w-4" />
                   </button>
                   <button
                     phx-click="bulk_action"
                     phx-value-action="mark_read"
-                    class="btn btn-sm btn-success"
-                    disabled={MapSet.size(@selected_messages) == 0}
+                    class="btn btn-sm btn-ghost"
+                    disabled={MapSet.size(@selected_messages) == 0 && !@select_all_pages}
+                    title="Mark as read"
                   >
-                    <.icon name="hero-envelope-open" class="h-4 w-4" /> Mark Read
+                    <.icon name="hero-envelope-open" class="h-4 w-4" />
                   </button>
                   <button
                     phx-click="bulk_action"
-                    phx-value-action="mark_unread"
-                    class="btn btn-sm btn-warning"
-                    disabled={MapSet.size(@selected_messages) == 0}
+                    phx-value-action="delete"
+                    class="btn btn-sm btn-ghost text-error hover:bg-error/10"
+                    disabled={MapSet.size(@selected_messages) == 0 && !@select_all_pages}
+                    data-confirm={"Are you sure you want to delete #{if @select_all_pages, do: "ALL " <> to_string(@pagination.total_count), else: to_string(MapSet.size(@selected_messages))} messages? This action cannot be undone."}
+                    title="Delete selected"
                   >
-                    <.icon name="hero-envelope" class="h-4 w-4" /> Mark Unread
+                    <.icon name="hero-trash" class="h-4 w-4" />
                   </button>
-                  <div class="dropdown dropdown-end">
+                  
+                  <!-- More actions dropdown -->
+                  <div class="dropdown dropdown-top dropdown-end">
                     <label
                       tabindex="0"
-                      class="btn btn-sm btn-error"
-                      disabled={MapSet.size(@selected_messages) == 0}
+                      class="btn btn-sm btn-ghost"
+                      disabled={MapSet.size(@selected_messages) == 0 && !@select_all_pages}
+                      title="More actions"
                     >
-                      <.icon name="hero-ellipsis-horizontal" class="h-4 w-4" /> More
+                      <.icon name="hero-ellipsis-horizontal" class="h-4 w-4" />
                     </label>
                     <ul
                       tabindex="0"
-                      class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-48"
+                      class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-48 mb-2"
                     >
                       <li>
-                        <button phx-click="bulk_action" phx-value-action="mark_spam">
-                          <.icon name="hero-exclamation-triangle" class="h-4 w-4" /> Mark as Spam
+                        <button phx-click="select_all_messages">
+                          <.icon name="hero-check-circle" class="h-4 w-4" /> Select All on Page
+                        </button>
+                      </li>
+                      <%= if MapSet.size(@selected_messages) == length(@messages) && @pagination.total_count > length(@messages) && !@select_all_pages do %>
+                        <li>
+                          <button phx-click="select_all_pages">
+                            <.icon name="hero-globe-alt" class="h-4 w-4" /> Select All {@pagination.total_count} Messages
+                          </button>
+                        </li>
+                      <% end %>
+                      <li>
+                        <button phx-click="bulk_action" phx-value-action="mark_unread">
+                          <.icon name="hero-envelope" class="h-4 w-4" /> Mark as Unread
                         </button>
                       </li>
                       <li>
-                        <button
-                          phx-click="bulk_action"
-                          phx-value-action="delete"
-                          data-confirm="Are you sure you want to delete the selected messages?"
-                        >
-                          <.icon name="hero-trash" class="h-4 w-4" /> Delete
+                        <button phx-click="bulk_action" phx-value-action="mark_spam">
+                          <.icon name="hero-exclamation-triangle" class="h-4 w-4" /> Mark as Spam
                         </button>
                       </li>
                     </ul>
@@ -188,7 +233,7 @@
                         Main Email Forwarding
                       </h2>
                       <p class="text-sm text-base-content/70 mt-1">
-                        Forward all emails from {@mailbox.email} to another address
+                        Forward all emails from {@mailbox.email} and {String.replace(@mailbox.email, "@elektrine.com", "@z.org")} to another address
                       </p>
                     </div>
                   </div>
@@ -232,7 +277,7 @@
                       <div class="alert alert-info">
                         <.icon name="hero-information-circle" class="w-5 h-5" />
                         <span>
-                          All emails to {@mailbox.email} are being forwarded to {@mailbox.forward_to}
+                          All emails to {@mailbox.email} and {String.replace(@mailbox.email, "@elektrine.com", "@z.org")} are being forwarded to {@mailbox.forward_to}
                         </span>
                       </div>
                     <% end %>
@@ -494,18 +539,21 @@
                 >
                   <%= for {id, message} <- @streams.messages do %>
                     <div
-                      class={"card transition-all duration-200 #{get_message_card_class(message, @current_filter)} hover:shadow-xl hover:scale-[1.02] hover:border-primary/30 hover:bg-primary/5 border border-base-300 cursor-pointer"}
+                      class={"card transition-all duration-200 #{get_message_card_class(message, @current_filter)} hover:shadow-xl hover:scale-[1.02] hover:border-primary/30 hover:bg-primary/5 border border-base-300 cursor-pointer #{if MapSet.member?(@selected_messages, message.id) || @select_all_pages, do: "message-selected", else: ""}"}
                       id={id}
+                      phx-click="toggle_message_selection_on_shift"
+                      phx-value-message_id={message.id}
                     >
                       <div class="card-body p-4">
                         <div class="flex items-start justify-between">
-                          <!-- Checkbox for bulk selection -->
-                          <%= if @bulk_mode do %>
-                            <div class="flex-shrink-0 mr-3 mt-1">
+                          <!-- Checkbox for selection -->
+                          <%= if @current_filter in ["inbox", "new_contacts"] do %>
+                            <div class="flex-shrink-0 mr-3 mt-1 group">
                               <input
                                 type="checkbox"
-                                class="checkbox checkbox-primary"
-                                checked={MapSet.member?(@selected_messages, message.id)}
+                                id={"message-checkbox-#{message.id}"}
+                                class="checkbox checkbox-primary [--chkbg:theme(colors.primary)] [--chkfg:white] dark:[--chkbg:theme(colors.primary)] dark:[--chkfg:white] hover:scale-110 transition-transform cursor-pointer"
+                                checked={MapSet.member?(@selected_messages, message.id) || @select_all_pages}
                                 phx-click="toggle_message_selection"
                                 phx-value-message_id={message.id}
                               />
@@ -513,15 +561,24 @@
                           <% end %>
                           <.link
                             navigate={~p"/email/view/#{message.id}"}
-                            class="flex-1 min-w-0 overflow-hidden cursor-pointer"
+                            class={"flex-1 min-w-0 overflow-hidden cursor-pointer #{if MapSet.member?(@selected_messages, message.id) || @select_all_pages, do: "opacity-90", else: ""}"}
                           >
                             <div class="flex items-center space-x-3 mb-2">
-                              <div class="avatar placeholder">
-                                <div class="bg-primary/20 text-primary rounded-full w-8 h-8">
+                              <div class="avatar placeholder relative">
+                                <div class={"rounded-full w-8 h-8 #{if MapSet.member?(@selected_messages, message.id) || @select_all_pages, do: "bg-primary text-primary-content", else: "bg-primary/20 text-primary"}"}>
                                   <span class="text-xs font-bold">
-                                    {String.first(message.from) |> String.upcase()}
+                                    <%= if MapSet.member?(@selected_messages, message.id) || @select_all_pages do %>
+                                      ✓
+                                    <% else %>
+                                      {String.first(message.from) |> String.upcase()}
+                                    <% end %>
                                   </span>
                                 </div>
+                                <%= if MapSet.member?(@selected_messages, message.id) || @select_all_pages do %>
+                                  <div class="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
+                                    <span class="text-[8px] text-primary-content font-bold">✓</span>
+                                  </div>
+                                <% end %>
                               </div>
                               <div class="flex-1 min-w-0 overflow-hidden">
                                 <div class="flex items-center justify-between">

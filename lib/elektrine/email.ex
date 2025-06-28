@@ -966,6 +966,69 @@ defmodule Elektrine.Email do
   end
 
   @doc """
+  Returns all inbox messages for a mailbox without pagination.
+  Used for bulk operations.
+  """
+  def list_all_inbox_messages(mailbox_id) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, spam: false, archived: false)
+    |> where([m], m.status != "sent" or is_nil(m.status))
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns all screener messages (new contacts) for a mailbox without pagination.
+  """
+  def list_all_screener_messages(mailbox_id) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, screener: true)
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns all feed messages (bulk mail) for a mailbox without pagination.
+  """
+  def list_all_feed_messages(mailbox_id) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, feed: true)
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns all paper trail messages for a mailbox without pagination.
+  """
+  def list_all_paper_trail_messages(mailbox_id) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, is_receipt: true)
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns all set aside messages for a mailbox without pagination.
+  """
+  def list_all_set_aside_messages(mailbox_id) do
+    Message
+    |> where(mailbox_id: ^mailbox_id, set_aside: true)
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns all reply later messages for a mailbox without pagination.
+  """
+  def list_all_reply_later_messages(mailbox_id) do
+    Message
+    |> where(mailbox_id: ^mailbox_id)
+    |> where([m], not is_nil(m.reply_later_at))
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
   Searches messages in a mailbox.
   Supports searching in from, to, cc, subject, and body content.
   Returns paginated results with metadata.

@@ -22,7 +22,6 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import { initGenerativeArt, initDigitalEffects } from "./generative_art"
-import { initImageCropper } from "./image_cropper"
 
 // Global function to show keyboard shortcuts (called from buttons)
 window.showKeyboardShortcuts = function() {
@@ -1126,6 +1125,80 @@ topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
+// Handle checkbox updates for message selection
+window.addEventListener("phx:update_checkboxes", (e) => {
+  const { selected_ids, select_all } = e.detail
+  
+  // Update all message checkboxes and card backgrounds
+  const checkboxes = document.querySelectorAll('[id^="message-checkbox-"]')
+  checkboxes.forEach(checkbox => {
+    const messageId = parseInt(checkbox.id.replace('message-checkbox-', ''))
+    const isSelected = select_all || selected_ids.includes(messageId)
+    
+    // Update checkbox
+    checkbox.checked = isSelected
+    
+    // Update card background
+    const messageCard = document.getElementById(`message-${messageId}`)
+    if (messageCard) {
+      if (isSelected) {
+        messageCard.classList.add('message-selected')
+      } else {
+        messageCard.classList.remove('message-selected')
+      }
+    }
+  })
+})
+
+// Add keyboard shortcuts for message selection
+document.addEventListener('keydown', (e) => {
+  // Only handle shortcuts when not typing in an input
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+  
+  // Ctrl+A or Cmd+A - Select all messages on page
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+    e.preventDefault()
+    const selectAllBtn = document.querySelector('[phx-click="select_all_messages"]')
+    if (selectAllBtn) selectAllBtn.click()
+  }
+  
+  // Escape - Clear selection
+  if (e.key === 'Escape') {
+    const clearBtn = document.querySelector('[phx-click="deselect_all_messages"]')
+    if (clearBtn) clearBtn.click()
+  }
+})
+
+// Handle shift+click for message selection
+document.addEventListener('click', (e) => {
+  const messageCard = e.target.closest('[phx-click="toggle_message_selection_on_shift"]')
+  if (messageCard && e.shiftKey) {
+    e.preventDefault()
+    e.stopPropagation()
+    const messageId = messageCard.getAttribute('phx-value-message_id')
+    const checkbox = document.getElementById(`message-checkbox-${messageId}`)
+    if (checkbox) {
+      checkbox.click()
+    }
+  }
+  
+  // Handle individual checkbox clicks for immediate visual feedback
+  if (e.target.type === 'checkbox' && e.target.id.startsWith('message-checkbox-')) {
+    const messageId = e.target.id.replace('message-checkbox-', '')
+    const messageCard = document.getElementById(`message-${messageId}`)
+    if (messageCard) {
+      // Small delay to let LiveView update first
+      setTimeout(() => {
+        if (e.target.checked) {
+          messageCard.classList.add('message-selected')
+        } else {
+          messageCard.classList.remove('message-selected')
+        }
+      }, 50)
+    }
+  }
+})
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 
@@ -1234,7 +1307,4 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize generative art and digital effects for homepage
   initGenerativeArt()
   initDigitalEffects()
-  
-  // Initialize image cropper for avatar uploads
-  initImageCropper()
 })

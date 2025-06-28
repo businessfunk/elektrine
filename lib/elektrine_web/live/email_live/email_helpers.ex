@@ -57,6 +57,14 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
 
   defp strip_html_tags(html) when is_binary(html) do
     html
+    # Remove style tags and their content first
+    |> String.replace(~r/<style[^>]*>.*?<\/style>/is, " ")
+    # Remove script tags and their content
+    |> String.replace(~r/<script[^>]*>.*?<\/script>/is, " ")
+    # Remove CSS blocks that might be outside of style tags
+    |> String.replace(~r/@media[^{]*\{[^}]*\}/s, " ")
+    |> String.replace(~r/\.[a-zA-Z_-]+[^{]*\{[^}]*\}/s, " ")
+    # Remove all HTML tags
     |> String.replace(~r/<[^>]+>/, " ")
     # Remove HTML entities
     |> String.replace(~r/&\w+;/, " ")
@@ -124,7 +132,12 @@ defmodule ElektrineWeb.EmailLive.EmailHelpers do
             <% end %>
             <div class="flex-1">
               <h2 class="font-bold text-lg">Your Mailbox</h2>
-              <p class="text-sm text-base-content/70 font-mono break-all">{@mailbox.email}</p>
+              <div class="space-y-1">
+                <p class="text-sm text-base-content/70 font-mono break-all">{@mailbox.email}</p>
+                <p class="text-xs text-base-content/50 font-mono break-all">
+                  {String.replace(@mailbox.email, "@elektrine.com", "@z.org")}
+                </p>
+              </div>
             </div>
           </div>
         </div>

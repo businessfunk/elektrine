@@ -42,7 +42,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         |> assign(:show_reply_later_modal, false)
         |> assign(:reply_later_message, nil)
         |> assign(:selected_messages, MapSet.new())
-        |> assign(:bulk_mode, false)
+        |> assign(:select_all_pages, false)
       else
         # For regular email tabs, load messages
         page = String.to_integer(params["page"] || "1")
@@ -62,7 +62,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         |> assign(:show_reply_later_modal, false)
         |> assign(:reply_later_message, nil)
         |> assign(:selected_messages, MapSet.new())
-        |> assign(:bulk_mode, false)
+        |> assign(:select_all_pages, false)
       end
 
     {:ok, socket}
@@ -100,6 +100,8 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         |> assign(:page_title, get_page_title(filter))
         |> assign(:new_contacts_count, get_new_contacts_count(mailbox.id))
         |> assign(:bulk_mail_count, get_bulk_mail_count(mailbox.id))
+        |> assign(:selected_messages, if(filter in ["inbox", "new_contacts"], do: socket.assigns[:selected_messages] || MapSet.new(), else: MapSet.new()))
+        |> assign(:select_all_pages, if(filter in ["inbox", "new_contacts"], do: socket.assigns[:select_all_pages] || false, else: false))
         |> stream(:messages, pagination.messages, reset: true)
       end
 
@@ -252,13 +254,6 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     end
   end
 
-  @impl true
-  def handle_event("toggle_bulk_mode", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:bulk_mode, !socket.assigns.bulk_mode)
-     |> assign(:selected_messages, MapSet.new())}
-  end
 
   @impl true
   def handle_event("toggle_message_selection", %{"message_id" => message_id}, socket) do
@@ -272,49 +267,80 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         MapSet.put(selected, message_id)
       end
 
-    {:noreply, assign(socket, :selected_messages, new_selected)}
+    # Reset select_all_pages if we're manually toggling messages
+    {:noreply, 
+     socket
+     |> assign(:selected_messages, new_selected)
+     |> assign(:select_all_pages, false)
+     |> push_event("update_checkboxes", %{selected_ids: MapSet.to_list(new_selected), select_all: false})}
   end
 
   @impl true
   def handle_event("select_all_messages", _params, socket) do
+    # Get all message IDs from the current page
+    # We use the messages from assigns which contains the current page messages
     all_message_ids =
       socket.assigns.messages
       |> Enum.map(& &1.id)
       |> MapSet.new()
 
-    {:noreply, assign(socket, :selected_messages, all_message_ids)}
+    {:noreply, 
+     socket
+     |> assign(:selected_messages, all_message_ids)
+     |> push_event("update_checkboxes", %{selected_ids: MapSet.to_list(all_message_ids), select_all: true})}
   end
 
   @impl true
   def handle_event("deselect_all_messages", _params, socket) do
-    {:noreply, assign(socket, :selected_messages, MapSet.new())}
+    {:noreply, 
+     socket
+     |> assign(:selected_messages, MapSet.new())
+     |> assign(:select_all_pages, false)
+     |> push_event("update_checkboxes", %{selected_ids: [], select_all: false})}
+  end
+
+  @impl true
+  def handle_event("select_all_pages", _params, socket) do
+    {:noreply, assign(socket, :select_all_pages, true)}
+  end
+
+  @impl true
+  def handle_event("toggle_message_selection_on_shift", %{"message_id" => _message_id}, socket) do
+    # This will be handled by JavaScript to check for shift key
+    # If no shift key, just navigate normally
+    {:noreply, socket}
   end
 
   @impl true
   def handle_event("bulk_action", %{"action" => action}, socket) do
-    selected_ids = MapSet.to_list(socket.assigns.selected_messages)
-
-    if Enum.empty?(selected_ids) do
-      {:noreply, put_flash(socket, :error, "No messages selected")}
+    # Handle select all pages differently
+    if socket.assigns.select_all_pages do
+      handle_bulk_action_all_pages(socket, action)
     else
-      case action do
-        "archive" ->
-          bulk_archive_messages(socket, selected_ids)
+      selected_ids = MapSet.to_list(socket.assigns.selected_messages)
 
-        "delete" ->
-          bulk_delete_messages(socket, selected_ids)
+      if Enum.empty?(selected_ids) do
+        {:noreply, put_flash(socket, :error, "No messages selected")}
+      else
+        case action do
+          "archive" ->
+            bulk_archive_messages(socket, selected_ids)
 
-        "mark_spam" ->
-          bulk_mark_spam_messages(socket, selected_ids)
+          "delete" ->
+            bulk_delete_messages(socket, selected_ids)
 
-        "mark_read" ->
-          bulk_mark_read_messages(socket, selected_ids)
+          "mark_spam" ->
+            bulk_mark_spam_messages(socket, selected_ids)
 
-        "mark_unread" ->
-          bulk_mark_unread_messages(socket, selected_ids)
+          "mark_read" ->
+            bulk_mark_read_messages(socket, selected_ids)
 
-        _ ->
-          {:noreply, put_flash(socket, :error, "Invalid action")}
+          "mark_unread" ->
+            bulk_mark_unread_messages(socket, selected_ids)
+
+          _ ->
+            {:noreply, put_flash(socket, :error, "Invalid action")}
+        end
       end
     end
   end
@@ -705,6 +731,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
      |> assign(:pagination, pagination)
      |> assign(:unread_count, unread_count)
      |> assign(:selected_messages, MapSet.new())
+     |> assign(:select_all_pages, false)
      |> stream(:messages, pagination.messages, reset: true)
      |> put_flash(:info, "#{length(valid_messages)} messages marked as read")}
   end
@@ -727,6 +754,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
      |> assign(:pagination, pagination)
      |> assign(:unread_count, unread_count)
      |> assign(:selected_messages, MapSet.new())
+     |> assign(:select_all_pages, false)
      |> stream(:messages, pagination.messages, reset: true)
      |> put_flash(:info, "#{length(valid_messages)} messages marked as unread")}
   end
@@ -744,10 +772,73 @@ defmodule ElektrineWeb.EmailLive.Inbox do
      |> assign(:pagination, pagination)
      |> assign(:unread_count, unread_count)
      |> assign(:selected_messages, MapSet.new())
+     |> assign(:select_all_pages, false)
      |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
      |> assign(:bulk_mail_count, get_bulk_mail_count(socket.assigns.mailbox.id))
      |> stream(:messages, pagination.messages, reset: true)
      |> put_flash(:info, "#{count} messages #{action}")}
+  end
+
+  defp handle_bulk_action_all_pages(socket, action) do
+    mailbox_id = socket.assigns.mailbox.id
+    filter = socket.assigns.current_filter
+    
+    # Get all message IDs for the current filter
+    all_message_ids = get_all_message_ids_for_filter(mailbox_id, filter)
+    
+    case action do
+      "delete" ->
+        count = length(all_message_ids)
+        messages = Enum.map(all_message_ids, &Email.get_message/1)
+        valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
+        Enum.each(valid_messages, &Email.delete_message/1)
+        refresh_messages_after_bulk_action(socket, length(valid_messages), "deleted")
+        
+      "archive" ->
+        count = length(all_message_ids)
+        messages = Enum.map(all_message_ids, &Email.get_message/1)
+        valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
+        Enum.each(valid_messages, &Email.archive_message/1)
+        refresh_messages_after_bulk_action(socket, length(valid_messages), "archived")
+        
+      "mark_spam" ->
+        count = length(all_message_ids)
+        messages = Enum.map(all_message_ids, &Email.get_message/1)
+        valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
+        Enum.each(valid_messages, &Email.mark_as_spam/1)
+        refresh_messages_after_bulk_action(socket, length(valid_messages), "marked as spam")
+        
+      "mark_read" ->
+        count = length(all_message_ids)
+        messages = Enum.map(all_message_ids, &Email.get_message/1)
+        valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
+        Enum.each(valid_messages, &Email.mark_as_read/1)
+        refresh_messages_after_bulk_action(socket, length(valid_messages), "marked as read")
+        
+      "mark_unread" ->
+        count = length(all_message_ids)
+        messages = Enum.map(all_message_ids, &Email.get_message/1)
+        valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
+        Enum.each(valid_messages, &Email.mark_as_unread/1)
+        refresh_messages_after_bulk_action(socket, length(valid_messages), "marked as unread")
+        
+      _ ->
+        {:noreply, put_flash(socket, :error, "Invalid action")}
+    end
+  end
+
+  defp get_all_message_ids_for_filter(mailbox_id, filter) do
+    # Get all messages for the filter without pagination
+    messages = case filter do
+      "new_contacts" -> Email.list_all_screener_messages(mailbox_id)
+      "bulk_mail" -> Email.list_all_feed_messages(mailbox_id)
+      "paper_trail" -> Email.list_all_paper_trail_messages(mailbox_id)
+      "the_pile" -> Email.list_all_set_aside_messages(mailbox_id)
+      "boomerang" -> Email.list_all_reply_later_messages(mailbox_id)
+      _ -> Email.list_all_inbox_messages(mailbox_id)
+    end
+    
+    Enum.map(messages, & &1.id)
   end
 
   defp get_filtered_messages(mailbox_id, filter, page, per_page) do
@@ -817,6 +908,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       _ -> "Your main email inbox"
     end
   end
+
 
   defp get_empty_title(filter) do
     case filter do
