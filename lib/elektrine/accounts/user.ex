@@ -40,6 +40,25 @@ defmodule Elektrine.Accounts.User do
     |> hash_password()
   end
 
+  @doc """
+  Changeset for admin user registration.
+  Allows admins to create users with additional options.
+  """
+  def admin_registration_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:username, :password, :password_confirmation, :is_admin])
+    |> validate_required([:username, :password, :password_confirmation])
+    |> validate_length(:username, min: 1, max: 30)
+    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/,
+      message: "only letters, numbers, and underscores allowed"
+    )
+    |> validate_username_not_alias()
+    |> unique_constraint(:username)
+    |> validate_length(:password, min: 8, max: 72)
+    |> validate_confirmation(:password, message: "does not match password")
+    |> hash_password()
+  end
+
   defp hash_password(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset) do
     change(changeset, %{password_hash: Argon2.hash_pwd_salt(password)})
   end

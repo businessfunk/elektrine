@@ -113,6 +113,8 @@ defmodule ElektrineWeb.Router do
 
     get "/", AdminController, :dashboard
     get "/users", AdminController, :users
+    get "/users/new", AdminController, :new
+    post "/users", AdminController, :create
     get "/users/:id/edit", AdminController, :edit
     put "/users/:id", AdminController, :update
     post "/users/:id/toggle_admin", AdminController, :toggle_admin

@@ -25,6 +25,23 @@ defmodule ElektrineWeb.AdminController do
     render(conn, :users, users: users, search_query: search_query)
   end
 
+  def new(conn, _params) do
+    changeset = Accounts.change_user_admin_registration(%Accounts.User{}, %{})
+    render(conn, :new, changeset: changeset)
+  end
+
+  def create(conn, %{"user" => user_params}) do
+    case Accounts.admin_create_user(user_params) do
+      {:ok, user} ->
+        conn
+        |> put_flash(:info, "User #{user.username} created successfully.")
+        |> redirect(to: ~p"/admin/users")
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render(conn, :new, changeset: changeset)
+    end
+  end
+
   def toggle_admin(conn, %{"id" => id}) do
     user = Accounts.get_user!(id)
 

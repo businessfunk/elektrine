@@ -249,6 +249,35 @@ defmodule Elektrine.Accounts do
   end
 
   @doc """
+  Creates a user (admin only).
+
+  ## Examples
+
+      iex> admin_create_user(%{username: "newuser", password: "password123", password_confirmation: "password123"})
+      {:ok, %User{}}
+
+      iex> admin_create_user(%{username: ""})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def admin_create_user(attrs \\ %{}) do
+    result =
+      %User{}
+      |> User.admin_registration_changeset(attrs)
+      |> Repo.insert()
+
+    case result do
+      {:ok, user} ->
+        # Create a mailbox for the user
+        Elektrine.Email.create_mailbox(user)
+        {:ok, user}
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
   Updates a user (admin only).
 
   ## Examples
@@ -357,6 +386,19 @@ defmodule Elektrine.Accounts do
   """
   def change_user_admin(%User{} = user, attrs \\ %{}) do
     User.admin_changeset(user, attrs)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for creating a user (admin only).
+
+  ## Examples
+
+      iex> change_user_admin_registration(%User{})
+      %Ecto.Changeset{data: %User{}}
+
+  """
+  def change_user_admin_registration(%User{} = user, attrs \\ %{}) do
+    User.admin_registration_changeset(user, attrs)
   end
 
   # Account Deletion Request functions
