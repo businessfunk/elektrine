@@ -262,6 +262,8 @@ defmodule ElektrineWeb.EmailController do
           # Process the email content to handle encoding issues
           import ElektrineWeb.CoreComponents, only: [process_email_html: 1]
           
+          is_html_email = not is_nil(message.html_body)
+          
           html_content = if message.html_body do
             # Process HTML body to handle encoding
             process_email_html(message.html_body)
@@ -269,7 +271,45 @@ defmodule ElektrineWeb.EmailController do
             # For text-only emails, decode and wrap in pre tag
             text = message.text_body || ""
             decoded_text = decode_quoted_printable_text(text)
-            "<pre>#{Phoenix.HTML.html_escape(decoded_text)}</pre>"
+            "<pre class=\"raw-email-content\">#{Phoenix.HTML.html_escape(decoded_text)}</pre>"
+          end
+          
+          # Different CSS for HTML emails vs plain text/raw emails
+          overflow_css = if is_html_email do
+            """
+            /* Minimal CSS for HTML emails - preserve original styling */
+            img {
+              max-width: 100%;
+              height: auto;
+            }
+            
+            /* Only fix extreme cases on mobile */
+            @media (max-width: 768px) {
+              table {
+                max-width: 100% !important;
+              }
+            }
+            """
+          else
+            """
+            /* Aggressive overflow handling for raw/plain text emails */
+            pre.raw-email-content {
+              white-space: pre-wrap !important; 
+              word-wrap: break-word !important; 
+              word-break: break-word !important;
+              overflow-wrap: break-word !important;
+              overflow-x: auto !important;
+              max-width: 100% !important;
+              font-family: 'Courier New', Courier, monospace;
+              font-size: 12px;
+              line-height: 1.4;
+              margin: 0;
+              padding: 10px;
+              background: #f8f9fa;
+              border: 1px solid #e9ecef;
+              border-radius: 4px;
+            }
+            """
           end
           
           conn
@@ -286,7 +326,6 @@ defmodule ElektrineWeb.EmailController do
                 margin: 0; 
                 padding: 0;
                 width: 100%;
-                height: 100%;
                 overflow-x: auto;
                 overflow-y: auto;
                 box-sizing: border-box;
@@ -298,70 +337,7 @@ defmodule ElektrineWeb.EmailController do
                 padding: 20px;
               }
               
-              /* Ensure all content respects container boundaries */
-              * {
-                max-width: 100% !important;
-                box-sizing: border-box;
-              }
-              
-              /* Handle tables that might be too wide */
-              table {
-                table-layout: fixed !important;
-                width: 100% !important;
-                border-collapse: collapse !important;
-              }
-              
-              /* Force table cells to wrap */
-              td, th {
-                word-wrap: break-word !important;
-                word-break: break-word !important;
-                overflow-wrap: break-word !important;
-                max-width: 0 !important;
-              }
-              
-              /* Handle images */
-              img {
-                max-width: 100% !important;
-                height: auto !important;
-                display: block !important;
-              }
-              
-              /* Handle pre-formatted text */
-              pre { 
-                white-space: pre-wrap !important; 
-                word-wrap: break-word !important; 
-                word-break: break-word !important;
-                overflow-wrap: break-word !important;
-                overflow-x: auto !important;
-                font-family: inherit;
-                font-size: 14px;
-                line-height: 1.6;
-                margin: 0;
-                max-width: 100% !important;
-              }
-              
-              /* Handle divs and other containers */
-              div, p, span {
-                word-wrap: break-word !important;
-                word-break: break-word !important;
-                overflow-wrap: break-word !important;
-              }
-              
-              /* Handle any fixed-width elements */
-              [width] {
-                max-width: 100% !important;
-                width: auto !important;
-              }
-              
-              /* Ensure viewport meta works */
-              @media (max-width: 768px) {
-                body {
-                  padding: 10px;
-                }
-                table {
-                  font-size: 14px !important;
-                }
-              }
+              #{overflow_css}
             </style>
           </head>
           <body>

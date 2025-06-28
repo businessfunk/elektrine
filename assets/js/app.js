@@ -1091,12 +1091,8 @@ const Hooks = {
           const contentDoc = iframe.contentWindow.document
           const contentBody = contentDoc.body
           
-          // Ensure the iframe content has proper overflow handling
+          // Only set basic overflow handling - don't break email styling
           contentBody.style.overflowX = 'auto'
-          contentBody.style.overflowY = 'auto'
-          contentBody.style.wordWrap = 'break-word'
-          contentBody.style.wordBreak = 'break-word'
-          contentBody.style.maxWidth = '100%'
           
           // Get the actual content height, accounting for scrollbars
           const contentHeight = Math.max(
@@ -1111,10 +1107,6 @@ const Hooks = {
           const newHeight = Math.max(400, Math.min(contentHeight + 40, maxHeight))
           
           iframe.style.height = newHeight + 'px'
-          
-          // Ensure the iframe itself handles overflow properly
-          iframe.style.overflowX = 'auto'
-          iframe.style.overflowY = 'auto'
           
         } catch (e) {
           // Cross-origin or other errors, use default height
