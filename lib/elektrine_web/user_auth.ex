@@ -36,6 +36,57 @@ defmodule ElektrineWeb.UserAuth do
     |> redirect(to: user_return_to || signed_in_path(conn))
   end
 
+  @doc """
+  Stores a user's ID in session for 2FA verification.
+  This is a temporary session used during the 2FA verification process.
+  """
+  def store_user_for_two_factor_verification(conn, user) do
+    conn
+    |> renew_session()
+    |> put_session(:two_factor_user_id, user.id)
+    |> put_session(:two_factor_timestamp, System.system_time(:second))
+  end
+
+  @doc """
+  Retrieves the user stored for 2FA verification.
+  Returns nil if no user is stored or if the session has expired (15 minutes).
+  """
+  def get_user_for_two_factor_verification(conn) do
+    user_id = get_session(conn, :two_factor_user_id)
+    timestamp = get_session(conn, :two_factor_timestamp)
+    
+    current_time = System.system_time(:second)
+    fifteen_minutes = 15 * 60
+    
+    if user_id && timestamp && (current_time - timestamp) < fifteen_minutes do
+      try do
+        Accounts.get_user!(user_id)
+      rescue
+        _ -> nil
+      end
+    else
+      nil
+    end
+  end
+
+  @doc """
+  Clears the 2FA verification session.
+  """
+  def clear_two_factor_session(conn) do
+    conn
+    |> delete_session(:two_factor_user_id)
+    |> delete_session(:two_factor_timestamp)
+  end
+
+  @doc """
+  Completes the 2FA login process by logging in the user.
+  """
+  def complete_two_factor_login(conn, user, params \\ %{}) do
+    conn
+    |> clear_two_factor_session()
+    |> log_in_user(user, params)
+  end
+
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
     put_resp_cookie(conn, @remember_me_cookie, token, @remember_me_options)
   end

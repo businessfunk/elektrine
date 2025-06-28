@@ -76,7 +76,9 @@ defmodule Elektrine.MixProject do
       # HTTP client for hCaptcha verification
       {:httpoison, "~> 2.0"},
       # HTML sanitization for email content
-      {:html_sanitize_ex, "~> 1.4"}
+      {:html_sanitize_ex, "~> 1.4"},
+      # TOTP library for 2FA
+      {:nimble_totp, "~> 1.0"}
     ]
   end
 

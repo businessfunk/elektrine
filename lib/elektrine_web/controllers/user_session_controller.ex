@@ -13,9 +13,15 @@ defmodule ElektrineWeb.UserSessionController do
 
     case Accounts.authenticate_user(username, password) do
       {:ok, user} ->
-        conn
-        |> put_flash(:info, "Welcome back!")
-        |> UserAuth.log_in_user(user, user_params)
+        if user.two_factor_enabled do
+          conn
+          |> UserAuth.store_user_for_two_factor_verification(user)
+          |> redirect(to: ~p"/two_factor")
+        else
+          conn
+          |> put_flash(:info, "Welcome back!")
+          |> UserAuth.log_in_user(user, user_params)
+        end
 
       {:error, :banned} ->
         conn

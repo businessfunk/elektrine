@@ -831,4 +831,22 @@
   }
 }
 
+/* Iframe container overflow handling */
+#email-iframe {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  border: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Email iframe container */
+.email-iframe-container {
+  overflow: hidden !important;
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 

@@ -14,6 +14,10 @@ defmodule Elektrine.Accounts.User do
     field :banned, :boolean, default: false
     field :banned_at, :utc_datetime
     field :banned_reason, :string
+    field :two_factor_enabled, :boolean, default: false
+    field :two_factor_secret, :string
+    field :two_factor_backup_codes, {:array, :string}
+    field :two_factor_enabled_at, :utc_datetime
 
     timestamps(type: :utc_datetime)
   end
@@ -121,6 +125,38 @@ defmodule Elektrine.Accounts.User do
     |> put_change(:banned, false)
     |> put_change(:banned_at, nil)
     |> put_change(:banned_reason, nil)
+  end
+
+  @doc """
+  A changeset for enabling two-factor authentication.
+  """
+  def enable_two_factor_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:two_factor_secret, :two_factor_backup_codes])
+    |> validate_required([:two_factor_secret, :two_factor_backup_codes])
+    |> put_change(:two_factor_enabled, true)
+    |> put_change(:two_factor_enabled_at, DateTime.utc_now() |> DateTime.truncate(:second))
+  end
+
+  @doc """
+  A changeset for disabling two-factor authentication.
+  """
+  def disable_two_factor_changeset(user, _attrs \\ %{}) do
+    user
+    |> cast(%{}, [])
+    |> put_change(:two_factor_enabled, false)
+    |> put_change(:two_factor_secret, nil)
+    |> put_change(:two_factor_backup_codes, nil)
+    |> put_change(:two_factor_enabled_at, nil)
+  end
+
+  @doc """
+  A changeset for updating backup codes after one is used.
+  """
+  def update_backup_codes_changeset(user, remaining_codes) do
+    user
+    |> cast(%{}, [])
+    |> put_change(:two_factor_backup_codes, remaining_codes)
   end
 
   @doc """

@@ -282,22 +282,85 @@ defmodule ElektrineWeb.EmailController do
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <base target="_blank">
             <style>
-              body { 
+              html, body { 
                 margin: 0; 
-                padding: 20px; 
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow-x: auto;
+                overflow-y: auto;
+                box-sizing: border-box;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 line-height: 1.6;
                 color: #333;
               }
+              body {
+                padding: 20px;
+              }
+              
+              /* Ensure all content respects container boundaries */
+              * {
+                max-width: 100% !important;
+                box-sizing: border-box;
+              }
+              
+              /* Handle tables that might be too wide */
+              table {
+                table-layout: fixed !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+              }
+              
+              /* Force table cells to wrap */
+              td, th {
+                word-wrap: break-word !important;
+                word-break: break-word !important;
+                overflow-wrap: break-word !important;
+                max-width: 0 !important;
+              }
+              
+              /* Handle images */
+              img {
+                max-width: 100% !important;
+                height: auto !important;
+                display: block !important;
+              }
+              
+              /* Handle pre-formatted text */
               pre { 
-                white-space: pre-wrap; 
-                word-wrap: break-word; 
-                word-break: break-word;
-                overflow-wrap: break-word;
+                white-space: pre-wrap !important; 
+                word-wrap: break-word !important; 
+                word-break: break-word !important;
+                overflow-wrap: break-word !important;
+                overflow-x: auto !important;
                 font-family: inherit;
                 font-size: 14px;
                 line-height: 1.6;
                 margin: 0;
+                max-width: 100% !important;
+              }
+              
+              /* Handle divs and other containers */
+              div, p, span {
+                word-wrap: break-word !important;
+                word-break: break-word !important;
+                overflow-wrap: break-word !important;
+              }
+              
+              /* Handle any fixed-width elements */
+              [width] {
+                max-width: 100% !important;
+                width: auto !important;
+              }
+              
+              /* Ensure viewport meta works */
+              @media (max-width: 768px) {
+                body {
+                  padding: 10px;
+                }
+                table {
+                  font-size: 14px !important;
+                }
               }
             </style>
           </head>

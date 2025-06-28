@@ -9,6 +9,7 @@ defmodule Elektrine.Accounts do
 
   alias Elektrine.Accounts.User
   alias Elektrine.Accounts.AccountDeletionRequest
+  alias Elektrine.Accounts.TwoFactor
 
   @doc """
   Returns the list of users.
@@ -488,5 +489,101 @@ defmodule Elektrine.Accounts do
       {:error, changeset} ->
         {:error, changeset}
     end
+  end
+
+  # Two-Factor Authentication functions
+
+  @doc """
+  Initiates 2FA setup for a user by generating a secret and backup codes.
+  
+  Returns the secret and provisioning URI for QR code generation.
+  """
+  def initiate_two_factor_setup(%User{} = user) do
+    try do
+      secret = TwoFactor.generate_secret()
+      backup_codes = TwoFactor.generate_backup_codes()
+      provisioning_uri = TwoFactor.generate_provisioning_uri(secret, user.username)
+      
+      {:ok, %{secret: secret, backup_codes: backup_codes, provisioning_uri: provisioning_uri}}
+    rescue
+      _ -> {:error, :setup_failed}
+    end
+  end
+
+  @doc """
+  Enables 2FA for a user after verifying the TOTP code.
+  """
+  def enable_two_factor(%User{} = user, secret, backup_codes, totp_code) do
+    if TwoFactor.verify_totp(secret, totp_code) do
+      user
+      |> User.enable_two_factor_changeset(%{
+        two_factor_secret: secret,
+        two_factor_backup_codes: backup_codes
+      })
+      |> Repo.update()
+    else
+      {:error, :invalid_totp_code}
+    end
+  end
+
+  @doc """
+  Disables 2FA for a user.
+  """
+  def disable_two_factor(%User{} = user) do
+    user
+    |> User.disable_two_factor_changeset()
+    |> Repo.update()
+  end
+
+  @doc """
+  Verifies a 2FA code (TOTP or backup code) for a user.
+  """
+  def verify_two_factor_code(%User{two_factor_enabled: true} = user, code) do
+    cond do
+      TwoFactor.verify_totp(user.two_factor_secret, code) ->
+        {:ok, :totp}
+
+      user.two_factor_backup_codes != nil ->
+        case TwoFactor.verify_backup_code(user.two_factor_backup_codes, code) do
+          {:ok, remaining_codes} ->
+            # Update user with remaining backup codes
+            user
+            |> User.update_backup_codes_changeset(remaining_codes)
+            |> Repo.update()
+            
+            {:ok, :backup_code}
+
+          {:error, :invalid} ->
+            {:error, :invalid_code}
+        end
+
+      true ->
+        {:error, :invalid_code}
+    end
+  end
+
+  def verify_two_factor_code(%User{two_factor_enabled: false}, _code) do
+    {:error, :two_factor_not_enabled}
+  end
+
+  @doc """
+  Regenerates backup codes for a user with 2FA enabled.
+  """
+  def regenerate_backup_codes(%User{two_factor_enabled: true} = user) do
+    backup_codes = TwoFactor.generate_backup_codes()
+    
+    result = 
+      user
+      |> User.update_backup_codes_changeset(backup_codes)
+      |> Repo.update()
+    
+    case result do
+      {:ok, updated_user} -> {:ok, {updated_user, backup_codes}}
+      error -> error
+    end
+  end
+
+  def regenerate_backup_codes(%User{two_factor_enabled: false}) do
+    {:error, :two_factor_not_enabled}
   end
 end

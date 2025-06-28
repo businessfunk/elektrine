@@ -1087,28 +1087,64 @@ const Hooks = {
           // Reset height to allow shrinking
           iframe.style.height = 'auto'
           
-          // Get the content height
-          const contentHeight = iframe.contentWindow.document.body.scrollHeight
+          // Get the content document
+          const contentDoc = iframe.contentWindow.document
+          const contentBody = contentDoc.body
+          
+          // Ensure the iframe content has proper overflow handling
+          contentBody.style.overflowX = 'auto'
+          contentBody.style.overflowY = 'auto'
+          contentBody.style.wordWrap = 'break-word'
+          contentBody.style.wordBreak = 'break-word'
+          contentBody.style.maxWidth = '100%'
+          
+          // Get the actual content height, accounting for scrollbars
+          const contentHeight = Math.max(
+            contentBody.scrollHeight,
+            contentBody.offsetHeight,
+            contentDoc.documentElement.scrollHeight,
+            contentDoc.documentElement.offsetHeight
+          )
           
           // Set minimum height of 400px, maximum of viewport height - 200px
           const maxHeight = window.innerHeight - 200
           const newHeight = Math.max(400, Math.min(contentHeight + 40, maxHeight))
           
           iframe.style.height = newHeight + 'px'
+          
+          // Ensure the iframe itself handles overflow properly
+          iframe.style.overflowX = 'auto'
+          iframe.style.overflowY = 'auto'
+          
         } catch (e) {
           // Cross-origin or other errors, use default height
           console.log('Could not resize iframe:', e)
+          iframe.style.height = '600px'
         }
       }
       
       // Resize on load
       iframe.addEventListener('load', resizeIframe)
       
-      // Also try to resize after a short delay (for dynamic content)
+      // Also try to resize after delays (for dynamic content)
       iframe.addEventListener('load', () => {
         setTimeout(resizeIframe, 100)
         setTimeout(resizeIframe, 500)
+        setTimeout(resizeIframe, 1000) // Give more time for complex layouts
       })
+      
+      // Handle window resize events
+      window.addEventListener('resize', resizeIframe)
+      
+      // Store the resize function for cleanup
+      this.resizeFunction = resizeIframe
+    },
+    
+    destroyed() {
+      // Clean up event listener
+      if (this.resizeFunction) {
+        window.removeEventListener('resize', this.resizeFunction)
+      }
     }
   }
 }

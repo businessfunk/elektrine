@@ -1,0 +1,167 @@
+<div class="max-w-2xl mx-auto p-4">
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold mb-2">Manage Two-Factor Authentication</h1>
+    <p class="text-base-content/70">Your account is protected with two-factor authentication</p>
+  </div>
+
+  <div class="card bg-base-200 shadow-xl">
+    <div class="card-body">
+      <!-- Status Section -->
+      <div class="flex items-center gap-4 mb-6">
+        <.icon name="hero-shield-check" class="w-12 h-12 text-success" />
+        <div>
+          <h2 class="text-xl font-bold">Two-Factor Authentication Enabled</h2>
+          <p class="text-base-content/70">Your account is protected with 2FA</p>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Backup Codes Section -->
+      <div class="space-y-4">
+        <h3 class="text-lg font-semibold">Backup Codes</h3>
+        <div class="alert">
+          <.icon name="hero-information-circle" class="w-6 h-6 shrink-0" />
+          <div>
+            <p>You have <span class="font-bold"><%= @backup_codes_count %></span> backup codes remaining.</p>
+            <p class="text-sm">Use backup codes to access your account if you lose your authenticator device.</p>
+          </div>
+        </div>
+        
+        <button
+          onclick="document.getElementById('regenerate_modal').showModal()"
+          class="btn btn-primary"
+        >
+          <.icon name="hero-arrow-path" class="w-4 h-4" />
+          Generate New Codes
+        </button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Disable 2FA Section -->
+      <div class="space-y-4">
+        <h3 class="text-lg font-semibold text-error">Danger Zone</h3>
+        <p class="text-sm text-base-content/70">
+          Disabling 2FA will make your account less secure. You'll need your current password and a 2FA code to confirm.
+        </p>
+        
+        <button
+          onclick="document.getElementById('disable_modal').showModal()"
+          class="btn btn-error btn-outline"
+        >
+          <.icon name="hero-shield-exclamation" class="w-4 h-4" />
+          Disable 2FA
+        </button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Navigation -->
+      <div class="card-actions">
+        <.link
+          href={~p"/account"}
+          class="btn btn-ghost"
+        >
+          <.icon name="hero-arrow-left" class="w-4 h-4" />
+          Back to account settings
+        </.link>
+      </div>
+    </div>
+  </div>
+
+  <!-- Regenerate Backup Codes Modal -->
+  <dialog id="regenerate_modal" class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4">Generate New Backup Codes</h3>
+      <p class="text-sm text-base-content/70 mb-4">
+        This will replace your existing backup codes. Make sure to save the new codes in a safe place.
+      </p>
+      
+      <.form for={%{}} as={:two_factor} action={~p"/account/two_factor/regenerate"}>
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Enter a code from your authenticator app to confirm</span>
+          </label>
+          <input
+            id="regenerate_code"
+            name="two_factor[code]"
+            type="text"
+            autocomplete="off"
+            required
+            class="input input-bordered font-mono text-center"
+            placeholder="000000"
+            maxlength="6"
+            pattern="[0-9]{6}"
+          />
+        </div>
+        
+        <div class="modal-action">
+          <button type="button" onclick="document.getElementById('regenerate_modal').close()" class="btn btn-ghost">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Generate New Codes
+          </button>
+        </div>
+      </.form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+
+  <!-- Disable 2FA Modal -->
+  <dialog id="disable_modal" class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4 text-error">Disable Two-Factor Authentication</h3>
+      <p class="text-sm text-base-content/70 mb-4">
+        Are you sure you want to disable 2FA? This will make your account less secure.
+      </p>
+      
+      <.form for={%{}} as={:two_factor} action={~p"/account/two_factor/disable"}>
+        <div class="form-control mb-4">
+          <label class="label">
+            <span class="label-text">Current Password</span>
+          </label>
+          <input
+            id="current_password"
+            name="two_factor[current_password]"
+            type="password"
+            required
+            class="input input-bordered"
+          />
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Authentication Code</span>
+          </label>
+          <input
+            id="disable_code"
+            name="two_factor[code]"
+            type="text"
+            autocomplete="off"
+            required
+            class="input input-bordered font-mono text-center"
+            placeholder="000000"
+            maxlength="6"
+            pattern="[0-9]{6}"
+          />
+        </div>
+        
+        <div class="modal-action">
+          <button type="button" onclick="document.getElementById('disable_modal').close()" class="btn btn-ghost">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-error">
+            Disable 2FA
+          </button>
+        </div>
+      </.form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+</div>

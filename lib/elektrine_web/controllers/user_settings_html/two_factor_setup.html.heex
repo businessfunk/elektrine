@@ -1,0 +1,185 @@
+<div class="max-w-4xl mx-auto p-4">
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold mb-2">Set Up Two-Factor Authentication</h1>
+    <p class="text-base-content/70">Secure your account with an authenticator app</p>
+  </div>
+
+  <div class="space-y-6">
+    <!-- Step 1: Install Authenticator App -->
+    <div class="card bg-base-200 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title">
+          <span class="badge badge-primary badge-lg">1</span>
+          Install an authenticator app
+        </h2>
+        <p class="text-sm mb-4">Download and install one of these apps on your mobile device:</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="card bg-base-100">
+            <div class="card-body p-4">
+              <div class="flex items-center gap-3">
+                <div class="avatar placeholder">
+                  <div class="bg-info text-info-content rounded-lg w-10">
+                    <span class="text-xl font-bold">G</span>
+                  </div>
+                </div>
+                <div>
+                  <h3 class="font-medium">Google Authenticator</h3>
+                  <p class="text-xs text-base-content/70">iOS & Android</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card bg-base-100">
+            <div class="card-body p-4">
+              <div class="flex items-center gap-3">
+                <div class="avatar placeholder">
+                  <div class="bg-success text-success-content rounded-lg w-10">
+                    <span class="text-xl font-bold">A</span>
+                  </div>
+                </div>
+                <div>
+                  <h3 class="font-medium">Authy</h3>
+                  <p class="text-xs text-base-content/70">iOS & Android</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card bg-base-100">
+            <div class="card-body p-4">
+              <div class="flex items-center gap-3">
+                <div class="avatar placeholder">
+                  <div class="bg-secondary text-secondary-content rounded-lg w-10">
+                    <span class="text-xl font-bold">M</span>
+                  </div>
+                </div>
+                <div>
+                  <h3 class="font-medium">Microsoft Authenticator</h3>
+                  <p class="text-xs text-base-content/70">iOS & Android</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Scan QR Code -->
+    <div class="card bg-base-200 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title">
+          <span class="badge badge-primary badge-lg">2</span>
+          Scan the QR code
+        </h2>
+        
+        <div class="flex flex-col items-center my-6">
+          <div class="bg-white p-4 rounded-lg shadow-lg">
+            <img 
+              src={"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=#{URI.encode(@provisioning_uri)}"} 
+              alt="QR Code for 2FA setup"
+              class="w-48 h-48"
+            />
+          </div>
+          <p class="text-sm mt-4 text-base-content/70">
+            Open your authenticator app and scan this QR code
+          </p>
+          
+          <div class="collapse collapse-arrow bg-base-100 mt-4 max-w-md">
+            <input type="checkbox" />
+            <div class="collapse-title text-sm">
+              Can't scan? Enter this code manually
+            </div>
+            <div class="collapse-content">
+              <div class="alert">
+                <div class="text-xs">
+                  <p><strong>Secret:</strong> <code class="font-mono"><%= @secret %></code></p>
+                  <p><strong>Issuer:</strong> Elektrine</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Backup Codes -->
+    <div class="card bg-base-200 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title">
+          <span class="badge badge-primary badge-lg">3</span>
+          Save your backup codes
+        </h2>
+        
+        <div class="alert alert-warning mb-4">
+          <.icon name="hero-exclamation-triangle" class="w-6 h-6 shrink-0" />
+          <div>
+            <h3 class="font-bold">Important: Save these backup codes</h3>
+            <div class="text-sm">Store these codes in a safe place. You can use them to access your account if you lose your phone.</div>
+          </div>
+        </div>
+        
+        <div class="bg-base-100 rounded-box p-4">
+          <div class="grid grid-cols-2 gap-3">
+            <%= for code <- @backup_codes do %>
+              <div class="badge badge-lg badge-outline font-mono p-4 w-full justify-center">
+                <%= code %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Verify -->
+    <div class="card bg-base-200 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title">
+          <span class="badge badge-primary badge-lg">4</span>
+          Verify your setup
+        </h2>
+        
+        <%= if assigns[:error] do %>
+          <div class="alert alert-error mb-4">
+            <.icon name="hero-x-circle" class="w-6 h-6 shrink-0" />
+            <span><%= @error %></span>
+          </div>
+        <% end %>
+
+        <.form for={%{}} as={:two_factor} action={~p"/account/two_factor/enable"}>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Enter the 6-digit code from your authenticator app</span>
+            </label>
+            <input
+              id="code"
+              name="two_factor[code]"
+              type="text"
+              autocomplete="off"
+              required
+              class="input input-bordered w-full max-w-xs font-mono text-lg text-center"
+              placeholder="000000"
+              maxlength="6"
+              pattern="[0-9]{6}"
+            />
+          </div>
+
+          <div class="card-actions justify-between mt-6">
+            <.link
+              href={~p"/account"}
+              class="btn btn-ghost"
+            >
+              <.icon name="hero-arrow-left" class="w-4 h-4" />
+              Back to settings
+            </.link>
+            
+            <button type="submit" class="btn btn-primary">
+              Enable Two-Factor Authentication
+            </button>
+          </div>
+        </.form>
+      </div>
+    </div>
+  </div>
+</div>

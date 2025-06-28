@@ -96,6 +96,32 @@
     <div class="divider"></div>
 
     <div class="mt-4">
+      <h2 class="text-xl font-semibold mb-4">Two-Factor Authentication</h2>
+      <%= if @user.two_factor_enabled do %>
+        <div class="flex items-center gap-2 mb-4">
+          <.icon name="hero-shield-check" class="w-5 h-5 text-success" />
+          <span class="text-success font-medium">Two-factor authentication is enabled</span>
+        </div>
+        <.link href={~p"/account/two_factor"} class="btn btn-outline btn-sm">
+          Manage 2FA
+        </.link>
+      <% else %>
+        <div class="flex items-center gap-2 mb-4">
+          <.icon name="hero-shield-exclamation" class="w-5 h-5 text-warning" />
+          <span class="text-warning font-medium">Two-factor authentication is disabled</span>
+        </div>
+        <p class="text-sm text-base-content/70 mb-4">
+          Add an extra layer of security to your account with two-factor authentication.
+        </p>
+        <.link href={~p"/account/two_factor/setup"} class="btn btn-primary btn-sm">
+          Enable 2FA
+        </.link>
+      <% end %>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="mt-4">
       <h2 class="text-xl font-semibold mb-4 text-error">Danger Zone</h2>
 
       <%= if @pending_deletion do %>

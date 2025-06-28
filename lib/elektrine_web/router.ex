@@ -52,6 +52,14 @@ defmodule ElektrineWeb.Router do
     post "/login", UserSessionController, :create
   end
 
+  # Two-factor authentication routes (accessible during login process)
+  scope "/", ElektrineWeb do
+    pipe_through :browser
+
+    get "/two_factor", TwoFactorController, :new
+    post "/two_factor", TwoFactorController, :create
+  end
+
   # Routes that require authentication
   scope "/", ElektrineWeb do
     pipe_through [:browser, :require_authenticated_user]
@@ -60,6 +68,11 @@ defmodule ElektrineWeb.Router do
     put "/account", UserSettingsController, :update
     get "/account/password", UserSettingsController, :edit_password
     put "/account/password", UserSettingsController, :update_password
+    get "/account/two_factor/setup", UserSettingsController, :two_factor_setup
+    post "/account/two_factor/enable", UserSettingsController, :two_factor_enable
+    get "/account/two_factor", UserSettingsController, :two_factor_manage
+    post "/account/two_factor/disable", UserSettingsController, :two_factor_disable
+    post "/account/two_factor/regenerate", UserSettingsController, :two_factor_regenerate_codes
     get "/account/delete", UserSettingsController, :delete
     delete "/account", UserSettingsController, :confirm_delete
 

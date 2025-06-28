@@ -1,0 +1,63 @@
+<div class="min-h-screen flex items-center justify-center p-4">
+  <div class="card bg-base-200 shadow-xl w-full max-w-md">
+    <div class="card-body">
+      <h1 class="card-title text-2xl justify-center mb-2">
+        Two-Factor Authentication
+      </h1>
+      <p class="text-center text-base-content/70 mb-6">
+        Enter the authentication code from your authenticator app
+      </p>
+
+      <.form for={%{}} as={:two_factor} action={~p"/two_factor"}>
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Authentication Code</span>
+          </label>
+          <input
+            id="code"
+            name="two_factor[code]"
+            type="text"
+            autocomplete="off"
+            required
+            class="input input-bordered font-mono text-xl text-center"
+            placeholder="000000"
+            maxlength="8"
+            pattern="[0-9A-Z]{6,8}"
+          />
+          <label class="label">
+            <span class="label-text-alt">Enter your 6-digit code or backup code</span>
+          </label>
+        </div>
+
+        <%= if @error_message do %>
+          <div class="alert alert-error mt-4">
+            <.icon name="hero-x-circle" class="w-6 h-6 shrink-0" />
+            <span><%= @error_message %></span>
+          </div>
+        <% end %>
+
+        <div class="form-control mt-6">
+          <button type="submit" class="btn btn-primary">
+            Verify
+          </button>
+        </div>
+      </.form>
+
+      <div class="divider">OR</div>
+
+      <div class="text-center">
+        <p class="text-sm text-base-content/70 mb-4">
+          Lost your authenticator device? You can use a backup code instead.
+        </p>
+        
+        <.link
+          href={~p"/login"}
+          class="link link-primary"
+        >
+          <.icon name="hero-arrow-left" class="w-4 h-4 inline" />
+          Back to login
+        </.link>
+      </div>
+    </div>
+  </div>
+</div>
