@@ -570,7 +570,7 @@
                                     <%= if MapSet.member?(@selected_messages, message.id) || @select_all_pages do %>
                                       ✓
                                     <% else %>
-                                      {String.first(message.from) |> String.upcase()}
+                                      {get_sender_initials(message.from)}
                                     <% end %>
                                   </span>
                                 </div>

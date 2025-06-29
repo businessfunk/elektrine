@@ -58,7 +58,7 @@
                             <div class="avatar placeholder">
                               <div class="bg-secondary/20 text-secondary rounded-full w-8 h-8">
                                 <span class="text-xs font-bold">
-                                  {String.first(message.from) |> String.upcase()}
+                                  {get_sender_initials(message.from)}
                                 </span>
                               </div>
                             </div>
