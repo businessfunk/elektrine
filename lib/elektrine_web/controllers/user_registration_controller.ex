@@ -19,13 +19,30 @@ defmodule ElektrineWeb.UserRegistrationController do
     # Try without IP first, as remoteip is optional for hCaptcha
     case HCaptcha.verify(captcha_token, nil) do
       {:ok, :verified} ->
-        case Accounts.create_user(user_params) do
-          {:ok, user} ->
-            conn
-            |> put_flash(:info, "User created successfully.")
-            |> UserAuth.log_in_user(user)
+        # Validate invite code
+        invite_code = Map.get(user_params, "invite_code", "")
+        
+        case Accounts.validate_invite_code(invite_code) do
+          {:ok, _invite_code} ->
+            case Accounts.create_user(user_params) do
+              {:ok, user} ->
+                # Use the invite code
+                Accounts.use_invite_code(invite_code, user.id)
+                
+                conn
+                |> put_flash(:info, "User created successfully.")
+                |> UserAuth.log_in_user(user)
 
-          {:error, %Ecto.Changeset{} = changeset} ->
+              {:error, %Ecto.Changeset{} = changeset} ->
+                render(conn, :new, changeset: changeset)
+            end
+            
+          {:error, reason} ->
+            changeset =
+              %User{}
+              |> Accounts.change_user_registration(user_params)
+              |> Ecto.Changeset.add_error(:invite_code, invite_code_error_message(reason))
+            
             render(conn, :new, changeset: changeset)
         end
 
@@ -69,4 +86,10 @@ defmodule ElektrineWeb.UserRegistrationController do
         |> to_string()
     end
   end
+  
+  defp invite_code_error_message(:invalid_code), do: "Invalid invite code"
+  defp invite_code_error_message(:code_expired), do: "This invite code has expired"
+  defp invite_code_error_message(:code_exhausted), do: "This invite code has reached its usage limit"
+  defp invite_code_error_message(:code_inactive), do: "This invite code is no longer active"
+  defp invite_code_error_message(_), do: "Invalid invite code"
 end

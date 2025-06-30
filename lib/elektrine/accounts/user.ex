@@ -8,6 +8,7 @@ defmodule Elektrine.Accounts.User do
     field :password, :string, virtual: true
     field :password_confirmation, :string, virtual: true
     field :current_password, :string, virtual: true
+    field :invite_code, :string, virtual: true
     field :avatar, :string
     field :last_username_change_at, :utc_datetime
     field :is_admin, :boolean, default: false
@@ -27,7 +28,7 @@ defmodule Elektrine.Accounts.User do
   """
   def registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:username, :password, :password_confirmation])
+    |> cast(attrs, [:username, :password, :password_confirmation, :invite_code])
     |> validate_required([:username, :password, :password_confirmation])
     |> validate_length(:username, min: 1, max: 30)
     |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/,

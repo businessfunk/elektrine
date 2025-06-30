@@ -128,6 +128,14 @@ defmodule ElektrineWeb.Router do
     get "/deletion-requests/:id", AdminController, :show_deletion_request
     post "/deletion-requests/:id/approve", AdminController, :approve_deletion_request
     post "/deletion-requests/:id/deny", AdminController, :deny_deletion_request
+    
+    # Invite codes management
+    get "/invite-codes", AdminController, :invite_codes
+    get "/invite-codes/new", AdminController, :new_invite_code
+    post "/invite-codes", AdminController, :create_invite_code
+    get "/invite-codes/:id/edit", AdminController, :edit_invite_code
+    put "/invite-codes/:id", AdminController, :update_invite_code
+    delete "/invite-codes/:id", AdminController, :delete_invite_code
   end
 
   # Routes for all users (authenticated or not)

@@ -7,13 +7,16 @@ defmodule ElektrineWeb.AdminController do
   plug :put_layout, html: {ElektrineWeb.Layouts, :admin}
 
   def dashboard(conn, _params) do
+    invite_code_stats = Accounts.get_invite_code_stats()
+    
     stats = %{
       total_users: get_user_count(),
       total_mailboxes: get_mailbox_count(),
       total_messages: get_message_count(),
       temp_mailboxes: get_temp_mailbox_count(),
       recent_users: get_recent_users(),
-      pending_deletions: get_pending_deletion_count()
+      pending_deletions: get_pending_deletion_count(),
+      invite_codes_active: invite_code_stats.active
     }
 
     render(conn, :dashboard, stats: stats)
@@ -361,5 +364,61 @@ defmodule ElektrineWeb.AdminController do
       where: r.status == "pending"
     )
     |> Repo.aggregate(:count)
+  end
+  
+  # Invite Code management
+  
+  def invite_codes(conn, _params) do
+    invite_codes = Accounts.list_invite_codes()
+    stats = Accounts.get_invite_code_stats()
+    render(conn, :invite_codes, invite_codes: invite_codes, stats: stats)
+  end
+  
+  def new_invite_code(conn, _params) do
+    changeset = Accounts.change_invite_code(%Elektrine.Accounts.InviteCode{})
+    render(conn, :new_invite_code, changeset: changeset)
+  end
+  
+  def create_invite_code(conn, %{"invite_code" => invite_code_params}) do
+    invite_code_params = Map.put(invite_code_params, "created_by_id", conn.assigns.current_user.id)
+    
+    case Accounts.create_invite_code(invite_code_params) do
+      {:ok, _invite_code} ->
+        conn
+        |> put_flash(:info, "Invite code created successfully.")
+        |> redirect(to: ~p"/admin/invite-codes")
+        
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render(conn, :new_invite_code, changeset: changeset)
+    end
+  end
+  
+  def edit_invite_code(conn, %{"id" => id}) do
+    invite_code = Accounts.get_invite_code(id)
+    changeset = Accounts.change_invite_code(invite_code)
+    render(conn, :edit_invite_code, invite_code: invite_code, changeset: changeset)
+  end
+  
+  def update_invite_code(conn, %{"id" => id, "invite_code" => invite_code_params}) do
+    invite_code = Accounts.get_invite_code(id)
+    
+    case Accounts.update_invite_code(invite_code, invite_code_params) do
+      {:ok, _invite_code} ->
+        conn
+        |> put_flash(:info, "Invite code updated successfully.")
+        |> redirect(to: ~p"/admin/invite-codes")
+        
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render(conn, :edit_invite_code, invite_code: invite_code, changeset: changeset)
+    end
+  end
+  
+  def delete_invite_code(conn, %{"id" => id}) do
+    invite_code = Accounts.get_invite_code(id)
+    {:ok, _invite_code} = Accounts.delete_invite_code(invite_code)
+    
+    conn
+    |> put_flash(:info, "Invite code deleted successfully.")
+    |> redirect(to: ~p"/admin/invite-codes")
   end
 end

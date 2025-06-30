@@ -125,7 +125,7 @@
     </div>
   <% end %>
   
-<!-- Additional Stats Card for Deletion Requests -->
+<!-- Additional Stats Cards -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="stat bg-base-100 shadow rounded-lg">
       <div class="stat-figure text-error">
@@ -136,6 +136,19 @@
       <div class="stat-desc">
         <.link href={~p"/admin/deletion-requests"} class="link link-error">
           Review →
+        </.link>
+      </div>
+    </div>
+    
+    <div class="stat bg-base-100 shadow rounded-lg">
+      <div class="stat-figure text-info">
+        <.icon name="hero-ticket" class="w-8 h-8" />
+      </div>
+      <div class="stat-title">Invite Codes</div>
+      <div class="stat-value text-info">{Map.get(@stats, :invite_codes_active, 0)}</div>
+      <div class="stat-desc">
+        <.link href={~p"/admin/invite-codes"} class="link link-info">
+          Manage →
         </.link>
       </div>
     </div>

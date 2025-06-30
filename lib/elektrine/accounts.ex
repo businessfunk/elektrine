@@ -10,6 +10,8 @@ defmodule Elektrine.Accounts do
   alias Elektrine.Accounts.User
   alias Elektrine.Accounts.AccountDeletionRequest
   alias Elektrine.Accounts.TwoFactor
+  alias Elektrine.Accounts.InviteCode
+  alias Elektrine.Accounts.InviteCodeUse
 
   @doc """
   Returns the list of users.
@@ -627,5 +629,137 @@ defmodule Elektrine.Accounts do
 
   def regenerate_backup_codes(%User{two_factor_enabled: false}) do
     {:error, :two_factor_not_enabled}
+  end
+
+  ## Invite Codes
+
+  @doc """
+  Returns the list of invite codes.
+  """
+  def list_invite_codes do
+    InviteCode
+    |> order_by(desc: :inserted_at)
+    |> preload(:created_by)
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets a single invite code.
+
+  Returns nil if the InviteCode does not exist.
+  """
+  def get_invite_code(id), do: Repo.get(InviteCode, id) |> Repo.preload(:created_by)
+
+  @doc """
+  Gets an invite code by its code string.
+
+  Returns nil if the InviteCode does not exist.
+  """
+  def get_invite_code_by_code(code) do
+    InviteCode
+    |> where([i], i.code == ^code)
+    |> preload(:created_by)
+    |> Repo.one()
+  end
+
+  @doc """
+  Creates an invite code.
+  """
+  def create_invite_code(attrs \\ %{}) do
+    # Convert atom keys to string keys
+    attrs = 
+      attrs
+      |> Enum.map(fn {k, v} -> {to_string(k), v} end)
+      |> Enum.into(%{})
+    
+    # Only generate code if not provided
+    attrs = 
+      if attrs["code"] == nil || attrs["code"] == "" do
+        Map.put(attrs, "code", InviteCode.generate_code())
+      else
+        attrs
+      end
+    
+    %InviteCode{}
+    |> InviteCode.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates an invite code.
+  """
+  def update_invite_code(%InviteCode{} = invite_code, attrs) do
+    invite_code
+    |> InviteCode.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes an invite code.
+  """
+  def delete_invite_code(%InviteCode{} = invite_code) do
+    Repo.delete(invite_code)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking invite code changes.
+  """
+  def change_invite_code(%InviteCode{} = invite_code, attrs \\ %{}) do
+    InviteCode.changeset(invite_code, attrs)
+  end
+
+  @doc """
+  Validates and uses an invite code for a user registration.
+  """
+  def use_invite_code(code, user_id) do
+    with %InviteCode{} = invite_code <- get_invite_code_by_code(code),
+         true <- InviteCode.valid_for_use?(invite_code) do
+      Repo.transaction(fn ->
+        # Create the usage record
+        %InviteCodeUse{}
+        |> InviteCodeUse.changeset(%{invite_code_id: invite_code.id, user_id: user_id})
+        |> Repo.insert!()
+
+        # Increment the uses count
+        invite_code
+        |> Ecto.Changeset.change(uses_count: invite_code.uses_count + 1)
+        |> Repo.update!()
+      end)
+    else
+      nil -> {:error, :invalid_code}
+      false -> {:error, :code_not_valid}
+    end
+  end
+
+  @doc """
+  Checks if an invite code is valid for use.
+  """
+  def validate_invite_code(code) do
+    case get_invite_code_by_code(code) do
+      nil -> {:error, :invalid_code}
+      %InviteCode{} = invite_code ->
+        if InviteCode.valid_for_use?(invite_code) do
+          {:ok, invite_code}
+        else
+          cond do
+            !invite_code.is_active -> {:error, :code_inactive}
+            InviteCode.expired?(invite_code) -> {:error, :code_expired}
+            InviteCode.exhausted?(invite_code) -> {:error, :code_exhausted}
+            true -> {:error, :code_not_valid}
+          end
+        end
+    end
+  end
+
+  @doc """
+  Gets statistics for invite codes.
+  """
+  def get_invite_code_stats do
+    %{
+      total: Repo.aggregate(InviteCode, :count),
+      active: Repo.aggregate(from(i in InviteCode, where: i.is_active == true), :count),
+      expired: Repo.aggregate(from(i in InviteCode, where: not is_nil(i.expires_at) and i.expires_at < ^DateTime.utc_now()), :count),
+      exhausted: Repo.aggregate(from(i in InviteCode, where: i.uses_count >= i.max_uses), :count)
+    }
   end
 end

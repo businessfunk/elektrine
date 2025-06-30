@@ -62,6 +62,19 @@
           </.link>
         </li>
         <li>
+          <.link
+            href={~p"/admin/invite-codes"}
+            class={
+              if assigns[:conn] &&
+                   String.starts_with?(@conn.request_path, "/admin/invite-codes"),
+                 do: "active",
+                 else: ""
+            }
+          >
+            <.icon name="hero-ticket" class="w-4 h-4" /> Invite Codes
+          </.link>
+        </li>
+        <li>
           <.link href={~p"/admin/dashboard"}>
             <.icon name="hero-computer-desktop" class="w-4 h-4" /> System Dashboard
           </.link>
@@ -125,6 +138,19 @@
           }
         >
           Deletion Requests
+        </.link>
+      </li>
+      <li>
+        <.link
+          href={~p"/admin/invite-codes"}
+          class={
+            if assigns[:conn] &&
+                 String.starts_with?(@conn.request_path, "/admin/invite-codes"),
+               do: "active",
+               else: ""
+          }
+        >
+          Invite Codes
         </.link>
       </li>
       <li>
