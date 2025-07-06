@@ -314,6 +314,7 @@ defmodule ElektrineWeb.EmailController do
           
           conn
           |> put_resp_content_type("text/html")
+          |> put_resp_header("content-security-policy", "default-src 'self'; img-src * data: https:; style-src 'unsafe-inline' *; font-src *;")
           |> send_resp(200, """
           <!DOCTYPE html>
           <html>

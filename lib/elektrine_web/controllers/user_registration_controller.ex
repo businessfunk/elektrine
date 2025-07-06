@@ -8,7 +8,8 @@ defmodule ElektrineWeb.UserRegistrationController do
 
   def new(conn, _params) do
     changeset = Accounts.change_user_registration(%User{})
-    render(conn, :new, changeset: changeset)
+    invite_codes_enabled = Elektrine.System.invite_codes_enabled?()
+    render(conn, :new, changeset: changeset, invite_codes_enabled: invite_codes_enabled)
   end
 
   def create(conn, %{"user" => user_params, "h-captcha-response" => captcha_token}) do
@@ -19,31 +20,48 @@ defmodule ElektrineWeb.UserRegistrationController do
     # Try without IP first, as remoteip is optional for hCaptcha
     case HCaptcha.verify(captcha_token, nil) do
       {:ok, :verified} ->
-        # Validate invite code
-        invite_code = Map.get(user_params, "invite_code", "")
-        
-        case Accounts.validate_invite_code(invite_code) do
-          {:ok, _invite_code} ->
-            case Accounts.create_user(user_params) do
-              {:ok, user} ->
-                # Use the invite code
-                Accounts.use_invite_code(invite_code, user.id)
-                
-                conn
-                |> put_flash(:info, "User created successfully.")
-                |> UserAuth.log_in_user(user)
+        # Check if invite codes are enabled
+        if Elektrine.System.invite_codes_enabled?() do
+          # Validate invite code
+          invite_code = Map.get(user_params, "invite_code", "")
+          
+          case Accounts.validate_invite_code(invite_code) do
+            {:ok, _invite_code} ->
+              case Accounts.create_user(user_params) do
+                {:ok, user} ->
+                  # Use the invite code
+                  Accounts.use_invite_code(invite_code, user.id)
+                  
+                  conn
+                  |> put_flash(:info, "User created successfully.")
+                  |> UserAuth.log_in_user(user)
 
-              {:error, %Ecto.Changeset{} = changeset} ->
-                render(conn, :new, changeset: changeset)
-            end
-            
-          {:error, reason} ->
-            changeset =
-              %User{}
-              |> Accounts.change_user_registration(user_params)
-              |> Ecto.Changeset.add_error(:invite_code, invite_code_error_message(reason))
-            
-            render(conn, :new, changeset: changeset)
+                {:error, %Ecto.Changeset{} = changeset} ->
+                  invite_codes_enabled = Elektrine.System.invite_codes_enabled?()
+                  render(conn, :new, changeset: changeset, invite_codes_enabled: invite_codes_enabled)
+              end
+              
+            {:error, reason} ->
+              changeset =
+                %User{}
+                |> Accounts.change_user_registration(user_params)
+                |> Ecto.Changeset.add_error(:invite_code, invite_code_error_message(reason))
+              
+              invite_codes_enabled = Elektrine.System.invite_codes_enabled?()
+              render(conn, :new, changeset: changeset, invite_codes_enabled: invite_codes_enabled)
+          end
+        else
+          # Invite codes disabled, proceed with normal registration
+          case Accounts.create_user(user_params) do
+            {:ok, user} ->
+              conn
+              |> put_flash(:info, "User created successfully.")
+              |> UserAuth.log_in_user(user)
+
+            {:error, %Ecto.Changeset{} = changeset} ->
+              invite_codes_enabled = Elektrine.System.invite_codes_enabled?()
+              render(conn, :new, changeset: changeset, invite_codes_enabled: invite_codes_enabled)
+          end
         end
 
       {:error, reason} ->
@@ -56,7 +74,8 @@ defmodule ElektrineWeb.UserRegistrationController do
           |> Accounts.change_user_registration(user_params)
           |> Ecto.Changeset.add_error(:captcha, "Please complete the captcha verification")
 
-        render(conn, :new, changeset: changeset)
+        invite_codes_enabled = Elektrine.System.invite_codes_enabled?()
+        render(conn, :new, changeset: changeset, invite_codes_enabled: invite_codes_enabled)
     end
   end
 
@@ -67,7 +86,8 @@ defmodule ElektrineWeb.UserRegistrationController do
       |> Accounts.change_user_registration(user_params)
       |> Ecto.Changeset.add_error(:captcha, "Please complete the captcha verification")
 
-    render(conn, :new, changeset: changeset)
+    invite_codes_enabled = Elektrine.System.invite_codes_enabled?()
+    render(conn, :new, changeset: changeset, invite_codes_enabled: invite_codes_enabled)
   end
 
   defp get_remote_ip(conn) do

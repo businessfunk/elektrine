@@ -29,18 +29,97 @@
                 </button>
               </div>
 
-              <div class="flex flex-col items-center justify-center py-16">
-                <div class="p-4 bg-base-200 rounded-full mb-6">
-                  <.icon name="hero-envelope" class="h-16 w-16 text-base-content/40" />
+              <%= if @existing_temp_mailbox do %>
+                <!-- Show existing temporary mailbox -->
+                <div class="bg-info/10 border border-info/20 rounded-lg p-6 mb-6">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <div class="p-2 bg-info/20 rounded-lg">
+                        <.icon name="hero-envelope" class="h-6 w-6 text-info" />
+                      </div>
+                      <div>
+                        <h3 class="font-semibold">Your temporary email</h3>
+                        <p class="text-sm font-mono break-all">{@existing_temp_mailbox.email}</p>
+                        <p class="text-xs text-base-content/70">
+                          Expires in {format_expiry(@existing_temp_mailbox.expires_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <.link href={~p"/email/temp/#{@existing_temp_mailbox.token}"} class="btn btn-primary btn-sm">
+                        <.icon name="hero-envelope-open" class="h-4 w-4 mr-1" /> View
+                      </.link>
+                      <button 
+                        phx-click="reset_temp_mailbox" 
+                        class="btn btn-outline btn-error btn-sm"
+                        data-confirm="This will delete your temporary mailbox and all its messages. Are you sure?"
+                      >
+                        <.icon name="hero-trash" class="h-4 w-4" /> Reset
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <h3 class="text-xl font-semibold mb-2">Create a temporary email</h3>
-                <p class="text-base-content/70 mb-6 text-center max-w-md">
-                  Temporary emails are perfect for sign-ups, trials, and one-time verifications. They expire automatically after 24 hours.
-                </p>
-                <button phx-click="create_temp_mailbox" class="btn btn-primary">
-                  <.icon name="hero-plus" class="h-5 w-5 mr-2" /> Create temporary email
-                </button>
-              </div>
+                
+                <!-- Extend expiration form -->
+                <div class="flex flex-col items-center justify-center py-8">
+                  <h3 class="text-lg font-semibold mb-2">Extend expiration time</h3>
+                  <p class="text-base-content/70 mb-6 text-center max-w-md">
+                    You can extend the expiration time of your existing temporary mailbox.
+                  </p>
+                  
+                  <form phx-submit="create_temp_mailbox" class="flex flex-col items-center gap-4">
+                    <div class="form-control">
+                      <label class="label">
+                        <span class="label-text">New expiration time</span>
+                      </label>
+                      <select name="expires_in" class="select select-bordered">
+                        <option value="1">1 hour</option>
+                        <option value="6">6 hours</option>
+                        <option value="24" selected>24 hours (1 day)</option>
+                        <option value="72">3 days</option>
+                        <option value="168">7 days</option>
+                        <option value="720">30 days</option>
+                      </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-outline">
+                      <.icon name="hero-clock" class="h-5 w-5 mr-2" /> Extend expiration
+                    </button>
+                  </form>
+                </div>
+              <% else %>
+                <!-- Create new temporary mailbox -->
+                <div class="flex flex-col items-center justify-center py-16">
+                  <div class="p-4 bg-base-200 rounded-full mb-6">
+                    <.icon name="hero-envelope" class="h-16 w-16 text-base-content/40" />
+                  </div>
+                  <h3 class="text-xl font-semibold mb-2">Create a temporary email</h3>
+                  <p class="text-base-content/70 mb-6 text-center max-w-md">
+                    Temporary emails are perfect for sign-ups, trials, and one-time verifications. 
+                    Choose how long you want your temporary email to remain active.
+                  </p>
+                  
+                  <form phx-submit="create_temp_mailbox" class="flex flex-col items-center gap-4">
+                    <div class="form-control">
+                      <label class="label">
+                        <span class="label-text">Expiration time</span>
+                      </label>
+                      <select name="expires_in" class="select select-bordered">
+                        <option value="1">1 hour</option>
+                        <option value="6">6 hours</option>
+                        <option value="24" selected>24 hours (1 day)</option>
+                        <option value="72">3 days</option>
+                        <option value="168">7 days</option>
+                        <option value="720">30 days</option>
+                      </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                      <.icon name="hero-plus" class="h-5 w-5 mr-2" /> Create temporary email
+                    </button>
+                  </form>
+                </div>
+              <% end %>
             <% :show -> %>
               <!-- Temporary Mailbox View -->
               <div class="flex items-center justify-between mb-6">
@@ -59,6 +138,13 @@
                   <div class="text-sm text-base-content/70">
                     Expires in {format_expiry(@current_temp_mailbox.expires_at)}
                   </div>
+                  <button 
+                    phx-click="reset_temp_mailbox" 
+                    class="btn btn-outline btn-error btn-sm"
+                    data-confirm="This will delete this temporary mailbox and all its messages. Are you sure?"
+                  >
+                    <.icon name="hero-trash" class="h-4 w-4" /> Reset
+                  </button>
                   <.link href={~p"/email/temp"} class="btn btn-ghost btn-sm">
                     <.icon name="hero-arrow-left" class="h-4 w-4" /> Back
                   </.link>

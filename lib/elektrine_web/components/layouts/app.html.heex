@@ -24,14 +24,6 @@
             About
           </a>
         </li>
-        <li>
-          <a
-            href="/contact"
-            class={if assigns[:conn] && @conn.request_path == "/contact", do: "active", else: ""}
-          >
-            Contact
-          </a>
-        </li>
         <%= if @current_user do %>
           <li class="menu-title mt-2">
             <span>Email</span>
@@ -125,14 +117,6 @@
           class={if assigns[:conn] && @conn.request_path == "/about", do: "active", else: ""}
         >
           About
-        </a>
-      </li>
-      <li>
-        <a
-          href="/contact"
-          class={if assigns[:conn] && @conn.request_path == "/contact", do: "active", else: ""}
-        >
-          Contact
         </a>
       </li>
       <%= if @current_user do %>

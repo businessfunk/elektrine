@@ -12,6 +12,7 @@ defmodule Elektrine.Email do
   alias Elektrine.Email.Message
   alias Elektrine.Email.TemporaryMailbox
   alias Elektrine.Email.ApprovedSender
+  alias Elektrine.Email.RejectedSender
   alias Elektrine.Email.Alias
 
   @doc """
@@ -571,6 +572,54 @@ defmodule Elektrine.Email do
   #
 
   @doc """
+  Gets or creates a temporary mailbox for a user.
+  If the user already has an active temporary mailbox, it updates the expiration time.
+  """
+  def get_or_create_user_temporary_mailbox(user_id, expires_in_hours \\ 24, domain \\ nil) do
+    # Check if user already has an active temporary mailbox
+    existing = TemporaryMailbox
+               |> where([m], m.user_id == ^user_id)
+               |> where([m], m.expires_at > ^DateTime.utc_now())
+               |> Repo.one()
+
+    capped_hours = min(expires_in_hours, 720)
+    expires_at = DateTime.utc_now() |> DateTime.add(capped_hours * 60 * 60, :second)
+
+    case existing do
+      nil ->
+        # Create new temporary mailbox for user
+        create_user_temporary_mailbox(user_id, expires_at, domain)
+      
+      mailbox ->
+        # Update expiration time of existing mailbox
+        mailbox
+        |> TemporaryMailbox.changeset(%{expires_at: expires_at})
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  Gets a user's active temporary mailbox.
+  """
+  def get_user_temporary_mailbox(user_id) do
+    TemporaryMailbox
+    |> where([m], m.user_id == ^user_id)
+    |> where([m], m.expires_at > ^DateTime.utc_now())
+    |> Repo.one()
+  end
+
+  @doc """
+  Resets (deletes) a user's temporary mailbox.
+  """
+  def reset_user_temporary_mailbox(user_id) do
+    TemporaryMailbox
+    |> where([m], m.user_id == ^user_id)
+    |> Repo.delete_all()
+    
+    :ok
+  end
+
+  @doc """
   Creates a new temporary mailbox with a random email address.
   The mailbox will expire after the specified duration (default: 24 hours, max: 30 days).
   Optionally accepts a domain override for multi-domain support.
@@ -584,6 +633,43 @@ defmodule Elektrine.Email do
 
     # Retry creation with unique email/token if there are conflicts
     create_temporary_mailbox_with_retry(expires_at, domain, 0)
+  end
+
+  defp create_user_temporary_mailbox(user_id, expires_at, domain) do
+    create_user_temporary_mailbox_with_retry(user_id, expires_at, domain, 0)
+  end
+
+  defp create_user_temporary_mailbox_with_retry(user_id, expires_at, domain, attempts) when attempts < 10 do
+    email = TemporaryMailbox.generate_email(domain)
+    token = TemporaryMailbox.generate_token()
+
+    case %TemporaryMailbox{}
+         |> TemporaryMailbox.changeset(%{
+           email: email,
+           token: token,
+           expires_at: expires_at,
+           user_id: user_id
+         })
+         |> Repo.insert() do
+      {:ok, mailbox} ->
+        {:ok, mailbox}
+
+      {:error, %Ecto.Changeset{errors: errors}} ->
+        has_unique_error =
+          Enum.any?(errors, fn {field, {_, opts}} ->
+            field in [:email, :token] and opts[:constraint] == :unique
+          end)
+
+        if has_unique_error do
+          create_user_temporary_mailbox_with_retry(user_id, expires_at, domain, attempts + 1)
+        else
+          {:error, %Ecto.Changeset{errors: errors}}
+        end
+    end
+  end
+
+  defp create_user_temporary_mailbox_with_retry(_user_id, _expires_at, _domain, _attempts) do
+    {:error, "Failed to create unique temporary mailbox after 10 attempts"}
   end
 
   defp create_temporary_mailbox_with_retry(expires_at, domain, attempts) when attempts < 10 do
@@ -735,13 +821,27 @@ defmodule Elektrine.Email do
   Returns messages pending approval in The Screener.
   """
   def list_screener_messages(mailbox_id, limit \\ 50, offset \\ 0) do
-    Message
-    |> where(mailbox_id: ^mailbox_id, screener_status: "pending")
-    |> where([m], not m.spam and not m.archived)
-    |> order_by(desc: :inserted_at)
-    |> limit(^limit)
-    |> offset(^offset)
-    |> Repo.all()
+    # Get list of rejected senders
+    rejected_emails = RejectedSender
+                     |> where(mailbox_id: ^mailbox_id)
+                     |> select([r], r.email_address)
+                     |> Repo.all()
+
+    query = Message
+            |> where(mailbox_id: ^mailbox_id, screener_status: "pending")
+            |> where([m], not m.spam and not m.archived)
+            |> order_by(desc: :inserted_at)
+            |> limit(^limit)
+            |> offset(^offset)
+
+    # Exclude messages from rejected senders if any exist
+    query = if length(rejected_emails) > 0 do
+      where(query, [m], m.from not in ^rejected_emails)
+    else
+      query
+    end
+
+    Repo.all(query)
   end
 
   @doc """
@@ -1120,9 +1220,12 @@ defmodule Elektrine.Email do
   Rejects a sender in The Screener.
   """
   def reject_sender(%Message{} = message) do
-    message
-    |> Message.reject_sender_changeset()
-    |> Repo.update()
+    # First update the message
+    with {:ok, updated_message} <- message |> Message.reject_sender_changeset() |> Repo.update(),
+         # Then add to rejected senders list
+         {:ok, _rejected_sender} <- create_or_update_rejected_sender(message.from, message.mailbox_id) do
+      {:ok, updated_message}
+    end
   end
 
   @doc """
@@ -1183,6 +1286,15 @@ defmodule Elektrine.Email do
   end
 
   @doc """
+  Checks if a sender is rejected for a mailbox.
+  """
+  def sender_rejected?(email_address, mailbox_id) do
+    RejectedSender
+    |> where(email_address: ^email_address, mailbox_id: ^mailbox_id)
+    |> Repo.exists?()
+  end
+
+  @doc """
   Creates an approved sender.
   """
   def create_approved_sender(attrs \\ %{}) do
@@ -1234,6 +1346,29 @@ defmodule Elektrine.Email do
       sender ->
         sender
         |> ApprovedSender.track_email_changeset()
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  Creates or updates a rejected sender record.
+  """
+  def create_or_update_rejected_sender(email_address, mailbox_id) do
+    case Repo.get_by(RejectedSender, email_address: email_address, mailbox_id: mailbox_id) do
+      nil ->
+        # Create new rejected sender
+        %RejectedSender{}
+        |> RejectedSender.changeset(%{
+          email_address: email_address,
+          mailbox_id: mailbox_id,
+          rejected_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+        |> Repo.insert()
+
+      rejected_sender ->
+        # Update existing rejected sender
+        rejected_sender
+        |> RejectedSender.track_rejection_changeset()
         |> Repo.update()
     end
   end

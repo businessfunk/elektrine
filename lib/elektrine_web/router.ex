@@ -23,8 +23,6 @@ defmodule ElektrineWeb.Router do
 
     get "/", PageController, :home
     get "/about", PageController, :about
-    get "/contact", PageController, :contact
-    post "/contact", PageController, :send_message
 
     # Temporary email LiveView routes
     live "/temp-mail", TemporaryMailboxLive.Index, :index
@@ -136,6 +134,7 @@ defmodule ElektrineWeb.Router do
     get "/invite-codes/:id/edit", AdminController, :edit_invite_code
     put "/invite-codes/:id", AdminController, :update_invite_code
     delete "/invite-codes/:id", AdminController, :delete_invite_code
+    post "/invite-codes/toggle-system", AdminController, :toggle_invite_system
   end
 
   # Routes for all users (authenticated or not)

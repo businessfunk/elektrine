@@ -8,6 +8,7 @@ defmodule Elektrine.Email.TemporaryMailbox do
     field :token, :string
     field :expires_at, :utc_datetime
 
+    belongs_to :user, Elektrine.Accounts.User
     has_many :messages, Elektrine.Email.Message, foreign_key: :mailbox_id
 
     timestamps(type: :utc_datetime)
@@ -18,7 +19,7 @@ defmodule Elektrine.Email.TemporaryMailbox do
   """
   def changeset(mailbox, attrs) do
     mailbox
-    |> cast(attrs, [:email, :token, :expires_at])
+    |> cast(attrs, [:email, :token, :expires_at, :user_id])
     |> validate_required([:email, :token, :expires_at])
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
     |> validate_length(:email, max: 160)

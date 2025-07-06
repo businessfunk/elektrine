@@ -9,6 +9,39 @@
     </.link>
   </div>
 
+  <!-- System Toggle -->
+  <div class={"alert mb-6 #{if @invite_codes_enabled, do: "alert-success", else: "alert-warning"}"}>
+    <div class="flex justify-between items-center w-full">
+      <div>
+        <h3 class="font-bold">Invite Code System</h3>
+        <div class="text-sm">
+          <%= if @invite_codes_enabled do %>
+            New users must provide a valid invite code to register.
+          <% else %>
+            Users can register without invite codes (open registration).
+          <% end %>
+        </div>
+      </div>
+      <div class="form-control">
+        <form method="post" action={~p"/admin/invite-codes/toggle-system"} id="toggle-form">
+          <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+          <input type="hidden" name="enabled" value="" id="enabled-value" />
+          <label class="label cursor-pointer">
+            <span class="label-text mr-3">
+              <%= if @invite_codes_enabled, do: "Enabled", else: "Disabled" %>
+            </span>
+            <input 
+              type="checkbox" 
+              class="toggle toggle-success" 
+              checked={@invite_codes_enabled}
+              onchange="document.getElementById('enabled-value').value = this.checked ? 'true' : 'false'; this.form.submit();"
+            />
+          </label>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Stats Cards -->
   <div class="stats shadow mb-6 bg-base-200">
     <div class="stat">

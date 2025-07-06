@@ -3,6 +3,8 @@ defmodule Elektrine.Accounts.TwoFactor do
   Provides functionality for Two-Factor Authentication using TOTP.
   """
 
+  alias NimbleTOTP
+
   @doc """
   Generates a new TOTP secret for a user.
   """

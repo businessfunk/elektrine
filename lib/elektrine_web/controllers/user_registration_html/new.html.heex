@@ -36,13 +36,15 @@
         required
       />
 
-      <.input
-        field={f[:invite_code]}
-        type="text"
-        label="Invite Code"
-        placeholder="Enter your invite code"
-        required
-      />
+      <%= if @invite_codes_enabled do %>
+        <.input
+          field={f[:invite_code]}
+          type="text"
+          label="Invite Code"
+          placeholder="Enter your invite code"
+          required
+        />
+      <% end %>
 
       <div class="form-control">
         <div

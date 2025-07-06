@@ -42,25 +42,27 @@ defmodule ElektrineWeb.EmailLive.TempMail do
   end
 
   defp handle_index(socket, mailbox, unread_count) do
-    # List all temporary mailboxes (both user-owned and anonymous ones from session)
-    temp_mailboxes = list_temp_mailboxes()
+    user_id = socket.assigns.current_user.id
+    existing_temp_mailbox = Email.get_user_temporary_mailbox(user_id)
 
     {:ok,
      socket
      |> assign(:page_title, "Temporary Email")
      |> assign(:mailbox, mailbox)
      |> assign(:unread_count, unread_count)
-     |> assign(:temp_mailboxes, temp_mailboxes)
+     |> assign(:temp_mailboxes, [])
+     |> assign(:existing_temp_mailbox, existing_temp_mailbox)
      |> assign(:current_temp_mailbox, nil)
      |> assign(:temp_messages, [])}
   end
 
   defp handle_index_params(socket) do
-    # List all temporary mailboxes (both user-owned and anonymous ones from session)
-    temp_mailboxes = list_temp_mailboxes()
+    user_id = socket.assigns.current_user.id
+    existing_temp_mailbox = Email.get_user_temporary_mailbox(user_id)
 
     socket
-    |> assign(:temp_mailboxes, temp_mailboxes)
+    |> assign(:temp_mailboxes, [])
+    |> assign(:existing_temp_mailbox, existing_temp_mailbox)
     |> assign(:current_temp_mailbox, nil)
     |> assign(:temp_messages, [])
   end
@@ -176,12 +178,15 @@ defmodule ElektrineWeb.EmailLive.TempMail do
   end
 
   @impl true
-  def handle_event("create_temp_mailbox", _params, socket) do
-    case Email.create_temporary_mailbox() do
+  def handle_event("create_temp_mailbox", params, socket) do
+    expires_in = Map.get(params, "expires_in", "24") |> String.to_integer()
+    user_id = socket.assigns.current_user.id
+    
+    case Email.get_or_create_user_temporary_mailbox(user_id, expires_in) do
       {:ok, temp_mailbox} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Temporary mailbox created successfully")
+         |> put_flash(:info, "Temporary mailbox ready")
          |> push_navigate(to: ~p"/email/temp/#{temp_mailbox.token}")}
 
       {:error, _changeset} ->
@@ -189,6 +194,17 @@ defmodule ElektrineWeb.EmailLive.TempMail do
          socket
          |> put_flash(:error, "Failed to create temporary mailbox")}
     end
+  end
+
+  @impl true
+  def handle_event("reset_temp_mailbox", _params, socket) do
+    user_id = socket.assigns.current_user.id
+    Email.reset_user_temporary_mailbox(user_id)
+    
+    {:noreply,
+     socket
+     |> put_flash(:info, "Temporary mailbox reset successfully")
+     |> push_navigate(to: ~p"/email/temp")}
   end
 
   @impl true
@@ -243,11 +259,6 @@ defmodule ElektrineWeb.EmailLive.TempMail do
       mailbox ->
         mailbox
     end
-  end
-
-  defp list_temp_mailboxes do
-    # For now, just return empty list - we'll create them on demand
-    []
   end
 
   defp format_expiry(expires_at) do

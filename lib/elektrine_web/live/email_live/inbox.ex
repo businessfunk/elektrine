@@ -788,35 +788,35 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     
     case action do
       "delete" ->
-        count = length(all_message_ids)
+        _count = length(all_message_ids)
         messages = Enum.map(all_message_ids, &Email.get_message/1)
         valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
         Enum.each(valid_messages, &Email.delete_message/1)
         refresh_messages_after_bulk_action(socket, length(valid_messages), "deleted")
         
       "archive" ->
-        count = length(all_message_ids)
+        _count = length(all_message_ids)
         messages = Enum.map(all_message_ids, &Email.get_message/1)
         valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
         Enum.each(valid_messages, &Email.archive_message/1)
         refresh_messages_after_bulk_action(socket, length(valid_messages), "archived")
         
       "mark_spam" ->
-        count = length(all_message_ids)
+        _count = length(all_message_ids)
         messages = Enum.map(all_message_ids, &Email.get_message/1)
         valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
         Enum.each(valid_messages, &Email.mark_as_spam/1)
         refresh_messages_after_bulk_action(socket, length(valid_messages), "marked as spam")
         
       "mark_read" ->
-        count = length(all_message_ids)
+        _count = length(all_message_ids)
         messages = Enum.map(all_message_ids, &Email.get_message/1)
         valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
         Enum.each(valid_messages, &Email.mark_as_read/1)
         refresh_messages_after_bulk_action(socket, length(valid_messages), "marked as read")
         
       "mark_unread" ->
-        count = length(all_message_ids)
+        _count = length(all_message_ids)
         messages = Enum.map(all_message_ids, &Email.get_message/1)
         valid_messages = Enum.filter(messages, &(&1 && &1.mailbox_id == socket.assigns.mailbox.id))
         Enum.each(valid_messages, &Email.mark_as_unread/1)

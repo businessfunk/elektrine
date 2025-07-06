@@ -125,8 +125,9 @@ defmodule Elektrine.Email.Receiver do
   defp store_incoming_message(mailbox_id, params) do
     sender_email = params["from"] || params["mail_from"]
 
-    # Check if sender is approved
+    # Check if sender is approved or rejected
     sender_approved = Email.sender_approved?(sender_email, mailbox_id)
+    sender_rejected = Email.sender_rejected?(sender_email, mailbox_id)
 
     # Base message attributes
     message_attrs = %{
@@ -146,7 +147,11 @@ defmodule Elektrine.Email.Receiver do
       "attachments" => process_attachments(params["attachments"]),
       "has_attachments" => has_attachments?(params["attachments"]),
       # Hey.com features
-      "screener_status" => if(sender_approved, do: "approved", else: "pending"),
+      "screener_status" => cond do
+        sender_approved -> "approved"
+        sender_rejected -> "rejected"
+        true -> "pending"
+      end,
       "sender_approved" => sender_approved
     }
 

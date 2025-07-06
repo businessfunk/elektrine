@@ -371,7 +371,8 @@ defmodule ElektrineWeb.AdminController do
   def invite_codes(conn, _params) do
     invite_codes = Accounts.list_invite_codes()
     stats = Accounts.get_invite_code_stats()
-    render(conn, :invite_codes, invite_codes: invite_codes, stats: stats)
+    invite_codes_enabled = Elektrine.System.invite_codes_enabled?()
+    render(conn, :invite_codes, invite_codes: invite_codes, stats: stats, invite_codes_enabled: invite_codes_enabled)
   end
   
   def new_invite_code(conn, _params) do
@@ -420,5 +421,27 @@ defmodule ElektrineWeb.AdminController do
     conn
     |> put_flash(:info, "Invite code deleted successfully.")
     |> redirect(to: ~p"/admin/invite-codes")
+  end
+  
+  def toggle_invite_system(conn, %{"enabled" => enabled}) do
+    enabled_bool = enabled == "true"
+    
+    case Elektrine.System.set_invite_codes_enabled(enabled_bool) do
+      {:ok, _config} ->
+        message = if enabled_bool do
+          "Invite code system enabled. New user registrations now require invite codes."
+        else
+          "Invite code system disabled. Users can now register without invite codes."
+        end
+        
+        conn
+        |> put_flash(:info, message)
+        |> redirect(to: ~p"/admin/invite-codes")
+        
+      {:error, _changeset} ->
+        conn
+        |> put_flash(:error, "Failed to update invite code system setting.")
+        |> redirect(to: ~p"/admin/invite-codes")
+    end
   end
 end
