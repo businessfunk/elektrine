@@ -274,11 +274,11 @@ defmodule ElektrineWeb.PostalInboundController do
               # Store in database
               email_data = %{
                 message_id: message_id,
-                from: from,
-                to: to,
-                subject: subject,
-                text_body: final_text_body,
-                html_body: html_body,
+                from: sanitize_utf8(from),
+                to: sanitize_utf8(to),
+                subject: sanitize_utf8(subject),
+                text_body: sanitize_utf8(final_text_body),
+                html_body: sanitize_utf8(html_body),
                 attachments: attachments,
                 has_attachments: has_attachments,
                 mailbox_id: mailbox.id,
@@ -413,11 +413,11 @@ defmodule ElektrineWeb.PostalInboundController do
               # Store in database
               email_data = %{
                 message_id: message_id,
-                from: from,
-                to: to,
-                subject: subject,
-                text_body: text_body,
-                html_body: html_body,
+                from: sanitize_utf8(from),
+                to: sanitize_utf8(to),
+                subject: sanitize_utf8(subject),
+                text_body: sanitize_utf8(text_body),
+                html_body: sanitize_utf8(html_body),
                 attachments: attachments,
                 has_attachments: has_attachments,
                 mailbox_id: mailbox.id,
@@ -1507,6 +1507,40 @@ defmodule ElektrineWeb.PostalInboundController do
           Logger.debug("Extracted email '#{clean}' failed validation")
           nil
         end
+    end
+  end
+
+  # Sanitize string to ensure UTF-8 compatibility
+  defp sanitize_utf8(nil), do: nil
+  defp sanitize_utf8(""), do: ""
+  
+  defp sanitize_utf8(text) when is_binary(text) do
+    # First try to validate if it's already valid UTF-8
+    case :unicode.characters_to_binary(text) do
+      {:error, _, _} ->
+        Logger.debug("Sanitizing non-UTF8 text, attempting Latin-1 conversion")
+        # If not valid UTF-8, try to convert from common encodings
+        text
+        |> :unicode.characters_to_binary(:latin1)
+        |> case do
+          {:error, _, _} ->
+            Logger.warning("Latin-1 conversion failed, forcing UTF-8 by replacing invalid chars")
+            # If Latin-1 fails, force UTF-8 by replacing invalid sequences
+            text
+            |> String.codepoints()
+            |> Enum.map(fn char ->
+              if String.valid?(char), do: char, else: "?"
+            end)
+            |> Enum.join()
+          
+          converted when is_binary(converted) ->
+            Logger.debug("Successfully converted from Latin-1 to UTF-8")
+            converted
+        end
+      
+      # Already valid UTF-8
+      valid_text when is_binary(valid_text) ->
+        valid_text
     end
   end
 
