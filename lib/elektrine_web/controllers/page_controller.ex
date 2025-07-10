@@ -5,8 +5,4 @@ defmodule ElektrineWeb.PageController do
     # Always skip layout for homepage to maintain fullscreen design
     render(conn, :home, layout: false)
   end
-
-  def about(conn, _params) do
-    render(conn, :about)
-  end
 end

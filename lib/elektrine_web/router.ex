@@ -22,7 +22,6 @@ defmodule ElektrineWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
-    get "/about", PageController, :about
 
     # Temporary email LiveView routes
     live "/temp-mail", TemporaryMailboxLive.Index, :index
