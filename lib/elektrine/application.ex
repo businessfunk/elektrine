@@ -16,6 +16,10 @@ defmodule Elektrine.Application do
       {Finch, name: Elektrine.Finch},
       # Start Quantum scheduler
       Elektrine.Scheduler,
+      # Start Email Cache
+      Elektrine.Email.Cache,
+      # Start Application Cache
+      Elektrine.AppCache,
       # Start to serve requests, typically the last entry
       ElektrineWeb.Endpoint
     ]

@@ -8,6 +8,8 @@ defmodule ElektrineWeb.UserAuth do
   import Phoenix.Controller
 
   alias Elektrine.Accounts
+  alias Elektrine.Email.Cached, as: EmailCached
+  alias Elektrine.AppCache
 
   # Make the remember me cookie valid for 60 days.
   # If you want to customize, set :elektrine, :user_remember_me_cookie_max_age
@@ -28,6 +30,9 @@ defmodule ElektrineWeb.UserAuth do
   def log_in_user(conn, user, params \\ %{}) do
     token = Phoenix.Token.sign(conn, "user auth", user.id)
     user_return_to = get_session(conn, :user_return_to)
+
+    # Warm up caches for the user after successful login
+    warm_user_caches(user)
 
     conn
     |> renew_session()
@@ -82,6 +87,9 @@ defmodule ElektrineWeb.UserAuth do
   Completes the 2FA login process by logging in the user.
   """
   def complete_two_factor_login(conn, user, params \\ %{}) do
+    # Also warm caches for 2FA completion
+    warm_user_caches(user)
+
     conn
     |> clear_two_factor_session()
     |> log_in_user(user, params)
@@ -213,6 +221,18 @@ defmodule ElektrineWeb.UserAuth do
         |> put_flash(:error, "You must be an admin to access this page.")
         |> redirect(to: ~p"/")
         |> halt()
+    end
+  end
+
+  # Private cache warming function
+  defp warm_user_caches(user) do
+    # Get user's mailbox
+    case Elektrine.Email.get_user_mailbox(user.id) do
+      nil -> :ok
+      mailbox ->
+        # Warm both email and app caches
+        EmailCached.warm_user_cache(user.id, mailbox.id)
+        AppCache.warm_user_cache(user.id, mailbox.id)
     end
   end
 end

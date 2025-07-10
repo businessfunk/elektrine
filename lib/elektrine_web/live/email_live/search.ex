@@ -3,6 +3,8 @@ defmodule ElektrineWeb.EmailLive.Search do
   import ElektrineWeb.EmailLive.EmailHelpers
 
   alias Elektrine.Email
+  alias Elektrine.Email.Cached
+  alias Elektrine.Search.Cached, as: SearchCached
 
   @impl true
   def mount(_params, _session, socket) do
@@ -26,7 +28,9 @@ defmodule ElektrineWeb.EmailLive.Search do
       |> assign(:search_query, "")
       |> assign(:search_results, nil)
       |> assign(:searching, false)
-      |> assign(:unread_count, Email.unread_count(mailbox.id))
+      |> assign(:unread_count, Cached.unread_count(mailbox.id))
+      |> assign(:recent_searches, SearchCached.get_recent_searches(current_user.id))
+      |> assign(:popular_searches, SearchCached.get_popular_searches())
 
     {:ok, socket}
   end
@@ -40,7 +44,13 @@ defmodule ElektrineWeb.EmailLive.Search do
 
     socket =
       if String.trim(query) != "" do
-        search_results = Email.search_messages(socket.assigns.mailbox.id, query, page, 20)
+        search_results = SearchCached.search_messages(
+          socket.assigns.current_user.id,
+          socket.assigns.mailbox.id,
+          query,
+          page,
+          20
+        )
 
         socket
         |> assign(:search_results, search_results)

@@ -78,7 +78,9 @@ defmodule Elektrine.MixProject do
       # HTML sanitization for email content
       {:html_sanitize_ex, "~> 1.4"},
       # TOTP library for 2FA
-      {:nimble_totp, "~> 1.0"}
+      {:nimble_totp, "~> 1.0"},
+      # In-memory caching
+      {:cachex, "~> 3.6"}
     ]
   end
 

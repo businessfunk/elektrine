@@ -14,6 +14,7 @@ defmodule Elektrine.Email do
   alias Elektrine.Email.ApprovedSender
   alias Elektrine.Email.RejectedSender
   alias Elektrine.Email.Alias
+  alias Elektrine.Email.CacheHooks
 
   @doc """
   Gets a user's mailbox.
@@ -72,6 +73,15 @@ defmodule Elektrine.Email do
     Mailbox
     |> where(user_id: ^user_id)
     |> order_by([m], desc: m.primary, asc: m.email)
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns all mailboxes in the system.
+  """
+  def list_all_mailboxes do
+    Mailbox
+    |> order_by([m], asc: m.id)
     |> Repo.all()
   end
 
@@ -390,8 +400,8 @@ defmodule Elektrine.Email do
           )
         end
 
-        # Return the original result
-        {:ok, message}
+        # Return the original result with cache invalidation
+        CacheHooks.with_cache_invalidation({:ok, message})
 
       error ->
         error
@@ -405,6 +415,7 @@ defmodule Elektrine.Email do
     message
     |> Message.changeset(attrs)
     |> Repo.update()
+    |> CacheHooks.with_cache_invalidation()
   end
 
   @doc """
@@ -433,7 +444,7 @@ defmodule Elektrine.Email do
           )
         end
 
-        {:ok, updated_message}
+        CacheHooks.with_cache_invalidation({:ok, updated_message}, user_id: mailbox && mailbox.user_id)
 
       error ->
         error
@@ -480,6 +491,7 @@ defmodule Elektrine.Email do
     message
     |> Message.spam_changeset()
     |> Repo.update()
+    |> CacheHooks.with_cache_invalidation()
   end
 
   @doc """
@@ -498,6 +510,7 @@ defmodule Elektrine.Email do
     message
     |> Message.archive_changeset()
     |> Repo.update()
+    |> CacheHooks.with_cache_invalidation()
   end
 
   @doc """
@@ -507,6 +520,7 @@ defmodule Elektrine.Email do
     message
     |> Message.unarchive_changeset()
     |> Repo.update()
+    |> CacheHooks.with_cache_invalidation()
   end
 
   @doc """
@@ -521,10 +535,10 @@ defmodule Elektrine.Email do
 
     case result do
       {:ok, _deleted_message} ->
+        mailbox = get_mailbox(mailbox_id)
+        
         # Only broadcast if the deleted message was unread
         if was_unread do
-          mailbox = get_mailbox(mailbox_id)
-
           if mailbox && mailbox.user_id do
             # Get the new unread count
             new_unread_count = unread_count(mailbox_id)
@@ -538,7 +552,9 @@ defmodule Elektrine.Email do
           end
         end
 
-        result
+        # Invalidate caches after deletion
+        user_id = if mailbox, do: mailbox.user_id
+        CacheHooks.with_cache_invalidation(result, user_id: user_id, mailbox_id: mailbox_id)
 
       error ->
         error
@@ -1428,24 +1444,35 @@ defmodule Elektrine.Email do
     subject = String.downcase(message_attrs["subject"] || "")
     from = String.downcase(message_attrs["from"] || "")
     body = String.downcase(message_attrs["text_body"] || "")
+    html_body = String.downcase(message_attrs["html_body"] || "")
+
+    # Combine text and HTML body for analysis
+    combined_body = "#{body} #{html_body}"
 
     cond do
       # Receipt detection
-      receipt_keywords?(subject, body) ->
+      receipt_keywords?(subject, combined_body) ->
         Map.merge(message_attrs, %{
           "category" => "paper_trail",
           "is_receipt" => true
         })
 
       # Newsletter detection  
-      newsletter_keywords?(subject, from, body) ->
+      newsletter_keywords?(subject, from, combined_body) ->
         Map.merge(message_attrs, %{
           "category" => "feed",
           "is_newsletter" => true
         })
 
       # Notification detection
-      notification_keywords?(subject, from, body) ->
+      notification_keywords?(subject, from, combined_body) ->
+        Map.merge(message_attrs, %{
+          "category" => "feed",
+          "is_notification" => true
+        })
+
+      # Additional automated message detection
+      automated_message?(subject, from, combined_body) ->
         Map.merge(message_attrs, %{
           "category" => "feed",
           "is_notification" => true
@@ -1485,7 +1512,27 @@ defmodule Elektrine.Email do
       "digest",
       "news",
       "update",
-      "announcement"
+      "announcement",
+      "bulletin",
+      "briefing",
+      "roundup",
+      "daily",
+      "summary",
+      "edition",
+      "issues",
+      "subscribe",
+      "mailing list",
+      "manage your subscription",
+      "view in browser",
+      "click here to unsubscribe",
+      "promotional",
+      "marketing",
+      "campaign",
+      "deal",
+      "offer",
+      "sale",
+      "discount",
+      "special offer"
     ]
 
     newsletter_domains = [
@@ -1493,7 +1540,18 @@ defmodule Elektrine.Email do
       "news",
       "updates",
       "marketing",
-      "promo"
+      "promo",
+      "campaign",
+      "mail",
+      "email",
+      "bulk",
+      "broadcast",
+      "list",
+      "digest",
+      "marketing",
+      "deals",
+      "offers",
+      "sales"
     ]
 
     has_newsletter_terms =
@@ -1524,7 +1582,37 @@ defmodule Elektrine.Email do
       "welcome",
       "password reset",
       "forgot password",
-      "reset password"
+      "reset password",
+      "verification",
+      "activate",
+      "activation",
+      "confirm",
+      "confirmation",
+      "important",
+      "urgent",
+      "action required",
+      "please verify",
+      "click to verify",
+      "automated",
+      "automatic",
+      "system generated",
+      "do not reply",
+      "support",
+      "help",
+      "service",
+      "update",
+      "change",
+      "new device",
+      "new location",
+      "signin",
+      "sign in",
+      "login attempt",
+      "suspicious activity",
+      "2fa",
+      "two factor",
+      "code",
+      "otp",
+      "token"
     ]
 
     notification_domains = [
@@ -1535,7 +1623,22 @@ defmodule Elektrine.Email do
       "system",
       "security",
       "auth",
-      "account"
+      "account",
+      "support",
+      "help",
+      "service",
+      "admin",
+      "automated",
+      "auto",
+      "bot",
+      "daemon",
+      "robot",
+      "notifications",
+      "alerts",
+      "updates",
+      "info",
+      "donotreply",
+      "do-not-reply"
     ]
 
     has_notification_terms =
@@ -1551,6 +1654,91 @@ defmodule Elektrine.Email do
     has_notification_terms or has_notification_domain
   end
 
+  defp automated_message?(subject, from, body) do
+    # Additional patterns for automated messages that might not be caught by notifications
+    automated_patterns = [
+      # Common automated senders
+      "github.com",
+      "gitlab.com", 
+      "atlassian.com",
+      "slack.com",
+      "discord.com",
+      "linkedin.com",
+      "twitter.com",
+      "facebook.com",
+      "instagram.com",
+      "youtube.com",
+      "medium.com",
+      "substack.com",
+      "mailchimp.com",
+      "constantcontact.com",
+      "sendgrid.com",
+      "mailgun.com",
+      
+      # Social media patterns
+      "mentioned you",
+      "tagged you",
+      "liked your",
+      "commented on",
+      "shared your",
+      "followed you",
+      "friend request",
+      "connection request",
+      
+      # Automated service patterns
+      "backup completed",
+      "deployment",
+      "build failed",
+      "build successful",
+      "server alert",
+      "monitoring",
+      "log alert",
+      "status update",
+      "maintenance",
+      "downtime",
+      "uptime",
+      
+      # Subscription/service updates
+      "subscription",
+      "renewal",
+      "expired",
+      "trial ending",
+      "upgrade",
+      "plan change",
+      "billing cycle",
+      
+      # E-commerce patterns
+      "shipped",
+      "delivered",
+      "tracking",
+      "order status",
+      "return",
+      "refund processed",
+      "wishlist",
+      "cart reminder",
+      "price drop",
+      "back in stock"
+    ]
+    
+    # Check if sender domain or message content matches automated patterns
+    Enum.any?(automated_patterns, fn pattern ->
+      String.contains?(from, pattern) or 
+      String.contains?(subject, pattern) or 
+      String.contains?(body, pattern)
+    end) or
+    # Check for no-reply patterns that might not be caught by notification detection
+    String.contains?(from, "@") and (
+      String.starts_with?(from, "no-reply") or
+      String.starts_with?(from, "noreply") or
+      String.starts_with?(from, "donotreply") or
+      String.starts_with?(from, "do-not-reply") or
+      String.starts_with?(from, "automated") or
+      String.starts_with?(from, "auto-") or
+      String.starts_with?(from, "bot@") or
+      String.starts_with?(from, "robot@")
+    )
+  end
+
   @doc """
   Re-categorizes existing messages in a mailbox based on current categorization rules.
   Useful for applying updated categorization logic to existing messages.
@@ -1562,34 +1750,47 @@ defmodule Elektrine.Email do
       |> where([m], not m.spam)
       |> Repo.all()
 
-    Enum.each(messages, fn message ->
+    processed = length(messages)
+    
+    changed = Enum.count(messages, fn message ->
       # Create attrs map similar to what's used during message creation
       message_attrs = %{
         "subject" => message.subject || "",
         "from" => message.from || "",
-        "text_body" => message.text_body || ""
+        "text_body" => message.text_body || "",
+        "html_body" => message.html_body || ""
       }
 
       # Apply categorization
       categorized_attrs = categorize_message(message_attrs)
 
-      # Extract only the categorization fields
-      update_attrs =
-        %{}
-        |> maybe_put(:category, categorized_attrs["category"])
-        |> maybe_put(:is_receipt, categorized_attrs["is_receipt"])
-        |> maybe_put(:is_newsletter, categorized_attrs["is_newsletter"])
-        |> maybe_put(:is_notification, categorized_attrs["is_notification"])
+      # Check if anything would change
+      would_change_category = categorized_attrs["category"] != message.category
+      would_change_receipt = Map.get(categorized_attrs, "is_receipt", false) != message.is_receipt
+      would_change_newsletter = Map.get(categorized_attrs, "is_newsletter", false) != message.is_newsletter
+      would_change_notification = Map.get(categorized_attrs, "is_notification", false) != message.is_notification
 
-      # Update the message if any categorization changed
-      if map_size(update_attrs) > 0 do
+      if would_change_category or would_change_receipt or would_change_newsletter or would_change_notification do
+        # Extract only the categorization fields
+        update_attrs =
+          %{}
+          |> maybe_put(:category, categorized_attrs["category"])
+          |> maybe_put(:is_receipt, categorized_attrs["is_receipt"])
+          |> maybe_put(:is_newsletter, categorized_attrs["is_newsletter"])
+          |> maybe_put(:is_notification, categorized_attrs["is_notification"])
+
+        # Update the message
         message
         |> Message.changeset(update_attrs)
         |> Repo.update()
+        
+        true
+      else
+        false
       end
     end)
 
-    :ok
+    {processed, changed}
   end
 
   # Helper function to conditionally put values in a map

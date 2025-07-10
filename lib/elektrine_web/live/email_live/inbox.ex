@@ -4,6 +4,8 @@ defmodule ElektrineWeb.EmailLive.Inbox do
   import Phoenix.HTML, only: [raw: 1]
 
   alias Elektrine.Email
+  alias Elektrine.Email.Cached
+  alias Elektrine.AppCache
 
   @impl true
   def mount(params, _session, socket) do
@@ -25,7 +27,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     socket =
       if filter == "aliases" do
         # For aliases tab, load aliases instead of messages
-        aliases = Email.list_aliases(user.id)
+        aliases = Cached.get_aliases(user.id)
         alias_changeset = Email.change_alias(%Email.Alias{})
         mailbox_changeset = Email.change_mailbox_forwarding(mailbox)
 
@@ -36,9 +38,9 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         |> assign(:alias_form, to_form(alias_changeset))
         |> assign(:mailbox_form, to_form(mailbox_changeset))
         |> assign(:current_filter, filter)
-        |> assign(:unread_count, Email.unread_count(mailbox.id))
-        |> assign(:new_contacts_count, get_new_contacts_count(mailbox.id))
-        |> assign(:bulk_mail_count, get_bulk_mail_count(mailbox.id))
+        |> assign(:unread_count, Cached.unread_count(mailbox.id))
+        |> assign(:new_contacts_count, Cached.screener_messages_count(mailbox.id))
+        |> assign(:bulk_mail_count, Cached.feed_messages_count(mailbox.id))
         |> assign(:show_reply_later_modal, false)
         |> assign(:reply_later_message, nil)
         |> assign(:selected_messages, MapSet.new())
@@ -56,9 +58,9 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         |> assign(:messages, pagination.messages)
         |> assign(:pagination, pagination)
         |> assign(:current_filter, filter)
-        |> assign(:unread_count, Email.unread_count(mailbox.id))
-        |> assign(:new_contacts_count, get_new_contacts_count(mailbox.id))
-        |> assign(:bulk_mail_count, get_bulk_mail_count(mailbox.id))
+        |> assign(:unread_count, Cached.unread_count(mailbox.id))
+        |> assign(:new_contacts_count, Cached.screener_messages_count(mailbox.id))
+        |> assign(:bulk_mail_count, Cached.feed_messages_count(mailbox.id))
         |> assign(:show_reply_later_modal, false)
         |> assign(:reply_later_message, nil)
         |> assign(:selected_messages, MapSet.new())
@@ -76,7 +78,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     socket =
       if filter == "aliases" do
         # For aliases tab, load aliases instead of messages
-        aliases = Email.list_aliases(user.id)
+        aliases = Cached.get_aliases(user.id)
         alias_changeset = Email.change_alias(%Email.Alias{})
         mailbox = Email.get_user_mailbox(user.id)
         mailbox_changeset = Email.change_mailbox_forwarding(mailbox)
@@ -98,8 +100,8 @@ defmodule ElektrineWeb.EmailLive.Inbox do
         |> assign(:pagination, pagination)
         |> assign(:current_filter, filter)
         |> assign(:page_title, get_page_title(filter))
-        |> assign(:new_contacts_count, get_new_contacts_count(mailbox.id))
-        |> assign(:bulk_mail_count, get_bulk_mail_count(mailbox.id))
+        |> assign(:new_contacts_count, Cached.screener_messages_count(mailbox.id))
+        |> assign(:bulk_mail_count, Cached.feed_messages_count(mailbox.id))
         |> assign(:selected_messages, if(filter in ["inbox", "new_contacts"], do: socket.assigns[:selected_messages] || MapSet.new(), else: MapSet.new()))
         |> assign(:select_all_pages, if(filter in ["inbox", "new_contacts"], do: socket.assigns[:select_all_pages] || false, else: false))
         |> stream(:messages, pagination.messages, reset: true)
@@ -120,8 +122,8 @@ defmodule ElektrineWeb.EmailLive.Inbox do
      |> assign(:messages, pagination.messages)
      |> assign(:pagination, pagination)
      |> assign(:unread_count, unread_count)
-     |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
-     |> assign(:bulk_mail_count, get_bulk_mail_count(socket.assigns.mailbox.id))
+     |> assign(:new_contacts_count, Cached.screener_messages_count(socket.assigns.mailbox.id))
+     |> assign(:bulk_mail_count, Cached.feed_messages_count(socket.assigns.mailbox.id))
      |> stream(:messages, pagination.messages, reset: true)
      |> put_flash(:info, "Messages refreshed")}
   end
@@ -364,7 +366,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
        |> stream_delete(:messages, message)
        |> assign(:messages, pagination.messages)
        |> assign(:pagination, pagination)
-       |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
+       |> assign(:new_contacts_count, Cached.screener_messages_count(socket.assigns.mailbox.id))
        |> put_flash(:info, "Sender approved and added to contacts")}
     else
       {:noreply, put_flash(socket, :error, "Message not found")}
@@ -387,7 +389,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
        |> stream_delete(:messages, message)
        |> assign(:messages, pagination.messages)
        |> assign(:pagination, pagination)
-       |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
+       |> assign(:new_contacts_count, Cached.screener_messages_count(socket.assigns.mailbox.id))
        |> put_flash(:info, "Sender rejected")}
     else
       {:noreply, put_flash(socket, :error, "Message not found")}
@@ -505,7 +507,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
        |> stream_delete(:messages, message)
        |> assign(:messages, pagination.messages)
        |> assign(:pagination, pagination)
-       |> assign(:bulk_mail_count, get_bulk_mail_count(socket.assigns.mailbox.id))
+       |> assign(:bulk_mail_count, Cached.feed_messages_count(socket.assigns.mailbox.id))
        |> put_flash(:info, "Message moved to inbox")}
     else
       {:noreply, put_flash(socket, :error, "Message not found")}
@@ -519,7 +521,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
 
     case Email.create_alias(alias_params) do
       {:ok, _alias} ->
-        aliases = Email.list_aliases(user.id)
+        aliases = Cached.get_aliases(user.id)
         alias_changeset = Email.change_alias(%Email.Alias{})
 
         {:noreply,
@@ -546,7 +548,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       alias ->
         case Email.update_alias(alias, %{enabled: !alias.enabled}) do
           {:ok, _alias} ->
-            aliases = Email.list_aliases(user.id)
+            aliases = Cached.get_aliases(user.id)
             status = if alias.enabled, do: "disabled", else: "enabled"
 
             {:noreply,
@@ -570,7 +572,7 @@ defmodule ElektrineWeb.EmailLive.Inbox do
       alias ->
         case Email.delete_alias(alias) do
           {:ok, _alias} ->
-            aliases = Email.list_aliases(user.id)
+            aliases = Cached.get_aliases(user.id)
 
             {:noreply,
              socket
@@ -628,10 +630,14 @@ defmodule ElektrineWeb.EmailLive.Inbox do
 
     Logger.debug("Full message details: #{inspect(message, pretty: true)}")
 
+    # Invalidate caches for this mailbox when new email arrives
+    user = socket.assigns.current_user
+    Cached.invalidate_message_caches(mailbox.id, user.id)
+    
     # Get the latest messages with pagination - stay on page 1 for new messages
     filter = socket.assigns.current_filter
     pagination = get_filtered_messages(mailbox.id, filter, 1, 20)
-    unread_count = Email.unread_count(mailbox.id)
+    unread_count = Cached.unread_count(mailbox.id)
 
     Logger.info("Retrieved #{length(pagination.messages)} messages from database")
     Logger.info("Current messages in socket: #{length(socket.assigns.messages)}")
@@ -660,6 +666,8 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     socket =
       socket
       |> assign(:unread_count, unread_count)
+      |> assign(:new_contacts_count, Cached.screener_messages_count(mailbox.id))
+      |> assign(:bulk_mail_count, Cached.feed_messages_count(mailbox.id))
       |> assign(:messages, pagination.messages)
       |> assign(:pagination, pagination)
       |> stream(:messages, pagination.messages, reset: true)
@@ -773,8 +781,8 @@ defmodule ElektrineWeb.EmailLive.Inbox do
      |> assign(:unread_count, unread_count)
      |> assign(:selected_messages, MapSet.new())
      |> assign(:select_all_pages, false)
-     |> assign(:new_contacts_count, get_new_contacts_count(socket.assigns.mailbox.id))
-     |> assign(:bulk_mail_count, get_bulk_mail_count(socket.assigns.mailbox.id))
+     |> assign(:new_contacts_count, Cached.screener_messages_count(socket.assigns.mailbox.id))
+     |> assign(:bulk_mail_count, Cached.feed_messages_count(socket.assigns.mailbox.id))
      |> stream(:messages, pagination.messages, reset: true)
      |> put_flash(:info, "#{count} messages #{action}")}
   end
@@ -843,12 +851,12 @@ defmodule ElektrineWeb.EmailLive.Inbox do
 
   defp get_filtered_messages(mailbox_id, filter, page, per_page) do
     case filter do
-      "new_contacts" -> Email.list_screener_messages_paginated(mailbox_id, page, per_page)
-      "bulk_mail" -> Email.list_feed_messages_paginated(mailbox_id, page, per_page)
-      "paper_trail" -> Email.list_paper_trail_messages_paginated(mailbox_id, page, per_page)
-      "the_pile" -> Email.list_set_aside_messages_paginated(mailbox_id, page, per_page)
-      "boomerang" -> Email.list_reply_later_messages_paginated(mailbox_id, page, per_page)
-      _ -> Email.list_inbox_messages_paginated(mailbox_id, page, per_page)
+      "new_contacts" -> Cached.list_screener_messages_paginated(mailbox_id, page, per_page)
+      "bulk_mail" -> Cached.list_feed_messages_paginated(mailbox_id, page, per_page)
+      "paper_trail" -> Cached.list_paper_trail_messages_paginated(mailbox_id, page, per_page)
+      "the_pile" -> Cached.list_set_aside_messages_paginated(mailbox_id, page, per_page)
+      "boomerang" -> Cached.list_reply_later_messages_paginated(mailbox_id, page, per_page)
+      _ -> Cached.list_inbox_messages_paginated(mailbox_id, page, per_page)
     end
   end
 
@@ -864,13 +872,6 @@ defmodule ElektrineWeb.EmailLive.Inbox do
     end
   end
 
-  defp get_new_contacts_count(mailbox_id) do
-    Email.list_screener_messages(mailbox_id) |> length()
-  end
-
-  defp get_bulk_mail_count(mailbox_id) do
-    Email.list_feed_messages(mailbox_id) |> length()
-  end
 
   defp get_or_create_mailbox(user) do
     case Email.get_user_mailbox(user.id) do
